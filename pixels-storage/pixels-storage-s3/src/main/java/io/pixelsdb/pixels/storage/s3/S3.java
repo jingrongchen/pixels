@@ -31,6 +31,11 @@ import software.amazon.awssdk.http.crt.AwsCrtAsyncHttpClient;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 
+import software.amazon.awssdk.http.crt.ProxyConfiguration;
+import software.amazon.awssdk.http.SdkHttpConfigurationOption;
+import software.amazon.awssdk.utils.AttributeMap;
+import java.net.URI;
+
 import java.io.IOException;
 import java.time.Duration;
 
@@ -90,7 +95,10 @@ public final class S3 extends AbstractS3
                         .eventLoopGroup(SdkEventLoopGroup.builder().numberOfThreads(clientServiceThreads).build())
                         .maxConcurrency(maxRequestConcurrency).maxPendingConnectionAcquires(maxPendingRequests)).build();
         */
+        
+        
 
+        /* Normal*/ 
         s3Async = S3AsyncClient.builder()
                 .httpClientBuilder(AwsCrtAsyncHttpClient.builder()
                         .maxConcurrency(MaxRequestConcurrency))
@@ -104,6 +112,35 @@ public final class S3 extends AbstractS3
                 .socketTimeout(Duration.ofSeconds(ConnTimeoutSec))
                 .connectionAcquisitionTimeout(Duration.ofSeconds(ConnAcquisitionTimeoutSec))
                 .maxConnections(MaxRequestConcurrency)).build();
+
+        /*under proxy */
+        // ProxyConfiguration proxy = ProxyConfiguration.builder().host("").port(0000).build();
+        // software.amazon.awssdk.http.apache.ProxyConfiguration proxy2=software.amazon.awssdk.http.apache.ProxyConfiguration.builder().endpoint(URI.create("")).build();
+
+        // final AttributeMap attributeMap = AttributeMap.builder()
+        //         .put(SdkHttpConfigurationOption.TRUST_ALL_CERTIFICATES, true)
+        //         .build();
+
+
+        // s3Async = S3AsyncClient.builder().httpClient(
+        //     AwsCrtAsyncHttpClient
+        //         .builder()
+        //         .proxyConfiguration(proxy)
+        //         .maxConcurrency(MaxRequestConcurrency)
+        //         .buildWithDefaults(attributeMap)
+        // ).build();
+        
+        
+        // s3 = S3Client.builder().httpClient(
+        //     ApacheHttpClient.builder()
+        //         .connectionTimeout(Duration.ofSeconds(ConnTimeoutSec))
+        //         .socketTimeout(Duration.ofSeconds(ConnTimeoutSec))
+        //         .connectionAcquisitionTimeout(Duration.ofSeconds(ConnAcquisitionTimeoutSec))
+        //         .maxConnections(MaxRequestConcurrency)
+        //         .proxyConfiguration(proxy2)
+        //         .buildWithDefaults(attributeMap)
+        //         ).build();
+
     }
 
     @Override

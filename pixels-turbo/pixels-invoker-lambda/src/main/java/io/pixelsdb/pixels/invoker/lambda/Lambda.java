@@ -21,7 +21,9 @@ package io.pixelsdb.pixels.invoker.lambda;
 
 import software.amazon.awssdk.http.crt.AwsCrtAsyncHttpClient;
 import software.amazon.awssdk.services.lambda.LambdaAsyncClient;
+import software.amazon.awssdk.utils.AttributeMap;
 
+import software.amazon.awssdk.http.SdkHttpConfigurationOption;
 import java.time.Duration;
 
 /**
@@ -31,6 +33,10 @@ import java.time.Duration;
 public class Lambda
 {
     private static final Lambda instance = new Lambda();
+    
+    final AttributeMap attributeMap = AttributeMap.builder()
+    .put(SdkHttpConfigurationOption.TRUST_ALL_CERTIFICATES, true)
+    .build();
 
     public static Lambda Instance()
     {
@@ -40,7 +46,13 @@ public class Lambda
     private final LambdaAsyncClient asyncClient;
 
     private Lambda()
-    {
+    {   
+        /* under proxy */
+        // asyncClient = LambdaAsyncClient.builder().httpClient(
+        //         AwsCrtAsyncHttpClient.builder().maxConcurrency(1000)
+        //                 .connectionMaxIdleTime(Duration.ofSeconds(1000)).buildWithDefaults(attributeMap)).build();
+        
+        /* under normal */
         asyncClient = LambdaAsyncClient.builder().httpClientBuilder(
                 AwsCrtAsyncHttpClient.builder().maxConcurrency(1000)
                         .connectionMaxIdleTime(Duration.ofSeconds(1000))).build();

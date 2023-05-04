@@ -715,7 +715,7 @@ public class PixelsPlanner
                         parent.get().getJoin().getRightTable(),
                         parent.get().getJoin().getJoinEndian());
 
-                // Check if the current table if the left child or the right child of parent.
+                // Check if the current table is the left child or the right child of parent.
                 if (joinedTable == parent.get().getJoin().getLeftTable())
                 {
                     postPartitionInfo = new PartitionInfo(
