@@ -1,8 +1,0 @@
-io/pixelsdb/pixels/invoker/lambda/TestPartitionedChainJoinLambdaInvoker.class
-io/pixelsdb/pixels/invoker/lambda/TestPartitionedJoinLambdaInvoker.class
-io/pixelsdb/pixels/invoker/lambda/TestLambdaInvoker.class
-io/pixelsdb/pixels/invoker/lambda/TestBroadcastChainJoinLambdaInvoker.class
-io/pixelsdb/pixels/invoker/lambda/TestPartialAggregationLambdaInvoker.class
-io/pixelsdb/pixels/invoker/lambda/TestPartitionLambdaInvoker.class
-io/pixelsdb/pixels/invoker/lambda/TestBroadcastJoinLambdaInvoker.class
-io/pixelsdb/pixels/invoker/lambda/TestAggregationLambdaInvoker.class

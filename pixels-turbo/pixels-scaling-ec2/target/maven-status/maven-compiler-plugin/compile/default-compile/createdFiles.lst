@@ -1,4 +1,0 @@
-io/pixelsdb/pixels/scaling/ec2/Ec2MetricsCollector.class
-io/pixelsdb/pixels/scaling/ec2/CloudWatchMetrics.class
-io/pixelsdb/pixels/scaling/ec2/Ec2MetricsCollectorProvider.class
-io/pixelsdb/pixels/scaling/ec2/CloudWatch.class

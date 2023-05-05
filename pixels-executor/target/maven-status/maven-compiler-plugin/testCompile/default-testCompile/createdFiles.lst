@@ -1,4 +1,0 @@
-io/pixelsdb/pixels/executor/join/TestPartitioner.class
-io/pixelsdb/pixels/executor/predicate/TestScanFile.class
-io/pixelsdb/pixels/executor/predicate/TestPredicate.class
-io/pixelsdb/pixels/executor/aggregation/TestAggregator.class

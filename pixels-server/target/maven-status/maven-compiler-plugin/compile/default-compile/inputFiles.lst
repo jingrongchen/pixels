@@ -1,9 +1,0 @@
-/home/ubuntu/opt/pixels/pixels-server/src/main/java/io/pixelsdb/pixels/server/PixelsProxyApplication.java
-/home/ubuntu/opt/pixels/pixels-server/src/main/java/io/pixelsdb/pixels/server/grpc/AmphiExceptionAdvice.java
-/home/ubuntu/opt/pixels/pixels-server/src/main/java/io/pixelsdb/pixels/server/controller/LoginController.java
-/home/ubuntu/opt/pixels/pixels-server/src/main/java/io/pixelsdb/pixels/server/grpc/AmphiServiceImpl.java
-/home/ubuntu/opt/pixels/pixels-server/src/main/java/io/pixelsdb/pixels/server/config/JsonAuthenticationSuccessHandler.java
-/home/ubuntu/opt/pixels/pixels-server/src/main/java/io/pixelsdb/pixels/server/config/JsonAuthenticationFailHandler.java
-/home/ubuntu/opt/pixels/pixels-server/src/main/java/io/pixelsdb/pixels/server/constant/HttpStatusCode.java
-/home/ubuntu/opt/pixels/pixels-server/src/main/java/io/pixelsdb/pixels/server/config/SecurityConfig.java
-/home/ubuntu/opt/pixels/pixels-server/src/main/java/io/pixelsdb/pixels/server/controller/MetadataController.java

@@ -1,8 +1,0 @@
-/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/test/java/io/pixelsdb/pixels/invoker/lambda/TestPartitionedChainJoinLambdaInvoker.java
-/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/test/java/io/pixelsdb/pixels/invoker/lambda/TestAggregationLambdaInvoker.java
-/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/test/java/io/pixelsdb/pixels/invoker/lambda/TestPartitionLambdaInvoker.java
-/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/test/java/io/pixelsdb/pixels/invoker/lambda/TestBroadcastJoinLambdaInvoker.java
-/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/test/java/io/pixelsdb/pixels/invoker/lambda/TestBroadcastChainJoinLambdaInvoker.java
-/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/test/java/io/pixelsdb/pixels/invoker/lambda/TestPartialAggregationLambdaInvoker.java
-/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/test/java/io/pixelsdb/pixels/invoker/lambda/TestPartitionedJoinLambdaInvoker.java
-/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/test/java/io/pixelsdb/pixels/invoker/lambda/TestLambdaInvoker.java

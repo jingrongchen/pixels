@@ -1,7 +1,0 @@
-io/pixelsdb/pixels/worker/lambda/ScanWorker.class
-io/pixelsdb/pixels/worker/lambda/PartitionWorker.class
-io/pixelsdb/pixels/worker/lambda/PartitionedJoinWorker.class
-io/pixelsdb/pixels/worker/lambda/PartitionedChainJoinWorker.class
-io/pixelsdb/pixels/worker/lambda/BroadcastChainJoinWorker.class
-io/pixelsdb/pixels/worker/lambda/AggregationWorker.class
-io/pixelsdb/pixels/worker/lambda/BroadcastJoinWorker.class

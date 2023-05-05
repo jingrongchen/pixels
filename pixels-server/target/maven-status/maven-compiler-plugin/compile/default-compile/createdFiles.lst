@@ -1,9 +1,0 @@
-io/pixelsdb/pixels/server/grpc/AmphiServiceImpl.class
-io/pixelsdb/pixels/server/constant/HttpStatusCode.class
-io/pixelsdb/pixels/server/config/JsonAuthenticationSuccessHandler.class
-io/pixelsdb/pixels/server/controller/MetadataController.class
-io/pixelsdb/pixels/server/grpc/AmphiExceptionAdvice.class
-io/pixelsdb/pixels/server/config/SecurityConfig.class
-io/pixelsdb/pixels/server/PixelsProxyApplication.class
-io/pixelsdb/pixels/server/controller/LoginController.class
-io/pixelsdb/pixels/server/config/JsonAuthenticationFailHandler.class
