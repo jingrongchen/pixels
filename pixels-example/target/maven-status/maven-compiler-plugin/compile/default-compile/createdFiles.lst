@@ -1,0 +1,5 @@
+io/pixelsdb/pixels/example/netty/RestServerInitializer.class
+io/pixelsdb/pixels/example/netty/RestServer.class
+io/pixelsdb/pixels/example/core/TestPixelsWriter.class
+io/pixelsdb/pixels/example/core/TestPixelsReader.class
+io/pixelsdb/pixels/example/netty/RestServerHandler.class

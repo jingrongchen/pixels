@@ -1,0 +1,20 @@
+starting main daemon...
+2023-05-04 14:13:00,061 [io.pixelsdb.pixels.daemon.Daemon]-[INFO] starting daemon thread...
+2023-05-04 14:13:01,063 [io.pixelsdb.pixels.daemon.Daemon]-[INFO] starting partner...
+2023-05-04 14:13:01,067 [io.pixelsdb.pixels.daemon.Daemon]-[ERROR] exception occurs when running.
+java.io.IOException: Cannot run program "/home/ubuntu/opt/pixelsbin/start-guard.sh": error=2, No such file or directory
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1048) ~[?:1.8.0_362]
+	at io.pixelsdb.pixels.daemon.Daemon.run(Daemon.java:161) [pixels-daemon-0.1.0-SNAPSHOT-full.jar:?]
+	at java.lang.Thread.run(Thread.java:750) [?:1.8.0_362]
+Caused by: java.io.IOException: error=2, No such file or directory
+	at java.lang.UNIXProcess.forkAndExec(Native Method) ~[?:1.8.0_362]
+	at java.lang.UNIXProcess.<init>(UNIXProcess.java:247) ~[?:1.8.0_362]
+	at java.lang.ProcessImpl.start(ProcessImpl.java:134) ~[?:1.8.0_362]
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1029) ~[?:1.8.0_362]
+	... 2 more
+2023-05-04 14:13:01,074 [io.pixelsdb.pixels.daemon.Daemon]-[INFO] The daemon thread is stopped, cleaning the file channels...
+Loading class `com.mysql.jdbc.Driver'. This is deprecated. The new driver class is `com.mysql.cj.jdbc.Driver'. The driver is automatically registered via the SPI and manual loading of the driver class is generally unnecessary.
+localhost
+2023-05-04 14:13:01,645 [io.pixelsdb.pixels.common.utils.EtcdUtil]-[INFO] Using etcd host: localhost
+2023-05-04 14:13:02,118 [io.pixelsdb.pixels.daemon.cache.CacheCoordinator]-[INFO] CacheCoordinator on ip-172-31-13-213 has started.
+2023-05-04 14:13:02,119 [io.pixelsdb.pixels.daemon.cache.CacheCoordinator]-[INFO] Starting Coordinator

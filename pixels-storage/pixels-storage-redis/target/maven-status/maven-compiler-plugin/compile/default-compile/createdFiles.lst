@@ -1,0 +1,5 @@
+io/pixelsdb/pixels/storage/redis/PhysicalRedisReader.class
+io/pixelsdb/pixels/storage/redis/PhysicalRedisWriter.class
+io/pixelsdb/pixels/storage/redis/RedisProvider.class
+io/pixelsdb/pixels/storage/redis/Redis.class
+io/pixelsdb/pixels/storage/redis/io/RedisOutputStream.class

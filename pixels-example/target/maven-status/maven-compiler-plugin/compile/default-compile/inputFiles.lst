@@ -1,0 +1,5 @@
+/home/ubuntu/opt/pixels/pixels-example/src/main/java/io/pixelsdb/pixels/example/netty/RestServerInitializer.java
+/home/ubuntu/opt/pixels/pixels-example/src/main/java/io/pixelsdb/pixels/example/core/TestPixelsReader.java
+/home/ubuntu/opt/pixels/pixels-example/src/main/java/io/pixelsdb/pixels/example/netty/RestServer.java
+/home/ubuntu/opt/pixels/pixels-example/src/main/java/io/pixelsdb/pixels/example/core/TestPixelsWriter.java
+/home/ubuntu/opt/pixels/pixels-example/src/main/java/io/pixelsdb/pixels/example/netty/RestServerHandler.java

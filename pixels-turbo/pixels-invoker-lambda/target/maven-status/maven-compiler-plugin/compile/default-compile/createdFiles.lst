@@ -1,0 +1,16 @@
+io/pixelsdb/pixels/invoker/lambda/PartitionedJoinInvoker.class
+io/pixelsdb/pixels/invoker/lambda/LambdaInvoker.class
+io/pixelsdb/pixels/invoker/lambda/BroadcastJoinInvoker.class
+io/pixelsdb/pixels/invoker/lambda/PartitionedJoinInvokerProvider.class
+io/pixelsdb/pixels/invoker/lambda/ScanInvoker.class
+io/pixelsdb/pixels/invoker/lambda/ScanInvokerProvider.class
+io/pixelsdb/pixels/invoker/lambda/AggregationInvokerProvider.class
+io/pixelsdb/pixels/invoker/lambda/BroadcastChainJoinInvoker.class
+io/pixelsdb/pixels/invoker/lambda/PartitionedChainJoinInvokerProvider.class
+io/pixelsdb/pixels/invoker/lambda/AggregationInvoker.class
+io/pixelsdb/pixels/invoker/lambda/PartitionedChainJoinInvoker.class
+io/pixelsdb/pixels/invoker/lambda/Lambda.class
+io/pixelsdb/pixels/invoker/lambda/BroadcastChainJoinInvokerProvider.class
+io/pixelsdb/pixels/invoker/lambda/PartitionInvokerProvider.class
+io/pixelsdb/pixels/invoker/lambda/PartitionInvoker.class
+io/pixelsdb/pixels/invoker/lambda/BroadcastJoinInvokerProvider.class

@@ -1,0 +1,14 @@
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/utils/TestGcMonitor.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/TestMetadataService.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/layout/TestCostBasedSplitsIndex.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/physical/natives/TestNatives.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/utils/TestStringUtil.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/utils/TestEtcdUtil.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/TestRandom.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/TestBalancer.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/lock/TestEtcdLock.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/TestConfigFactory.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/layout/TestProjections.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/utils/TestAutoIncrement.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/utils/TestHttpUtil.java
+/home/ubuntu/opt/pixels/pixels-common/src/test/java/io/pixelsdb/pixels/common/physical/TestJNA.java

@@ -1,0 +1,5 @@
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-redis/src/main/java/io/pixelsdb/pixels/storage/redis/PhysicalRedisWriter.java
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-redis/src/main/java/io/pixelsdb/pixels/storage/redis/RedisProvider.java
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-redis/src/main/java/io/pixelsdb/pixels/storage/redis/Redis.java
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-redis/src/main/java/io/pixelsdb/pixels/storage/redis/PhysicalRedisReader.java
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-redis/src/main/java/io/pixelsdb/pixels/storage/redis/io/RedisOutputStream.java

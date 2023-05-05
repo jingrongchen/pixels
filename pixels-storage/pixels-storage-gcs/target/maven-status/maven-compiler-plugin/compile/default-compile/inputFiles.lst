@@ -1,0 +1,4 @@
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-gcs/src/main/java/io/pixelsdb/pixels/storage/gcs/PhysicalGCSWriter.java
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-gcs/src/main/java/io/pixelsdb/pixels/storage/gcs/GCS.java
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-gcs/src/main/java/io/pixelsdb/pixels/storage/gcs/PhysicalGCSReader.java
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-gcs/src/main/java/io/pixelsdb/pixels/storage/gcs/GCSProvider.java

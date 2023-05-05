@@ -1,0 +1,10 @@
+/home/ubuntu/opt/pixels/pixels-cli/src/main/java/io/pixelsdb/pixels/cli/load/Consumer.java
+/home/ubuntu/opt/pixels/pixels-cli/src/main/java/io/pixelsdb/pixels/cli/executor/QueryExecutor.java
+/home/ubuntu/opt/pixels/pixels-cli/src/main/java/io/pixelsdb/pixels/cli/executor/LoadExecutor.java
+/home/ubuntu/opt/pixels/pixels-cli/src/main/java/io/pixelsdb/pixels/cli/executor/CommandExecutor.java
+/home/ubuntu/opt/pixels/pixels-cli/src/main/java/io/pixelsdb/pixels/cli/Main.java
+/home/ubuntu/opt/pixels/pixels-cli/src/main/java/io/pixelsdb/pixels/cli/load/PixelsConsumer.java
+/home/ubuntu/opt/pixels/pixels-cli/src/main/java/io/pixelsdb/pixels/cli/load/Parameters.java
+/home/ubuntu/opt/pixels/pixels-cli/src/main/java/io/pixelsdb/pixels/cli/executor/CopyExecutor.java
+/home/ubuntu/opt/pixels/pixels-cli/src/main/java/io/pixelsdb/pixels/cli/executor/CompactExecutor.java
+/home/ubuntu/opt/pixels/pixels-cli/src/main/java/io/pixelsdb/pixels/cli/executor/StatExecutor.java

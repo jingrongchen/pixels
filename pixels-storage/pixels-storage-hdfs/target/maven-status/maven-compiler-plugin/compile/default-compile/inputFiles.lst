@@ -1,0 +1,4 @@
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-hdfs/src/main/java/io/pixelsdb/pixels/storage/hdfs/HDFSProvider.java
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-hdfs/src/main/java/io/pixelsdb/pixels/storage/hdfs/HDFS.java
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-hdfs/src/main/java/io/pixelsdb/pixels/storage/hdfs/PhysicalHDFSReader.java
+/home/ubuntu/opt/pixels/pixels-storage/pixels-storage-hdfs/src/main/java/io/pixelsdb/pixels/storage/hdfs/PhysicalHDFSWriter.java

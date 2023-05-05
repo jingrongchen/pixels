@@ -1,0 +1,16 @@
+io/pixelsdb/pixels/common/TestConfigFactory.class
+io/pixelsdb/pixels/common/layout/TestProjections.class
+io/pixelsdb/pixels/common/utils/TestHttpUtil.class
+io/pixelsdb/pixels/common/layout/TestCostBasedSplitsIndex.class
+io/pixelsdb/pixels/common/utils/TestAutoIncrement.class
+io/pixelsdb/pixels/common/utils/TestStringUtil.class
+io/pixelsdb/pixels/common/physical/natives/TestNatives.class
+io/pixelsdb/pixels/common/physical/TestJNA.class
+io/pixelsdb/pixels/common/utils/TestEtcdUtil.class
+io/pixelsdb/pixels/common/lock/TestEtcdLock$RunReadLock.class
+io/pixelsdb/pixels/common/TestMetadataService.class
+io/pixelsdb/pixels/common/TestRandom.class
+io/pixelsdb/pixels/common/TestBalancer.class
+io/pixelsdb/pixels/common/lock/TestEtcdLock.class
+io/pixelsdb/pixels/common/lock/TestEtcdLock$RunWriteLock.class
+io/pixelsdb/pixels/common/utils/TestGcMonitor.class

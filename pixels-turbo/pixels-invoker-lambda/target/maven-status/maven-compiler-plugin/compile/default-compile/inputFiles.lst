@@ -1,0 +1,16 @@
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/AggregationInvokerProvider.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/PartitionInvoker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/BroadcastJoinInvoker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/PartitionInvokerProvider.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/PartitionedChainJoinInvokerProvider.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/BroadcastJoinInvokerProvider.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/ScanInvokerProvider.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/Lambda.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/PartitionedJoinInvoker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/AggregationInvoker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/PartitionedJoinInvokerProvider.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/BroadcastChainJoinInvoker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/BroadcastChainJoinInvokerProvider.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/PartitionedChainJoinInvoker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/ScanInvoker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-invoker-lambda/src/main/java/io/pixelsdb/pixels/invoker/lambda/LambdaInvoker.java

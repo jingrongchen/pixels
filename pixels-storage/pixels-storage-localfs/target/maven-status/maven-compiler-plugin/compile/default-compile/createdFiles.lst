@@ -1,0 +1,4 @@
+io/pixelsdb/pixels/storage/localfs/LocalFSProvider.class
+io/pixelsdb/pixels/storage/localfs/PhysicalLocalWriter.class
+io/pixelsdb/pixels/storage/localfs/PhysicalLocalReader.class
+io/pixelsdb/pixels/storage/localfs/LocalFS.class

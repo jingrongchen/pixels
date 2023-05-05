@@ -1,0 +1,18 @@
+starting main daemon...
+2023-05-04 14:13:05,005 [io.pixelsdb.pixels.daemon.Daemon]-[INFO] starting daemon thread...
+localhost
+2023-05-04 14:13:06,006 [io.pixelsdb.pixels.common.utils.EtcdUtil]-[INFO] Using etcd host: localhost
+2023-05-04 14:13:06,007 [io.pixelsdb.pixels.daemon.Daemon]-[INFO] starting partner...
+2023-05-04 14:13:06,012 [io.pixelsdb.pixels.daemon.Daemon]-[ERROR] exception occurs when running.
+java.io.IOException: Cannot run program "/home/ubuntu/opt/pixelsbin/start-guard.sh": error=2, No such file or directory
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1048) ~[?:1.8.0_362]
+	at io.pixelsdb.pixels.daemon.Daemon.run(Daemon.java:161) [pixels-daemon-0.1.0-SNAPSHOT-full.jar:?]
+	at java.lang.Thread.run(Thread.java:750) [?:1.8.0_362]
+Caused by: java.io.IOException: error=2, No such file or directory
+	at java.lang.UNIXProcess.forkAndExec(Native Method) ~[?:1.8.0_362]
+	at java.lang.UNIXProcess.<init>(UNIXProcess.java:247) ~[?:1.8.0_362]
+	at java.lang.ProcessImpl.start(ProcessImpl.java:134) ~[?:1.8.0_362]
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1029) ~[?:1.8.0_362]
+	... 2 more
+2023-05-04 14:13:06,018 [io.pixelsdb.pixels.daemon.Daemon]-[INFO] The daemon thread is stopped, cleaning the file channels...
+2023-05-04 14:13:06,432 [io.pixelsdb.pixels.daemon.cache.CacheManager]-[INFO] Starting Node Manager

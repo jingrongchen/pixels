@@ -1,0 +1,7 @@
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-worker-lambda/src/main/java/io/pixelsdb/pixels/worker/lambda/AggregationWorker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-worker-lambda/src/main/java/io/pixelsdb/pixels/worker/lambda/BroadcastChainJoinWorker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-worker-lambda/src/main/java/io/pixelsdb/pixels/worker/lambda/ScanWorker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-worker-lambda/src/main/java/io/pixelsdb/pixels/worker/lambda/PartitionWorker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-worker-lambda/src/main/java/io/pixelsdb/pixels/worker/lambda/BroadcastJoinWorker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-worker-lambda/src/main/java/io/pixelsdb/pixels/worker/lambda/PartitionedChainJoinWorker.java
+/home/ubuntu/opt/pixels/pixels-turbo/pixels-worker-lambda/src/main/java/io/pixelsdb/pixels/worker/lambda/PartitionedJoinWorker.java

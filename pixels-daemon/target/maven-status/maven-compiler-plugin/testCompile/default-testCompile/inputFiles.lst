@@ -1,0 +1,9 @@
+/home/ubuntu/opt/pixels/pixels-daemon/src/test/java/io/pixelsdb/pixels/daemon/TestSignal.java
+/home/ubuntu/opt/pixels/pixels-daemon/src/test/java/io/pixelsdb/pixels/daemon/metrics/TestPrometheus.java
+/home/ubuntu/opt/pixels/pixels-daemon/src/test/java/io/pixelsdb/pixels/daemon/cache/MockCacheManager.java
+/home/ubuntu/opt/pixels/pixels-daemon/src/test/java/io/pixelsdb/pixels/daemon/TestServer.java
+/home/ubuntu/opt/pixels/pixels-daemon/src/test/java/io/pixelsdb/pixels/daemon/metrics/TestMetricServer.java
+/home/ubuntu/opt/pixels/pixels-daemon/src/test/java/io/pixelsdb/pixels/daemon/cache/MockCacheCoordinator.java
+/home/ubuntu/opt/pixels/pixels-daemon/src/test/java/io/pixelsdb/pixels/daemon/metadata/dao/TestRdbDaos.java
+/home/ubuntu/opt/pixels/pixels-daemon/src/test/java/io/pixelsdb/pixels/daemon/metrics/TestJsonParse.java
+/home/ubuntu/opt/pixels/pixels-daemon/src/test/java/io/pixelsdb/pixels/daemon/metadata/dao/TestEtcdDaos.java

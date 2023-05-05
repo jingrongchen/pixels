@@ -1,0 +1,4 @@
+io/pixelsdb/pixels/storage/gcs/GCSProvider.class
+io/pixelsdb/pixels/storage/gcs/GCS.class
+io/pixelsdb/pixels/storage/gcs/PhysicalGCSReader.class
+io/pixelsdb/pixels/storage/gcs/PhysicalGCSWriter.class
