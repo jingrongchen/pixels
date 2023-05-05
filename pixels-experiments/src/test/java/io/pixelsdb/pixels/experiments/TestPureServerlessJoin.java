@@ -20,98 +20,90 @@
 package io.pixelsdb.pixels.experiments;
 
 import com.alibaba.fastjson.JSON;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ObjectArrays;
-import com.google.protobuf.InvalidProtocolBufferException;
-import io.pixelsdb.pixels.common.exception.InvalidArgumentException;
-import io.pixelsdb.pixels.common.exception.MetadataException;
-import io.pixelsdb.pixels.common.layout.*;
-import io.pixelsdb.pixels.common.metadata.MetadataService;
-import io.pixelsdb.pixels.common.metadata.SchemaTableName;
-import io.pixelsdb.pixels.common.metadata.domain.Layout;
-import io.pixelsdb.pixels.common.metadata.domain.Order;
-import io.pixelsdb.pixels.common.metadata.domain.Projections;
-import io.pixelsdb.pixels.common.metadata.domain.Splits;
+import com.google.common.base.Joiner;
 import io.pixelsdb.pixels.common.physical.Storage;
-import io.pixelsdb.pixels.common.physical.StorageFactory;
-import io.pixelsdb.pixels.common.utils.ConfigFactory;
-import io.pixelsdb.pixels.executor.join.JoinAlgorithm;
+import io.pixelsdb.pixels.common.turbo.InvokerFactory;
+import io.pixelsdb.pixels.common.turbo.WorkerType;
 import io.pixelsdb.pixels.executor.join.JoinType;
-import io.pixelsdb.pixels.executor.predicate.TableScanFilter;
-import io.pixelsdb.pixels.planner.plan.PlanOptimizer;
-import io.pixelsdb.pixels.planner.plan.logical.*;
-import io.pixelsdb.pixels.planner.plan.physical.*;
 import io.pixelsdb.pixels.planner.plan.physical.domain.*;
-import io.pixelsdb.pixels.planner.plan.physical.input.*;
-import io.pixelsdb.pixels.planner.PixelsPlanner;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import java.io.IOException;
-import java.util.*;
+import io.pixelsdb.pixels.planner.plan.physical.input.PartitionedJoinInput;
+import io.pixelsdb.pixels.planner.plan.physical.output.JoinOutput;
 import org.junit.Test;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
-
-public class TestPureServerlessJoin {
+/**
+ * @author hank
+ * @create 2022-05-14
+ */
+public class TestPureServerlessJoin
+{
     @Test
-    public void testChainJoin() throws IOException, MetadataException
-    {
-        BaseTable region = new BaseTable(
-                "tpch", "region", "region",
-                new String[] {"r_regionkey", "r_name"},
-                TableScanFilter.empty("tpch", "region"));
+    public void example1() throws ExecutionException, InterruptedException
+    {   
+        Set<Integer> hashValues = new HashSet<>(40);
+        for (int i = 0 ; i < 40; ++i)
+        {
+            hashValues.add(i);
+        }
 
-        BaseTable nation = new BaseTable(
-                "tpch", "nation", "nation",
-                new String[] {"n_nationkey", "n_name", "n_regionkey"},
-                TableScanFilter.empty("tpch", "nation"));
+        PartitionedJoinInput joinInput = new PartitionedJoinInput();
+        joinInput.setQueryId(123456);
+        PartitionedTableInfo leftTableInfo = new PartitionedTableInfo();
+        leftTableInfo.setTableName("orders");
+        leftTableInfo.setColumnsToRead(new String[]{"o_orderkey", "o_custkey", "o_orderstatus", "o_orderdate"});
+        leftTableInfo.setKeyColumnIds(new int[]{0});
+        leftTableInfo.setInputFiles(Arrays.asList(
+                "pixels-lambda-test/unit_tests/orders_part_0",
+                "pixels-lambda-test/unit_tests/orders_part_1",
+                "pixels-lambda-test/unit_tests/orders_part_2",
+                "pixels-lambda-test/unit_tests/orders_part_3",
+                "pixels-lambda-test/unit_tests/orders_part_4",
+                "pixels-lambda-test/unit_tests/orders_part_5",
+                "pixels-lambda-test/unit_tests/orders_part_6",
+                "pixels-lambda-test/unit_tests/orders_part_7"));
+        leftTableInfo.setParallelism(8);
+        leftTableInfo.setBase(false);
+        leftTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+        joinInput.setSmallTable(leftTableInfo);
 
-        Join join1 = new Join(region, nation,
-                new String[] {"r_name"}, new String[]{"n_nationkey", "n_name"},
-                new int[]{0}, new int[]{2}, new boolean[]{false, true}, new boolean[]{true, true, false},
-                JoinEndian.SMALL_LEFT, JoinType.EQUI_INNER, JoinAlgorithm.BROADCAST);
+        PartitionedTableInfo rightTableInfo = new PartitionedTableInfo();
+        rightTableInfo.setTableName("lineitem");
+        rightTableInfo.setColumnsToRead(new String[]{"l_orderkey", "l_suppkey", "l_extendedprice", "l_discount"});
+        rightTableInfo.setKeyColumnIds(new int[]{0});
+        rightTableInfo.setInputFiles(Arrays.asList(
+                "pixels-lambda-test/unit_tests/lineitem_part_0",
+                "pixels-lambda-test/unit_tests/lineitem_part_1"));
+        rightTableInfo.setParallelism(2);
+        rightTableInfo.setBase(false);
+        rightTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+        joinInput.setLargeTable(rightTableInfo);
 
-        JoinedTable joinedTable1 = new JoinedTable(
-                "join_1", "region_join_nation", "region_join_nation", join1);
+        PartitionedJoinInfo joinInfo = new PartitionedJoinInfo();
+        joinInfo.setJoinType(JoinType.EQUI_INNER);
+        joinInfo.setNumPartition(40);
+        joinInfo.setHashValues(Arrays.asList(16));
+        joinInfo.setSmallColumnAlias(new String[]{"o_custkey", "o_orderstatus", "o_orderdate"});
+        joinInfo.setLargeColumnAlias(new String[]{"l_partkey", "l_extendedprice", "l_discount"});
+        joinInfo.setSmallProjection(new boolean[]{false, true, true, true});
+        joinInfo.setLargeProjection(new boolean[]{false, true, true, true});
+        joinInfo.setPostPartition(true);
+        joinInfo.setPostPartitionInfo(new PartitionInfo(new int[] {0}, 100));
+        joinInput.setJoinInfo(joinInfo);
 
-        BaseTable supplier = new BaseTable(
-                "tpch", "supplier", "supplier",
-                new String[] {"s_suppkey", "s_name", "s_acctbal", "s_nationkey"},
-                TableScanFilter.empty("tpch", "supplier"));
+        joinInput.setOutput(new MultiOutputInfo("pixels-lambda-test/unit_tests/",
+                new StorageInfo(Storage.Scheme.s3, null, null, null),
+                true, Arrays.asList("partitioned_join_lineitem_orders_0"))); // force one file currently
 
-        Join join2 = new Join(joinedTable1, supplier,
-                new String[] {"r_name", "n_name"},
-                new String[] {"s_suppkey", "s_name", "s_acctbal"},
-                new int[]{1}, new int[]{3}, new boolean[]{true, false, true},
-                new boolean[]{true, true, true, false},
-                JoinEndian.SMALL_LEFT, JoinType.EQUI_INNER, JoinAlgorithm.BROADCAST);
-
-        JoinedTable joinedTable2 = new JoinedTable(
-                "join_2", "region_join_nation_join_supplier",
-                "region_join_nation_join_supplier", join2);
-
-        BaseTable lineitem = new BaseTable(
-                "tpch", "lineitem", "lineitem",
-                new String[] {"l_orderkey", "l_suppkey", "l_extendedprice", "l_shipdate"},
-                TableScanFilter.empty("tpch", "lineitem"));
-
-        Join join3 = new Join(joinedTable2, lineitem,
-                new String[] {"r_name", "n_name", "s_name", "s_acctbal"},
-                new String[] {"l_orderkey", "l_extendedprice", "l_shipdate"},
-                new int[]{2}, new int[]{1}, new boolean[]{true, true, false, true, true},
-                new boolean[]{true, false, true, true},
-                JoinEndian.SMALL_LEFT, JoinType.EQUI_INNER, JoinAlgorithm.BROADCAST);
-
-        JoinedTable root = new JoinedTable("tpch",
-                "region_join_nation_join_supplier_join_lineitem",
-                "region_join_nation_join_supplier_join_lineitem", join3);
-
-        PixelsPlanner joinExecutor = new PixelsPlanner(
-                123456, root, false, true, Optional.empty());
-
-        Operator joinOperator = joinExecutor.getRootOperator();
+        System.out.println(JSON.toJSONString(joinInput));
+        JoinOutput output = (JoinOutput) InvokerFactory.Instance()
+                .getInvoker(WorkerType.PARTITIONED_JOIN).invoke(joinInput).get();
+        System.out.println(output.getOutputs().size());
+        System.out.println(Joiner.on(",").join(output.getOutputs()));
+        System.out.println(Joiner.on(",").join(output.getRowGroupNums()));
     }
 }
+

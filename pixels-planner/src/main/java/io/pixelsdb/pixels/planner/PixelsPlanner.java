@@ -123,6 +123,8 @@ public class PixelsPlanner
         checkArgument(rootTable.getTableType() == Table.TableType.JOINED || rootTable.getTableType() == Table.TableType.AGGREGATED,
                 "currently, PixelsPlanner only supports join and aggregation");
         this.config = ConfigFactory.Instance();
+        System.out.println(config.getProperty("metadata.server.host"));
+        System.out.println(config.getProperty("metadata.server.port"));
         this.metadataService = metadataService.orElseGet(() ->
                 new MetadataService(config.getProperty("metadata.server.host"),
                         Integer.parseInt(config.getProperty("metadata.server.port"))));

@@ -58,14 +58,8 @@ public class TestPartitionLambdaInvoker
             ScanTableInfo tableInfo = new ScanTableInfo();
             tableInfo.setTableName("orders");
             tableInfo.setInputSplits(Arrays.asList(
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/orders/v-0-compact/20230416154127_" + i + "_compact.pxl", 0, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/orders/v-0-compact/20230416154127_" + i + "_compact.pxl", 4, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/orders/v-0-compact/20230416154127_" + i + "_compact.pxl", 8, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/orders/v-0-compact/20230416154127_" + i + "_compact.pxl", 12, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/orders/v-0-compact/20230416154127_" + i + "_compact.pxl", 16, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/orders/v-0-compact/20230416154127_" + i + "_compact.pxl", 20, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/orders/v-0-compact/20230416154127_" + i + "_compact.pxl", 24, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/orders/v-0-compact/20230416154127_" + i + "_compact.pxl", 28, 4)))));
+                    new InputSplit(Arrays.asList(new InputInfo("jingrong-test/orders/v-0-order/20230425100657_1.pxl", 0, 4))),
+                    new InputSplit(Arrays.asList(new InputInfo("jingrong-test/orders/v-0-order/20230425100657_1.pxl", 4, 4)))));
             tableInfo.setColumnsToRead(new String[]{"o_orderkey", "o_custkey", "o_orderstatus", "o_orderdate"});
             tableInfo.setFilter(filter);
             tableInfo.setBase(true);
@@ -76,7 +70,7 @@ public class TestPartitionLambdaInvoker
             partitionInfo.setNumPartition(40);
             partitionInfo.setKeyColumnIds(new int[]{0});
             input.setPartitionInfo(partitionInfo);
-            input.setOutput(new OutputInfo("pixels-lambda-test/unit_tests/orders_part_" + i, false,
+            input.setOutput(new OutputInfo("s3://jingrong-lambda-test/unit_tests/orders_part_" + i, false,
                     new StorageInfo(Storage.Scheme.s3, null, null, null), true));
 
             System.out.println(JSON.toJSONString(input));

@@ -37,7 +37,7 @@ public class TestMetadataService
     @Before
     public void init()
     {
-        this.instance = new MetadataService("node01", 18888);
+        this.instance = new MetadataService("127.0.0.1", 18888);
     }
 
     @After
@@ -74,7 +74,7 @@ public class TestMetadataService
     @Test
     public void testGetTableNames() throws MetadataException
     {
-        String schemaName = "pixels";
+        String schemaName = "tpch";
         List<String> tableList = new ArrayList<String>();
         List<Table> tables = instance.getTables(schemaName);
         for (Table t : tables)
