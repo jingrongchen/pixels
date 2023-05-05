@@ -25,3 +25,10 @@ resources/*.xml
 *.so
 *.o
 .vscode
+/lib
+/listener
+/sbin
+/var
+/bin
+pixels*.jar
+target/
