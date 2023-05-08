@@ -137,7 +137,7 @@ public class BasePartitionedChainJoinWorker extends Worker<PartitionedChainJoinI
                 outputFolder += "/";
             }
             boolean encoding = outputInfo.isEncoding();
-
+            
             ChainJoinInfo lastJoin = chainJoinInfos.get(chainJoinInfos.size() - 1);
             boolean partitionOutput = lastJoin.isPostPartition();
             PartitionInfo outputPartitionInfo = lastJoin.getPostPartitionInfo();

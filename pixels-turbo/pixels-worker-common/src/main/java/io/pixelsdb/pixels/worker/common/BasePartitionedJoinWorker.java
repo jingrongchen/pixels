@@ -37,6 +37,7 @@ import io.pixelsdb.pixels.planner.plan.physical.input.PartitionedJoinInput;
 import io.pixelsdb.pixels.planner.plan.physical.output.JoinOutput;
 import org.slf4j.Logger;
 
+// import io.pixelsdb.pixels.worker.common.WorkerCommon;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -137,7 +138,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
             {
                 requireNonNull(outputPartitionInfo, "outputPartitionInfo is null");
             }
-
+            
             WorkerCommon.initStorage(leftInputStorageInfo);
             WorkerCommon.initStorage(rightInputStorageInfo);
             WorkerCommon.initStorage(outputStorageInfo);

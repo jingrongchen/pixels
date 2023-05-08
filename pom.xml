@@ -191,6 +191,12 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.pixelsdb</groupId>
+                <artifactId>pixels-experiments</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- presto-jdbc -->
             <dependency>
                 <groupId>com.facebook.presto</groupId>

@@ -32,3 +32,6 @@ resources/*.xml
 /bin
 pixels*.jar
 target/
+.pixels.properties
+/pixels
+.pixels.zip

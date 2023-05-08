@@ -57,14 +57,9 @@ public class TestPureServerlessJoin
         leftTableInfo.setColumnsToRead(new String[]{"o_orderkey", "o_custkey", "o_orderstatus", "o_orderdate"});
         leftTableInfo.setKeyColumnIds(new int[]{0});
         leftTableInfo.setInputFiles(Arrays.asList(
-                "pixels-lambda-test/unit_tests/orders_part_0",
-                "pixels-lambda-test/unit_tests/orders_part_1",
-                "pixels-lambda-test/unit_tests/orders_part_2",
-                "pixels-lambda-test/unit_tests/orders_part_3",
-                "pixels-lambda-test/unit_tests/orders_part_4",
-                "pixels-lambda-test/unit_tests/orders_part_5",
-                "pixels-lambda-test/unit_tests/orders_part_6",
-                "pixels-lambda-test/unit_tests/orders_part_7"));
+                "jingrong-test/orders/v-0-order/20230425100657_1.pxl",
+                "jingrong-test/orders/v-0-order/20230425100700_2.pxl",
+                "jingrong-test/orders/v-0-order/20230425100703_3.pxl"));
         leftTableInfo.setParallelism(8);
         leftTableInfo.setBase(false);
         leftTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
@@ -75,8 +70,8 @@ public class TestPureServerlessJoin
         rightTableInfo.setColumnsToRead(new String[]{"l_orderkey", "l_suppkey", "l_extendedprice", "l_discount"});
         rightTableInfo.setKeyColumnIds(new int[]{0});
         rightTableInfo.setInputFiles(Arrays.asList(
-                "pixels-lambda-test/unit_tests/lineitem_part_0",
-                "pixels-lambda-test/unit_tests/lineitem_part_1"));
+                "jingrong-test/lineitem/v-0-order/20230425092344_47.pxl",
+                "jingrong-test/lineitem/v-0-order/20230425092347_48.pxl"));
         rightTableInfo.setParallelism(2);
         rightTableInfo.setBase(false);
         rightTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
@@ -94,7 +89,7 @@ public class TestPureServerlessJoin
         joinInfo.setPostPartitionInfo(new PartitionInfo(new int[] {0}, 100));
         joinInput.setJoinInfo(joinInfo);
 
-        joinInput.setOutput(new MultiOutputInfo("pixels-lambda-test/unit_tests/",
+        joinInput.setOutput(new MultiOutputInfo("s3://jingrong-lambda-test/unit_tests/",
                 new StorageInfo(Storage.Scheme.s3, null, null, null),
                 true, Arrays.asList("partitioned_join_lineitem_orders_0"))); // force one file currently
 

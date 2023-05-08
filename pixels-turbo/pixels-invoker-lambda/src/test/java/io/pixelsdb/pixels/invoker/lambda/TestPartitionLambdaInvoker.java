@@ -29,6 +29,13 @@ import io.pixelsdb.pixels.planner.plan.physical.input.PartitionInput;
 import io.pixelsdb.pixels.planner.plan.physical.output.PartitionOutput;
 import org.junit.Test;
 
+
+import io.pixelsdb.pixels.worker.common.BasePartitionWorker;
+import io.pixelsdb.pixels.worker.common.WorkerContext;
+import org.slf4j.Logger;
+import io.pixelsdb.pixels.worker.common.WorkerMetrics;
+import org.slf4j.LoggerFactory;
+
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
@@ -87,40 +94,47 @@ public class TestPartitionLambdaInvoker
     {
         for (int i = 0; i < 2; ++i)
         {
-            String filter =
-                    "{\"schemaName\":\"tpch\",\"tableName\":\"lineitem\",\"columnFilters\":{}}";
-            PartitionInput input = new PartitionInput();
-            input.setQueryId(123456);
-            ScanTableInfo tableInfo = new ScanTableInfo();
-            tableInfo.setTableName("lineitem");
-            tableInfo.setInputSplits(Arrays.asList(
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 0, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 4, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 8, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 12, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 16, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 20, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 24, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 28, 4)))));
-            tableInfo.setFilter(filter);
-            tableInfo.setBase(true);
-            tableInfo.setColumnsToRead(new String[]{"l_orderkey", "l_suppkey", "l_extendedprice", "l_discount"});
-            tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
-            input.setTableInfo(tableInfo);
-            input.setProjection(new boolean[]{true, true, true, true});
-            PartitionInfo partitionInfo = new PartitionInfo();
-            partitionInfo.setNumPartition(40);
-            partitionInfo.setKeyColumnIds(new int[]{0});
-            input.setPartitionInfo(partitionInfo);
-            input.setOutput(new OutputInfo("pixels-lambda-test/unit_tests/lineitem_part_" + i, false,
-                    new StorageInfo(Storage.Scheme.s3, null, null, null), true));
+                String filter =
+                        "{\"schemaName\":\"tpch\",\"tableName\":\"lineitem\",\"columnFilters\":{}}";
+                PartitionInput input = new PartitionInput();
+                input.setQueryId(123456);
+                ScanTableInfo tableInfo = new ScanTableInfo();
+                tableInfo.setTableName("lineitem");
+                tableInfo.setInputSplits(Arrays.asList(
+                        new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 0, 4))),
+                        new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 4, 4))),
+                        new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 8, 4))),
+                        new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 12, 4))),
+                        new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 16, 4))),
+                        new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 20, 4))),
+                        new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 24, 4))),
+                        new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 28, 4)))));
+                tableInfo.setFilter(filter);
+                tableInfo.setBase(true);
+                tableInfo.setColumnsToRead(new String[]{"l_orderkey", "l_suppkey", "l_extendedprice", "l_discount"});
+                tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+                input.setTableInfo(tableInfo);
+                input.setProjection(new boolean[]{true, true, true, true});
+                PartitionInfo partitionInfo = new PartitionInfo();
+                partitionInfo.setNumPartition(40);
+                partitionInfo.setKeyColumnIds(new int[]{0});
+                input.setPartitionInfo(partitionInfo);
+                input.setOutput(new OutputInfo("jingrong-lambda-test/unit_tests/lineitem_part_" + i, false,
+                        new StorageInfo(Storage.Scheme.s3, null, null, null), true));
 
-            System.out.println(JSON.toJSONString(input));
+                System.out.println(JSON.toJSONString(input));
 
-            PartitionOutput output = (PartitionOutput) InvokerFactory.Instance()
-                    .getInvoker(WorkerType.PARTITION).invoke(input).get();
-            System.out.println(output.getPath());
-            System.out.println(Joiner.on(",").join(output.getHashValues()));
+
+                // Logger logger= LoggerFactory.getLogger(TestPartitionedJoinLambdaInvoker.class);
+                // WorkerMetrics metrics=new WorkerMetrics();
+                // WorkerContext context=new WorkerContext(logger, metrics, "123456");
+                // BasePartitionWorker Par=new BasePartitionWorker(context);
+                // PartitionOutput output=Par.process(input);
+
+                PartitionOutput output = (PartitionOutput) InvokerFactory.Instance()
+                            .getInvoker(WorkerType.PARTITION).invoke(input).get();
+                System.out.println(output.getPath());
+                // System.out.println(Joiner.on(",").join(output.getHashValues()));
         }
     }
 }

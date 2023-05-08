@@ -20,6 +20,11 @@
     <dependencies>
         <dependency>
             <groupId>io.pixelsdb</groupId>
+            <artifactId>pixels-worker-common</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.pixelsdb</groupId>
             <artifactId>pixels-common</artifactId>
             <optional>true</optional>
         </dependency>

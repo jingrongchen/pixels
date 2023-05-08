@@ -66,14 +66,14 @@ public class TestBroadcastJoinLambdaInvoker
         leftTable.setTableName("part");
         leftTable.setBase(true);
         leftTable.setInputSplits(Arrays.asList(
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/part/v-0-compact/20230416155202_0_compact.pxl", 0, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/part/v-0-compact/20230416155202_0_compact.pxl", 4, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/part/v-0-compact/20230416155202_0_compact.pxl", 8, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/part/v-0-compact/20230416155202_0_compact.pxl", 12, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/part/v-0-compact/20230416155202_0_compact.pxl", 16, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/part/v-0-compact/20230416155202_0_compact.pxl", 20, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/part/v-0-compact/20230416155202_0_compact.pxl", 24, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/part/v-0-compact/20230416155202_0_compact.pxl", 28, 4)))));
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/part/v-0-order/20230425102035_236.pxl", 0, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/part/v-0-order/20230425102035_236.pxl", 4, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/part/v-0-order/20230425102035_236.pxl", 8, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/part/v-0-order/20230425102035_236.pxl", 12, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/part/v-0-order/20230425102035_236.pxl", 16, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/part/v-0-order/20230425102035_236.pxl", 20, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/part/v-0-order/20230425102035_236.pxl", 24, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/part/v-0-order/20230425102035_236.pxl", 28, 4)))));
         leftTable.setFilter(leftFilter);
         leftTable.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
         joinInput.setSmallTable(leftTable);
@@ -84,14 +84,14 @@ public class TestBroadcastJoinLambdaInvoker
         rightTable.setTableName("lineitem");
         rightTable.setBase(true);
         rightTable.setInputSplits(Arrays.asList(
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_0_compact.pxl", 0, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_0_compact.pxl", 4, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_0_compact.pxl", 8, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_0_compact.pxl", 12, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_0_compact.pxl", 16, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_0_compact.pxl", 20, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_0_compact.pxl", 24, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_0_compact.pxl", 28, 4)))));
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 0, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 4, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 8, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 12, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 16, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 20, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 24, 4))),
+                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/lineitem/v-0-order/20230425092344_47.pxl", 28, 4)))));
         rightTable.setFilter(rightFilter);
         rightTable.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
         joinInput.setLargeTable(rightTable);
@@ -105,7 +105,7 @@ public class TestBroadcastJoinLambdaInvoker
         joinInfo.setPostPartition(true);
         joinInfo.setPostPartitionInfo(new PartitionInfo(new int[] {2}, 100));
         joinInput.setJoinInfo(joinInfo);
-        joinInput.setOutput(new MultiOutputInfo("pixels-lambda-test/unit_tests/",
+        joinInput.setOutput(new MultiOutputInfo("jingrong-lambda-test/unit_tests/",
                 new StorageInfo(Storage.Scheme.s3, null, null, null), true,
                 Arrays.asList("broadcast_join_lineitem_part_0")));
 

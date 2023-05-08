@@ -30,6 +30,12 @@ import io.pixelsdb.pixels.planner.plan.physical.input.PartitionedJoinInput;
 import io.pixelsdb.pixels.planner.plan.physical.output.JoinOutput;
 import org.junit.Test;
 
+import io.pixelsdb.pixels.worker.common.BasePartitionedJoinWorker;
+import io.pixelsdb.pixels.worker.common.WorkerContext;
+import org.slf4j.Logger;
+import io.pixelsdb.pixels.worker.common.WorkerMetrics;
+import org.slf4j.LoggerFactory;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,14 +63,14 @@ public class TestPartitionedJoinLambdaInvoker
         leftTableInfo.setColumnsToRead(new String[]{"o_orderkey", "o_custkey", "o_orderstatus", "o_orderdate"});
         leftTableInfo.setKeyColumnIds(new int[]{0});
         leftTableInfo.setInputFiles(Arrays.asList(
-                "pixels-lambda-test/unit_tests/orders_part_0",
-                "pixels-lambda-test/unit_tests/orders_part_1",
-                "pixels-lambda-test/unit_tests/orders_part_2",
-                "pixels-lambda-test/unit_tests/orders_part_3",
-                "pixels-lambda-test/unit_tests/orders_part_4",
-                "pixels-lambda-test/unit_tests/orders_part_5",
-                "pixels-lambda-test/unit_tests/orders_part_6",
-                "pixels-lambda-test/unit_tests/orders_part_7"));
+                "s3://jingrong-lambda-test/unit_tests/orders_part_0",
+                "s3://jingrong-lambda-test/unit_tests/orders_part_1",
+                "s3://jingrong-lambda-test/unit_tests/orders_part_2",
+                "s3://jingrong-lambda-test/unit_tests/orders_part_3",
+                "s3://jingrong-lambda-test/unit_tests/orders_part_4",
+                "s3://jingrong-lambda-test/unit_tests/orders_part_5",
+                "s3://jingrong-lambda-test/unit_tests/orders_part_6",
+                "s3://jingrong-lambda-test/unit_tests/orders_part_7"));
         leftTableInfo.setParallelism(8);
         leftTableInfo.setBase(false);
         leftTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
@@ -75,8 +81,8 @@ public class TestPartitionedJoinLambdaInvoker
         rightTableInfo.setColumnsToRead(new String[]{"l_orderkey", "l_suppkey", "l_extendedprice", "l_discount"});
         rightTableInfo.setKeyColumnIds(new int[]{0});
         rightTableInfo.setInputFiles(Arrays.asList(
-                "pixels-lambda-test/unit_tests/lineitem_part_0",
-                "pixels-lambda-test/unit_tests/lineitem_part_1"));
+                "s3://jingrong-lambda-test/unit_tests/lineitem_part_0",
+                "s3://jingrong-lambda-test/unit_tests/lineitem_part_1"));
         rightTableInfo.setParallelism(2);
         rightTableInfo.setBase(false);
         rightTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
@@ -94,11 +100,19 @@ public class TestPartitionedJoinLambdaInvoker
         joinInfo.setPostPartitionInfo(new PartitionInfo(new int[] {0}, 100));
         joinInput.setJoinInfo(joinInfo);
 
-        joinInput.setOutput(new MultiOutputInfo("pixels-lambda-test/unit_tests/",
+        joinInput.setOutput(new MultiOutputInfo("s3://jingrong-lambda-test/unit_tests/",
                 new StorageInfo(Storage.Scheme.s3, null, null, null),
                 true, Arrays.asList("partitioned_join_lineitem_orders_0"))); // force one file currently
-
         System.out.println(JSON.toJSONString(joinInput));
+        
+        // localtesting
+        // Logger logger= LoggerFactory.getLogger(TestPartitionedJoinLambdaInvoker.class);
+        // WorkerMetrics metrics=new WorkerMetrics();
+        // WorkerContext context=new WorkerContext(logger, metrics, "123456");
+        // BasePartitionedJoinWorker Pjoin=new BasePartitionedJoinWorker(context);
+        // JoinOutput output=Pjoin.process(joinInput);
+        // localtesting
+
         JoinOutput output = (JoinOutput) InvokerFactory.Instance()
                 .getInvoker(WorkerType.PARTITIONED_JOIN).invoke(joinInput).get();
         System.out.println(output.getOutputs().size());

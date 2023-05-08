@@ -66,6 +66,7 @@ public abstract class LambdaInvoker implements Invoker
         String inputJson = JSON.toJSONString(input, SerializerFeature.DisableCircularReferenceDetect);
         SdkBytes payload = SdkBytes.fromUtf8String(inputJson);
 
+
         InvokeRequest request = InvokeRequest.builder()
                 .functionName(this.functionName)
                 .payload(payload)
