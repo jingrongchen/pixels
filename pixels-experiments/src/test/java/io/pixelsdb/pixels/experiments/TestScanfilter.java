@@ -70,6 +70,7 @@ public class TestScanfilter {
         //         e.printStackTrace();
         // }
         // tableInfo.setInputSplits(myList);
+        
 
         tableInfo.setInputSplits(Arrays.asList(
                 new InputSplit(Arrays.asList(new InputInfo("jingrong-test/orders/v-0-order/20230425100700_2.pxl", 0, -1)))));
@@ -80,18 +81,18 @@ public class TestScanfilter {
         tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
         scaninput.setTableInfo(tableInfo);
         scaninput.setScanProjection(new boolean[]{true, true, true, true});
-
-        scaninput.setOutput(new ThreadOutputInfo({"s3://jingrong-lambda-test/unit_tests/test_scan1","s3://jingrong-lambda-test/unit_tests/test_scan2"}, true,
-                new StorageInfo(Storage.Scheme.s3, null, null, null), true));
         
-
-
-
-
+        List<String> list=new ArrayList<String>();
+        list.add("s3://jingrong-lambda-test/unit_tests/test_scan1");
+        list.add("s3://jingrong-lambda-test/unit_tests/test_scan2");
+        ThreadOutputInfo threadoutput = new ThreadOutputInfo(list, true,
+         new StorageInfo(Storage.Scheme.s3, null, null, null), true);
+        
+        scaninput.setOutput(threadoutput);
                 
-        // System.out.println(JSON.toJSONString(scaninput));
-        // ScanOutput output = (ScanOutput) InvokerFactory.Instance()
-        //         .getInvoker(WorkerType.SCAN).invoke(scaninput).get();    
+        System.out.println(JSON.toJSONString(scaninput));
+        ScanOutput output = (ScanOutput) InvokerFactory.Instance()
+                .getInvoker(WorkerType.SCAN).invoke(scaninput).get();    
         
         // System.out.println(output.getDurationMs());
         
