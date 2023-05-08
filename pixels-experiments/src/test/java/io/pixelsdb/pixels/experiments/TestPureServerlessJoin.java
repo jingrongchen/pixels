@@ -89,7 +89,7 @@ public class TestPureServerlessJoin
         joinInfo.setPostPartitionInfo(new PartitionInfo(new int[] {0}, 100));
         joinInput.setJoinInfo(joinInfo);
 
-        joinInput.setOutput(new MultiOutputInfo("s3://jingrong-lambda-test/unit_tests/",
+        joinInput.setOutput(new MultiOutputInfo("s3://jingrong-lambda-test/unit_tests/orders_part_1/",
                 new StorageInfo(Storage.Scheme.s3, null, null, null),
                 true, Arrays.asList("partitioned_join_lineitem_orders_0"))); // force one file currently
 

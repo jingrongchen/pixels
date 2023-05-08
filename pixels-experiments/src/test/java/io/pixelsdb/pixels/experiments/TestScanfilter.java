@@ -18,12 +18,20 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 
+
+import java.util.ArrayList;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+
+
 public class TestScanfilter {
     @Test
     public void scanExapmle() throws ExecutionException, InterruptedException
     {   
 
-        String filter =
+        String filter1 =
                 "{\"schemaName\":\"tpch\",\"tableName\":\"orders\"," +
                         "\"columnFilters\":{1:{\"columnName\":\"o_custkey\",\"columnType\":\"LONG\"," +
                         "\"filterJson\":\"{\\\"javaType\\\":\\\"long\\\",\\\"isAll\\\":false," +
@@ -37,28 +45,75 @@ public class TestScanfilter {
         scaninput.setQueryId(123456);
         ScanTableInfo tableInfo = new ScanTableInfo();
         tableInfo.setTableName("orders");
-        tableInfo.setInputSplits(Arrays.asList(
-                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/orders/v-0-order/20230425100657_1.pxl", 0, 4))),
-                new InputSplit(Arrays.asList(new InputInfo("jingrong-test/orders/v-0-order/20230425100657_1.pxl", 4, 4)))));
+
+        List<InputSplit> myList = new ArrayList<InputSplit>();
+        try {
+                List<String> allLines = Files.readAllLines(Paths.get("/home/ubuntu/opt/pixels/pixels-experiments/orders-urls.txt"));
+
+                for (String line : allLines) {
+                        InputSplit temp= new InputSplit(Arrays.asList(new InputInfo(line, 0, -1)));
+                        myList.add(temp);
+                }
+        } catch (IOException e) {
+                e.printStackTrace();
+        }
+        tableInfo.setInputSplits(myList);
         tableInfo.setColumnsToRead(new String[]{"o_orderkey", "o_custkey", "o_orderstatus", "o_orderdate"});
-        tableInfo.setFilter(filter);
+        tableInfo.setFilter(filter1);
         tableInfo.setBase(true);
         tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
         scaninput.setTableInfo(tableInfo);
         scaninput.setScanProjection(new boolean[]{true, true, true, true});
 
-        scaninput.setOutput(new OutputInfo("s3://jingrong-lambda-test/unit_tests/orders_part_1", true,
+        scaninput.setOutput(new OutputInfo("s3://jingrong-lambda-test/unit_tests/test_scan", true,
                 new StorageInfo(Storage.Scheme.s3, null, null, null), true));
 
         System.out.println(JSON.toJSONString(scaninput));
-
         ScanOutput output = (ScanOutput) InvokerFactory.Instance()
                 .getInvoker(WorkerType.SCAN).invoke(scaninput).get();    
         
         System.out.println(output.getDurationMs());
-    
+        
+
+        // filter2 
+        String filter2 =
+        "{\"schemaName\":\"tpch\",\"tableName\":\"orders\"," +
+                "\"columnFilters\":{1:{\"columnName\":\"o_orderkey\",\"columnType\":\"LONG\"," +
+                "\"filterJson\":\"{\\\"javaType\\\":\\\"long\\\",\\\"isAll\\\":false," +
+                "\\\"isNone\\\":false,\\\"allowNull\\\":false,\\\"ranges\\\":[{" +
+                "\\\"lowerBound\\\":{\\\"type\\\":\\\"UNBOUNDED\\\"}," +
+                "\\\"upperBound\\\":{\\\"type\\\":\\\"INCLUDED\\\",\\\"value\\\":100}}," +
+                "{\\\"lowerBound\\\":{\\\"type\\\":\\\"EXCLUDED\\\",\\\"value\\\":200}," +
+                "\\\"upperBound\\\":{\\\"type\\\":\\\"UNBOUNDED\\\"}}]," +
+                "\\\"discreteValues\\\":[]}\"}}}";
+        ScanInput scaninput2 = new ScanInput();
+        scaninput2.setQueryId(678910);
+        ScanTableInfo tableInfo2 = new ScanTableInfo();
+        tableInfo2.setTableName("orders");
+
+        tableInfo2.setInputSplits(myList);
+        tableInfo2.setColumnsToRead(new String[]{"o_orderkey", "o_custkey", "o_orderstatus", "o_orderdate"});
+        tableInfo2.setFilter(filter2);
+        tableInfo2.setBase(true);
+        tableInfo2.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+        scaninput2.setTableInfo(tableInfo2);
+        scaninput2.setScanProjection(new boolean[]{true, true, true, true});
+
+        scaninput2.setOutput(new OutputInfo("s3://jingrong-lambda-test/unit_tests/test_scan2", true,
+                new StorageInfo(Storage.Scheme.s3, null, null, null), true));
+
+        System.out.println(JSON.toJSONString(scaninput2));
+        ScanOutput output2 = (ScanOutput) InvokerFactory.Instance()
+                .getInvoker(WorkerType.SCAN).invoke(scaninput2).get();    
+
+        System.out.println(output2.getDurationMs());
+
     }
 
+    public void scanExapmleOptimized() throws ExecutionException, InterruptedException{
+
+        
+    }
 
 
 }

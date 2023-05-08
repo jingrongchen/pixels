@@ -44,6 +44,16 @@
             <artifactId>pixels-executor</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>io.pixelsdb</groupId>
+            <artifactId>pixels-worker-common</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.pixelsdb</groupId>
+            <artifactId>pixels-invoker-lambda</artifactId>
+            <optional>true</optional>
+        </dependency>   
 
         <dependency>
             <groupId>com.google.protobuf</groupId>
