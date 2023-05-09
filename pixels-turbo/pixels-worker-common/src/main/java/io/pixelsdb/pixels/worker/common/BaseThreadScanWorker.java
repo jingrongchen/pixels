@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
@@ -74,14 +75,14 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                     "partial aggregation and random output file name should not equal");
             List<String> outputFolders = event.getOutput().getPath();
             StorageInfo outputStorageInfo = event.getOutput().getStorageInfo();
-            for (String outputFolder:outputFolders ){
-                int i=0;
-                if (!outputFolder.endsWith("/"))
-                {
-                    outputFolders.set(i, outputFolder+"/");
-                    i++;
-                }
-            }
+            // for (String outputFolder:outputFolders ){
+            //     int i=0;
+            //     if (!outputFolder.endsWith("/"))
+            //     {
+            //         outputFolders.set(i, outputFolder+"/");
+            //         i++;
+            //     }
+            // }
             boolean encoding = event.getOutput().isEncoding();
 
             WorkerCommon.initStorage(inputStorageInfo);
@@ -96,48 +97,59 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             }
             
 
-            Aggregator aggregator;
-            if (partialAggregationPresent)
-            {
-                logger.info("start get output schema");
-                TypeDescription inputSchema = WorkerCommon.getFileSchemaFromSplits(
-                        WorkerCommon.getStorage(inputStorageInfo.getScheme()), inputSplits);
-                inputSchema = WorkerCommon.getResultSchema(inputSchema, includeCols);
-                PartialAggregationInfo partialAggregationInfo = event.getPartialAggregationInfo();
-                requireNonNull(partialAggregationInfo, "event.partialAggregationInfo is null");
-                boolean[] groupKeyProjection = new boolean[partialAggregationInfo.getGroupKeyColumnAlias().length];
-                Arrays.fill(groupKeyProjection, true);
-                aggregator = new Aggregator(WorkerCommon.rowBatchSize, inputSchema,
-                        partialAggregationInfo.getGroupKeyColumnAlias(),
-                        partialAggregationInfo.getGroupKeyColumnIds(), groupKeyProjection,
-                        partialAggregationInfo.getAggregateColumnIds(),
-                        partialAggregationInfo.getResultColumnAlias(),
-                        partialAggregationInfo.getResultColumnTypes(),
-                        partialAggregationInfo.getFunctionTypes(),
-                        partialAggregationInfo.isPartition(),
-                        partialAggregationInfo.getNumPartition());
-            }
-            else
-            {
-                aggregator = null;
-            }
-
+            Aggregator aggregator=null;
+            // if (partialAggregationPresent)
+            // {
+            //     logger.info("start get output schema");
+            //     TypeDescription inputSchema = WorkerCommon.getFileSchemaFromSplits(
+            //             WorkerCommon.getStorage(inputStorageInfo.getScheme()), inputSplits);
+            //     inputSchema = WorkerCommon.getResultSchema(inputSchema, includeCols);
+            //     PartialAggregationInfo partialAggregationInfo = event.getPartialAggregationInfo();
+            //     requireNonNull(partialAggregationInfo, "event.partialAggregationInfo is null");
+            //     boolean[] groupKeyProjection = new boolean[partialAggregationInfo.getGroupKeyColumnAlias().length];
+            //     Arrays.fill(groupKeyProjection, true);
+            //     aggregator = new Aggregator(WorkerCommon.rowBatchSize, inputSchema,
+            //             partialAggregationInfo.getGroupKeyColumnAlias(),
+            //             partialAggregationInfo.getGroupKeyColumnIds(), groupKeyProjection,
+            //             partialAggregationInfo.getAggregateColumnIds(),
+            //             partialAggregationInfo.getResultColumnAlias(),
+            //             partialAggregationInfo.getResultColumnTypes(),
+            //             partialAggregationInfo.getFunctionTypes(),
+            //             partialAggregationInfo.isPartition(),
+            //             partialAggregationInfo.getNumPartition());
+            // }
+            // else
+            // {
+            //     aggregator = null;
+            // }
+            
+            String outfolerprefix1 = outputFolders.get(0);
+            String outfolerprefix2 = outputFolders.get(1);
             int outputId = 0;
             logger.info("start scan and aggregate");
             for (InputSplit inputSplit : inputSplits)
             {
                 List<InputInfo> scanInputs = inputSplit.getInputInfos();
-                String outputPath = outputFolder + requestId + "_scan_" + outputId++;
-
+            
                 threadPool.execute(() -> {
                     try
-                    {
+                    {   
+                        ThreadLocalRandom random = ThreadLocalRandom.current();
+                        int number = random.nextInt(1024);
+                        String folder1= outfolerprefix1 + requestId + "_scan1_" + number;
+                        String folder2= outfolerprefix2 + requestId + "_scan2_" + number;
+                        List<String> folders= new ArrayList<String>();
+                        folders.add(folder1);
+                        folders.add(folder2);
+                        
+                        System.out.println("folder1: "+ folders.get(0));
+                        System.out.println("folder2: "+ folders.get(1));
                         int rowGroupNum = scanFile(queryId, scanInputs, includeCols, inputStorageInfo.getScheme(),
-                                scanProjection, filter, outputPath, encoding, outputStorageInfo.getScheme(),
+                                scanProjection, scanfilterlist, folders, encoding, outputStorageInfo.getScheme(),
                                 partialAggregationPresent, aggregator);
                         if (rowGroupNum > 0)
                         {
-                            scanOutput.addOutput(outputPath, rowGroupNum);
+                            scanOutput.addOutput(outputFolders.get(0), rowGroupNum);
                         }
                     }
                     catch (Exception e)
@@ -155,29 +167,29 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                 throw new WorkerException("interrupted while waiting for the termination of scan", e);
             }
 
-            logger.info("start write aggregation result");
-            if (partialAggregationPresent)
-            {
-                String outputPath = event.getOutput().getPath();
-                WorkerMetrics.Timer writeCostTimer = new WorkerMetrics.Timer().start();
-                PixelsWriter pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
-                        WorkerCommon.getStorage(outputStorageInfo.getScheme()), outputPath, encoding,
-                        aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
-                aggregator.writeAggrOutput(pixelsWriter);
-                pixelsWriter.close();
-                if (outputStorageInfo.getScheme() == Storage.Scheme.minio)
-                {
-                    while (!WorkerCommon.getStorage(Storage.Scheme.minio).exists(outputPath))
-                    {
-                        // Wait for 10ms and see if the output file is visible.
-                        TimeUnit.MILLISECONDS.sleep(10);
-                    }
-                }
-                workerMetrics.addOutputCostNs(writeCostTimer.stop());
-                workerMetrics.addWriteBytes(pixelsWriter.getCompletedBytes());
-                workerMetrics.addNumWriteRequests(pixelsWriter.getNumWriteRequests());
-                scanOutput.addOutput(outputPath, pixelsWriter.getNumRowGroup());
-            }
+            // logger.info("start write aggregation result");
+            // if (partialAggregationPresent)
+            // {
+            //     String outputPath = event.getOutput().getPath();
+            //     WorkerMetrics.Timer writeCostTimer = new WorkerMetrics.Timer().start();
+            //     PixelsWriter pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
+            //             WorkerCommon.getStorage(outputStorageInfo.getScheme()), outputPath, encoding,
+            //             aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
+            //     aggregator.writeAggrOutput(pixelsWriter);
+            //     pixelsWriter.close();
+            //     if (outputStorageInfo.getScheme() == Storage.Scheme.minio)
+            //     {
+            //         while (!WorkerCommon.getStorage(Storage.Scheme.minio).exists(outputPath))
+            //         {
+            //             // Wait for 10ms and see if the output file is visible.
+            //             TimeUnit.MILLISECONDS.sleep(10);
+            //         }
+            //     }
+            //     workerMetrics.addOutputCostNs(writeCostTimer.stop());
+            //     workerMetrics.addWriteBytes(pixelsWriter.getCompletedBytes());
+            //     workerMetrics.addNumWriteRequests(pixelsWriter.getNumWriteRequests());
+            //     scanOutput.addOutput(outputPath, pixelsWriter.getNumRowGroup());
+            // }
 
             scanOutput.setDurationMs((int) (System.currentTimeMillis() - startTime));
             WorkerCommon.setPerfMetrics(scanOutput, workerMetrics);
@@ -209,11 +221,13 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
      * @return the number of row groups that have been written into the output.
      */
     private int scanFile(long queryId, List<InputInfo> scanInputs, String[] columnsToRead, Storage.Scheme inputScheme,
-                         boolean[] scanProjection, TableScanFilter filter, String outputPath, boolean encoding,
+                         boolean[] scanProjection, List<TableScanFilter> filter, List<String> outputPath, boolean encoding,
                          Storage.Scheme outputScheme, boolean partialAggregate, Aggregator aggregator)
     {
-        PixelsWriter pixelsWriter = null;
-        Scanner scanner = null;
+        PixelsWriter pixelsWriter1 = null;
+        PixelsWriter pixelsWriter2 = null;
+        Scanner scanner1 = null;
+        Scanner scanner2 = null;
         if (partialAggregate)
         {
             requireNonNull(aggregator, "aggregator is null whereas partialAggregate is true");
@@ -240,35 +254,43 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                 PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, columnsToRead, inputInfo);
                 PixelsRecordReader recordReader = pixelsReader.read(option);
                 TypeDescription rowBatchSchema = recordReader.getResultSchema();
-                VectorizedRowBatch rowBatch;
-
-                if (scanner == null)
+                VectorizedRowBatch rowBatch1;
+                VectorizedRowBatch rowBatch2;
+                if (scanner1 == null && scanner2==null)
                 {
-                    scanner = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, columnsToRead, scanProjection, filter);
+                    scanner1 = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, columnsToRead, scanProjection, filter.get(0));
+                    scanner2 = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, columnsToRead, scanProjection, filter.get(1));
                 }
-                if (pixelsWriter == null && !partialAggregate)
+                if (pixelsWriter1 == null && pixelsWriter2 == null && !partialAggregate)
                 {
                     writeCostTimer.start();
-                    pixelsWriter = WorkerCommon.getWriter(scanner.getOutputSchema(), WorkerCommon.getStorage(outputScheme),
-                            outputPath, encoding, false, null);
+                    pixelsWriter1 = WorkerCommon.getWriter(scanner1.getOutputSchema(), WorkerCommon.getStorage(outputScheme),
+                            outputPath.get(0), encoding, false, null);
+                    
+                    
+                    pixelsWriter2 = WorkerCommon.getWriter(scanner2.getOutputSchema(), WorkerCommon.getStorage(outputScheme),
+                    outputPath.get(1), encoding, false, null);
                     writeCostTimer.stop();
                 }
 
                 computeCostTimer.start();
                 do
-                {
-                    rowBatch = scanner.filterAndProject(recordReader.readBatch(WorkerCommon.rowBatchSize));
-                    if (rowBatch.size > 0)
+                {   
+                    VectorizedRowBatch commonprocess = recordReader.readBatch(WorkerCommon.rowBatchSize);
+                    rowBatch1 = scanner1.filterAndProject(commonprocess);
+                    rowBatch2 = scanner2.filterAndProject(commonprocess);
+                    if (rowBatch1.size > 0 && rowBatch2.size>0)
                     {
-                        if (partialAggregate)
-                        {
-                            aggregator.aggregate(rowBatch);
-                        } else
-                        {
-                            pixelsWriter.addRowBatch(rowBatch);
-                        }
+                        // if (partialAggregate)
+                        // {
+                        //     aggregator.aggregate(rowBatch1);
+                        // } else
+                        // {
+                        pixelsWriter1.addRowBatch(rowBatch1);
+                        pixelsWriter2.addRowBatch(rowBatch2);
+                        // }
                     }
-                } while (!rowBatch.endOfFile);
+                } while (!rowBatch1.endOfFile && !rowBatch2.endOfFile);
                 computeCostTimer.stop();
                 computeCostTimer.minus(recordReader.getReadTimeNanos());
                 readCostTimer.add(recordReader.getReadTimeNanos());
@@ -284,25 +306,26 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
         try
         {
             int numRowGroup = 0;
-            if (pixelsWriter != null)
+            if (pixelsWriter1 != null && pixelsWriter1 != null)
             {
                 // This is a pure scan without aggregation, compute time is the file writing time.
                 writeCostTimer.add(computeCostTimer.getElapsedNs());
                 writeCostTimer.start();
-                pixelsWriter.close();
-                if (outputScheme == Storage.Scheme.minio)
-                {
-                    while (!WorkerCommon.getStorage(Storage.Scheme.minio).exists(outputPath))
-                    {
-                        // Wait for 10ms and see if the output file is visible.
-                        TimeUnit.MILLISECONDS.sleep(10);
-                    }
-                }
+                pixelsWriter1.close();
+                pixelsWriter2.close();
+                // if (outputScheme == Storage.Scheme.minio)
+                // {
+                //     while (!WorkerCommon.getStorage(Storage.Scheme.minio).exists(outputPath))
+                //     {
+                //         // Wait for 10ms and see if the output file is visible.
+                //         TimeUnit.MILLISECONDS.sleep(10);
+                //     }
+                // }
                 writeCostTimer.stop();
-                workerMetrics.addWriteBytes(pixelsWriter.getCompletedBytes());
-                workerMetrics.addNumWriteRequests(pixelsWriter.getNumWriteRequests());
+                workerMetrics.addWriteBytes(pixelsWriter1.getCompletedBytes());
+                workerMetrics.addNumWriteRequests(pixelsWriter1.getNumWriteRequests());
                 workerMetrics.addOutputCostNs(writeCostTimer.getElapsedNs());
-                numRowGroup = pixelsWriter.getNumRowGroup();
+                numRowGroup = pixelsWriter1.getNumRowGroup();
             }
             else
             {
@@ -324,4 +347,4 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
 
 
 
-}
+

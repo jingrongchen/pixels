@@ -41,7 +41,7 @@ public class ThreadScanInput extends Input {
     }
 
     public ThreadScanInput(long queryId, ThreadScanTableInfo tableInfo, boolean[] scanProjection,
-                     boolean partialAggregationPresent, PartialAggregationInfo partialAggregationInfo, OutputInfo output)
+                     boolean partialAggregationPresent, PartialAggregationInfo partialAggregationInfo, ThreadOutputInfo output)
     {
         super(queryId);
         this.tableInfo = tableInfo;
