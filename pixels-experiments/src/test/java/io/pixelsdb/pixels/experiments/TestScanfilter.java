@@ -81,37 +81,37 @@ public class TestScanfilter {
         
 
         // filter2 
-        String filter2 =
-        "{\"schemaName\":\"tpch\",\"tableName\":\"orders\"," +
-                "\"columnFilters\":{1:{\"columnName\":\"o_orderkey\",\"columnType\":\"LONG\"," +
-                "\"filterJson\":\"{\\\"javaType\\\":\\\"long\\\",\\\"isAll\\\":false," +
-                "\\\"isNone\\\":false,\\\"allowNull\\\":false,\\\"ranges\\\":[{" +
-                "\\\"lowerBound\\\":{\\\"type\\\":\\\"UNBOUNDED\\\"}," +
-                "\\\"upperBound\\\":{\\\"type\\\":\\\"INCLUDED\\\",\\\"value\\\":100}}," +
-                "{\\\"lowerBound\\\":{\\\"type\\\":\\\"EXCLUDED\\\",\\\"value\\\":200}," +
-                "\\\"upperBound\\\":{\\\"type\\\":\\\"UNBOUNDED\\\"}}]," +
-                "\\\"discreteValues\\\":[]}\"}}}";
-        ScanInput scaninput2 = new ScanInput();
-        scaninput2.setQueryId(678910);
-        ScanTableInfo tableInfo2 = new ScanTableInfo();
-        tableInfo2.setTableName("orders");
+        // String filter2 =
+        // "{\"schemaName\":\"tpch\",\"tableName\":\"orders\"," +
+        //         "\"columnFilters\":{1:{\"columnName\":\"o_orderkey\",\"columnType\":\"LONG\"," +
+        //         "\"filterJson\":\"{\\\"javaType\\\":\\\"long\\\",\\\"isAll\\\":false," +
+        //         "\\\"isNone\\\":false,\\\"allowNull\\\":false,\\\"ranges\\\":[{" +
+        //         "\\\"lowerBound\\\":{\\\"type\\\":\\\"UNBOUNDED\\\"}," +
+        //         "\\\"upperBound\\\":{\\\"type\\\":\\\"INCLUDED\\\",\\\"value\\\":100}}," +
+        //         "{\\\"lowerBound\\\":{\\\"type\\\":\\\"EXCLUDED\\\",\\\"value\\\":200}," +
+        //         "\\\"upperBound\\\":{\\\"type\\\":\\\"UNBOUNDED\\\"}}]," +
+        //         "\\\"discreteValues\\\":[]}\"}}}";
+        // ScanInput scaninput2 = new ScanInput();
+        // scaninput2.setQueryId(678910);
+        // ScanTableInfo tableInfo2 = new ScanTableInfo();
+        // tableInfo2.setTableName("orders");
 
-        tableInfo2.setInputSplits(myList);
-        tableInfo2.setColumnsToRead(new String[]{"o_orderkey", "o_custkey", "o_orderstatus", "o_orderdate"});
-        tableInfo2.setFilter(filter2);
-        tableInfo2.setBase(true);
-        tableInfo2.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
-        scaninput2.setTableInfo(tableInfo2);
-        scaninput2.setScanProjection(new boolean[]{true, true, true, true});
+        // tableInfo2.setInputSplits(myList);
+        // tableInfo2.setColumnsToRead(new String[]{"o_orderkey", "o_custkey", "o_orderstatus", "o_orderdate"});
+        // tableInfo2.setFilter(filter2);
+        // tableInfo2.setBase(true);
+        // tableInfo2.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+        // scaninput2.setTableInfo(tableInfo2);
+        // scaninput2.setScanProjection(new boolean[]{true, true, true, true});
 
-        scaninput2.setOutput(new OutputInfo("s3://jingrong-lambda-test/unit_tests/test_scan2", true,
-                new StorageInfo(Storage.Scheme.s3, null, null, null), true));
+        // scaninput2.setOutput(new OutputInfo("s3://jingrong-lambda-test/unit_tests/test_scan2", true,
+        //         new StorageInfo(Storage.Scheme.s3, null, null, null), true));
 
-        System.out.println(JSON.toJSONString(scaninput2));
-        ScanOutput output2 = (ScanOutput) InvokerFactory.Instance()
-                .getInvoker(WorkerType.SCAN).invoke(scaninput2).get();    
+        // System.out.println(JSON.toJSONString(scaninput2));
+        // ScanOutput output2 = (ScanOutput) InvokerFactory.Instance()
+        //         .getInvoker(WorkerType.SCAN).invoke(scaninput2).get();    
 
-        System.out.println(output2.getDurationMs());
+        // System.out.println(output2.getDurationMs());
     }
 
     @Test

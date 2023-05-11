@@ -18,6 +18,8 @@ import io.pixelsdb.pixels.planner.plan.physical.input.ThreadScanInput;
 import io.pixelsdb.pixels.planner.plan.physical.output.ScanOutput;
 import org.slf4j.Logger;
 
+import java.io.IOException;
+import java.util.concurrent.*; 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +40,7 @@ import static java.util.Objects.requireNonNull;
 public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
     private final Logger logger;
     private final WorkerMetrics workerMetrics;
+    private int fileId;
 
     public BaseThreadScanWorker(WorkerContext context)
     {
@@ -123,9 +126,7 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             //     aggregator = null;
             // }
             
-            String outfolerprefix1 = outputFolders.get(0);
-            String outfolerprefix2 = outputFolders.get(1);
-            int outputId = 0;
+            this.fileId=0;
             logger.info("start scan and aggregate");
             for (InputSplit inputSplit : inputSplits)
             {
@@ -134,23 +135,23 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                 threadPool.execute(() -> {
                     try
                     {   
-                        ThreadLocalRandom random = ThreadLocalRandom.current();
-                        int number = random.nextInt(1024);
-                        String folder1= outfolerprefix1 + requestId + "_scan1_" + number;
-                        String folder2= outfolerprefix2 + requestId + "_scan2_" + number;
+
+                        // ThreadLocalRandom random = ThreadLocalRandom.current();
+                        // int number = random.nextInt(1024);
                         List<String> folders= new ArrayList<String>();
-                        folders.add(folder1);
-                        folders.add(folder2);
-                        
-                        System.out.println("folder1: "+ folders.get(0));
-                        System.out.println("folder2: "+ folders.get(1));
+                        for(String outputfolder :outputFolders){
+                            folders.add(outputfolder + requestId + "_Threadscan_" + this.fileId);
+                        }
+                        this.fileId++;
+
                         int rowGroupNum = scanFile(queryId, scanInputs, includeCols, inputStorageInfo.getScheme(),
                                 scanProjection, scanfilterlist, folders, encoding, outputStorageInfo.getScheme(),
                                 partialAggregationPresent, aggregator);
-                        if (rowGroupNum > 0)
-                        {
-                            scanOutput.addOutput(outputFolders.get(0), rowGroupNum);
-                        }
+                        
+                                // if (rowGroupNum > 0)
+                        // {
+                        //     scanOutput.addOutput(outputFolders.get(0), rowGroupNum);
+                        // }
                     }
                     catch (Exception e)
                     {
@@ -224,21 +225,20 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                          boolean[] scanProjection, List<TableScanFilter> filter, List<String> outputPath, boolean encoding,
                          Storage.Scheme outputScheme, boolean partialAggregate, Aggregator aggregator)
     {
-        PixelsWriter pixelsWriter1 = null;
-        PixelsWriter pixelsWriter2 = null;
-        Scanner scanner1 = null;
-        Scanner scanner2 = null;
-        if (partialAggregate)
-        {
-            requireNonNull(aggregator, "aggregator is null whereas partialAggregate is true");
-        }
+
+        // if (partialAggregate)
+        // {
+        //     requireNonNull(aggregator, "aggregator is null whereas partialAggregate is true");
+        // }
         WorkerMetrics.Timer readCostTimer = new WorkerMetrics.Timer();
         WorkerMetrics.Timer writeCostTimer = new WorkerMetrics.Timer();
         WorkerMetrics.Timer computeCostTimer = new WorkerMetrics.Timer();
         long readBytes = 0L;
         int numReadRequests = 0;
         for (InputInfo inputInfo : scanInputs)
-        {
+        {   
+
+            
             readCostTimer.start();
             try (PixelsReader pixelsReader = WorkerCommon.getReader(inputInfo.getPath(), WorkerCommon.getStorage(inputScheme)))
             {
@@ -254,48 +254,36 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                 PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, columnsToRead, inputInfo);
                 PixelsRecordReader recordReader = pixelsReader.read(option);
                 TypeDescription rowBatchSchema = recordReader.getResultSchema();
-                VectorizedRowBatch rowBatch1;
-                VectorizedRowBatch rowBatch2;
-                if (scanner1 == null && scanner2==null)
-                {
-                    scanner1 = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, columnsToRead, scanProjection, filter.get(0));
-                    scanner2 = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, columnsToRead, scanProjection, filter.get(1));
-                }
-                if (pixelsWriter1 == null && pixelsWriter2 == null && !partialAggregate)
-                {
-                    writeCostTimer.start();
-                    pixelsWriter1 = WorkerCommon.getWriter(scanner1.getOutputSchema(), WorkerCommon.getStorage(outputScheme),
-                            outputPath.get(0), encoding, false, null);
-                    
-                    
-                    pixelsWriter2 = WorkerCommon.getWriter(scanner2.getOutputSchema(), WorkerCommon.getStorage(outputScheme),
-                    outputPath.get(1), encoding, false, null);
-                    writeCostTimer.stop();
+                
+                
+                List<VectorizedRowBatch> allBatchs = new ArrayList<VectorizedRowBatch>();
+                VectorizedRowBatch rowBatch=null;
+                do{
+                    rowBatch=recordReader.readBatch(WorkerCommon.rowBatchSize);
+                    allBatchs.add(rowBatch);
+                }while(!rowBatch.isEmpty());
+                computeCostTimer.start();
+                System.out.println("finifsh allBatches");
+
+                ExecutorService executorService = Executors.newFixedThreadPool(filter.size());
+                // threadgoeshere
+                for(int k=0; k<filter.size();k++){
+
+                    executorService.submit(new filterThread(allBatchs,filter.get(k),outputPath.get(k),rowBatchSchema,columnsToRead,scanProjection,outputScheme,encoding)); 
+                
                 }
 
-                computeCostTimer.start();
-                do
-                {   
-                    VectorizedRowBatch commonprocess = recordReader.readBatch(WorkerCommon.rowBatchSize);
-                    rowBatch1 = scanner1.filterAndProject(commonprocess);
-                    rowBatch2 = scanner2.filterAndProject(commonprocess);
-                    if (rowBatch1.size > 0 && rowBatch2.size>0)
-                    {
-                        // if (partialAggregate)
-                        // {
-                        //     aggregator.aggregate(rowBatch1);
-                        // } else
-                        // {
-                        pixelsWriter1.addRowBatch(rowBatch1);
-                        pixelsWriter2.addRowBatch(rowBatch2);
-                        // }
-                    }
-                } while (!rowBatch1.endOfFile && !rowBatch2.endOfFile);
+                executorService.shutdown();
+
+                // threadgoeshere
+
                 computeCostTimer.stop();
                 computeCostTimer.minus(recordReader.getReadTimeNanos());
                 readCostTimer.add(recordReader.getReadTimeNanos());
                 readBytes += recordReader.getCompletedBytes();
                 numReadRequests += recordReader.getNumReadRequests();
+                
+                
             } catch (Exception e)
             {
                 throw new WorkerException("failed to scan the file '" +
@@ -303,16 +291,64 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             }
         }
         // Finished scanning all the files in the split.
+        return 0;
+    }
+    
+}
+
+class filterThread implements Callable<VectorizedRowBatch> { 
+    private List<VectorizedRowBatch> allRawBacth; 
+    private TableScanFilter filter;
+    private String outPutPath;
+    private TypeDescription rowBatchSchema;
+    private String[] columnsToRead;
+    private boolean[] scanProjection;
+    private Storage.Scheme outputScheme;
+    private boolean encoding;
+    
+    public filterThread(List<VectorizedRowBatch> allrawbacth,TableScanFilter filter,
+    String outputpath,TypeDescription rowbatchschema,String[] columnstoread,
+    boolean[] scanprojection,Storage.Scheme outputscheme,boolean encoding) { 
+        this.allRawBacth = allrawbacth;
+        this.filter =  filter;
+        this.outPutPath=outputpath;
+        this.rowBatchSchema=rowbatchschema;
+        this.columnsToRead=columnstoread;
+        this.scanProjection=scanprojection;
+        this.outputScheme=outputscheme;
+        this.encoding =encoding;
+    } 
+
+    /** 
+     * 任务的具体过程，一旦任务传给ExecutorService的submit方法，则该方法自动在一个线程上执行。 
+     * 
+     * @return 
+     * @throws Exception 
+     */
+    public VectorizedRowBatch call() throws IOException { 
+        PixelsWriter pixelsWriter=null;
+        Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, this.rowBatchSchema, this.columnsToRead, this.scanProjection, this.filter);
+        pixelsWriter=WorkerCommon.getWriter(scanner.getOutputSchema(), WorkerCommon.getStorage(this.outputScheme),
+        this.outPutPath, encoding, false, null);
+        VectorizedRowBatch a=null;
+        for (VectorizedRowBatch rawBatch:allRawBacth){
+            VectorizedRowBatch rowBatch=null;
+            rowBatch=scanner.filterAndProject(rawBatch);
+            if (rowBatch.size > 0 )
+            {
+                pixelsWriter.addRowBatch(rowBatch);
+            }
+
+        }
         try
         {
-            int numRowGroup = 0;
-            if (pixelsWriter1 != null && pixelsWriter1 != null)
+            // int numRowGroup = 0;
+            if (pixelsWriter != null)
             {
                 // This is a pure scan without aggregation, compute time is the file writing time.
-                writeCostTimer.add(computeCostTimer.getElapsedNs());
-                writeCostTimer.start();
-                pixelsWriter1.close();
-                pixelsWriter2.close();
+                // writeCostTimer.add(computeCostTimer.getElapsedNs());
+                // writeCostTimer.start();
+                pixelsWriter.close();
                 // if (outputScheme == Storage.Scheme.minio)
                 // {
                 //     while (!WorkerCommon.getStorage(Storage.Scheme.minio).exists(outputPath))
@@ -321,30 +357,25 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                 //         TimeUnit.MILLISECONDS.sleep(10);
                 //     }
                 // }
-                writeCostTimer.stop();
-                workerMetrics.addWriteBytes(pixelsWriter1.getCompletedBytes());
-                workerMetrics.addNumWriteRequests(pixelsWriter1.getNumWriteRequests());
-                workerMetrics.addOutputCostNs(writeCostTimer.getElapsedNs());
-                numRowGroup = pixelsWriter1.getNumRowGroup();
+                // writeCostTimer.stop();
+                // workerMetrics.addWriteBytes(pixelsWriter1.getCompletedBytes());
+                // workerMetrics.addNumWriteRequests(pixelsWriter1.getNumWriteRequests());
+                // workerMetrics.addOutputCostNs(writeCostTimer.getElapsedNs());
+                // numRowGroup = pixelsWriter1.getNumRowGroup();
             }
-            else
-            {
-                workerMetrics.addComputeCostNs(computeCostTimer.getElapsedNs());
-            }
-            workerMetrics.addReadBytes(readBytes);
-            workerMetrics.addNumReadRequests(numReadRequests);
-            workerMetrics.addInputCostNs(readCostTimer.getElapsedNs());
-            return numRowGroup;
+            // }
+            // else
+            // {
+            //     workerMetrics.addComputeCostNs(computeCostTimer.getElapsedNs());
+            // }
+            // workerMetrics.addReadBytes(readBytes);
+            // workerMetrics.addNumReadRequests(numReadRequests);
+            // workerMetrics.addInputCostNs(readCostTimer.getElapsedNs());
+            // return numRowGroup;
         } catch (Exception e)
         {
-            throw new WorkerException(
-                    "failed finish writing and close the output file '" + outputPath + "'", e);
+            throw new IOException();
         }
-    }
+        return a;         
+    } 
 }
-
-
-
-
-
-
