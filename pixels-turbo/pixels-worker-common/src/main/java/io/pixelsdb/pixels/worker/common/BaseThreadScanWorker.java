@@ -78,14 +78,6 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                     "partial aggregation and random output file name should not equal");
             List<String> outputFolders = event.getOutput().getPath();
             StorageInfo outputStorageInfo = event.getOutput().getStorageInfo();
-            // for (String outputFolder:outputFolders ){
-            //     int i=0;
-            //     if (!outputFolder.endsWith("/"))
-            //     {
-            //         outputFolders.set(i, outputFolder+"/");
-            //         i++;
-            //     }
-            // }
             boolean encoding = event.getOutput().isEncoding();
 
             WorkerCommon.initStorage(inputStorageInfo);
@@ -98,8 +90,6 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             for (String filter:filterlist){
                 scanfilterlist.add(JSON.parseObject(filter, TableScanFilter.class));
             }
-            
-
             Aggregator aggregator=null;
             // if (partialAggregationPresent)
             // {
@@ -128,6 +118,8 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             
             this.fileId=0;
             logger.info("start scan and aggregate");
+            logger.info("start threadversion.start threadversion.start threadversion");
+
             for (InputSplit inputSplit : inputSplits)
             {
                 List<InputInfo> scanInputs = inputSplit.getInputInfos();
@@ -143,6 +135,7 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                             folders.add(outputfolder + requestId + "_Threadscan_" + this.fileId);
                         }
                         this.fileId++;
+
 
                         int rowGroupNum = scanFile(queryId, scanInputs, includeCols, inputStorageInfo.getScheme(),
                                 scanProjection, scanfilterlist, folders, encoding, outputStorageInfo.getScheme(),
@@ -225,11 +218,6 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                          boolean[] scanProjection, List<TableScanFilter> filter, List<String> outputPath, boolean encoding,
                          Storage.Scheme outputScheme, boolean partialAggregate, Aggregator aggregator)
     {
-
-        // if (partialAggregate)
-        // {
-        //     requireNonNull(aggregator, "aggregator is null whereas partialAggregate is true");
-        // }
         WorkerMetrics.Timer readCostTimer = new WorkerMetrics.Timer();
         WorkerMetrics.Timer writeCostTimer = new WorkerMetrics.Timer();
         WorkerMetrics.Timer computeCostTimer = new WorkerMetrics.Timer();
@@ -237,8 +225,6 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
         int numReadRequests = 0;
         for (InputInfo inputInfo : scanInputs)
         {   
-
-            
             readCostTimer.start();
             try (PixelsReader pixelsReader = WorkerCommon.getReader(inputInfo.getPath(), WorkerCommon.getStorage(inputScheme)))
             {
@@ -263,17 +249,23 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                     allBatchs.add(rowBatch);
                 }while(!rowBatch.isEmpty());
                 computeCostTimer.start();
-                System.out.println("finifsh allBatches");
+
 
                 ExecutorService executorService = Executors.newFixedThreadPool(filter.size());
                 // threadgoeshere
                 for(int k=0; k<filter.size();k++){
-
                     executorService.submit(new filterThread(allBatchs,filter.get(k),outputPath.get(k),rowBatchSchema,columnsToRead,scanProjection,outputScheme,encoding)); 
-                
                 }
-
                 executorService.shutdown();
+                while(!executorService.isTerminated());
+                
+                // wait for the thread finish
+
+                // try {//wait for all the  thread finish
+                //     executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);
+                // } catch (InterruptedException e) {
+                //     e.printStackTrace();
+                // }
 
                 // threadgoeshere
 
@@ -320,22 +312,28 @@ class filterThread implements Callable<VectorizedRowBatch> {
     } 
 
     /** 
-     * 任务的具体过程，一旦任务传给ExecutorService的submit方法，则该方法自动在一个线程上执行。 
+     * Reads a the whole VectorizedRowBatch and do filter and writes to file
      * 
      * @return 
      * @throws Exception 
      */
     public VectorizedRowBatch call() throws IOException { 
+
+
         PixelsWriter pixelsWriter=null;
         Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, this.rowBatchSchema, this.columnsToRead, this.scanProjection, this.filter);
         pixelsWriter=WorkerCommon.getWriter(scanner.getOutputSchema(), WorkerCommon.getStorage(this.outputScheme),
         this.outPutPath, encoding, false, null);
         VectorizedRowBatch a=null;
+
+
         for (VectorizedRowBatch rawBatch:allRawBacth){
             VectorizedRowBatch rowBatch=null;
             rowBatch=scanner.filterAndProject(rawBatch);
+
             if (rowBatch.size > 0 )
             {
+
                 pixelsWriter.addRowBatch(rowBatch);
             }
 
@@ -348,6 +346,7 @@ class filterThread implements Callable<VectorizedRowBatch> {
                 // This is a pure scan without aggregation, compute time is the file writing time.
                 // writeCostTimer.add(computeCostTimer.getElapsedNs());
                 // writeCostTimer.start();
+            
                 pixelsWriter.close();
                 // if (outputScheme == Storage.Scheme.minio)
                 // {
