@@ -36,6 +36,7 @@ import io.pixelsdb.pixels.planner.plan.physical.domain.PartialAggregationInfo;
 import io.pixelsdb.pixels.planner.plan.physical.domain.StorageInfo;
 import io.pixelsdb.pixels.planner.plan.physical.input.ScanInput;
 import io.pixelsdb.pixels.planner.plan.physical.output.ScanOutput;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.slf4j.Logger;
 
 import java.util.Arrays;
@@ -46,6 +47,14 @@ import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+
+import java.util.concurrent.CountDownLatch;
+import com.google.common.eventbus.AllowConcurrentEvents;
+import com.google.common.eventbus.AsyncEventBus;
+import com.google.common.eventbus.Subscribe;
+import java.util.concurrent.Executors;
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Scan a table split.
@@ -158,6 +167,8 @@ public class BaseScanWorker extends Worker<ScanInput, ScanOutput>
                     }
                 });
             }
+
+
             threadPool.shutdown();
             try
             {
@@ -253,81 +264,154 @@ public class BaseScanWorker extends Worker<ScanInput, ScanOutput>
                 PixelsRecordReader recordReader = pixelsReader.read(option);
                 TypeDescription rowBatchSchema = recordReader.getResultSchema();
                 VectorizedRowBatch rowBatch;
+                CountDownLatch writerLatch=new CountDownLatch(1);
+                CountDownLatch endfilterLatch=new CountDownLatch(1);
 
-                if (scanner == null)
-                {
-                    scanner = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, columnsToRead, scanProjection, filter);
-                }
-                if (pixelsWriter == null && !partialAggregate)
-                {
-                    writeCostTimer.start();
-                    pixelsWriter = WorkerCommon.getWriter(scanner.getOutputSchema(), WorkerCommon.getStorage(outputScheme),
-                            outputPath, encoding, false, null);
-                    writeCostTimer.stop();
-                }
+                // if (scanner == null)
+                // {
+                //     scanner = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, columnsToRead, scanProjection, filter);
+                // }
+                // if (pixelsWriter == null && !partialAggregate)
+                // {
+                //     writeCostTimer.start();
+                //     pixelsWriter = WorkerCommon.getWriter(scanner.getOutputSchema(), WorkerCommon.getStorage(outputScheme),
+                //             outputPath, encoding, false, null);
+                //     writeCostTimer.stop();
+                // }
+                // rowBatch.e
 
-                computeCostTimer.start();
-                do
-                {
-                    rowBatch = scanner.filterAndProject(recordReader.readBatch(WorkerCommon.rowBatchSize));
-                    if (rowBatch.size > 0)
-                    {
-                        if (partialAggregate)
-                        {
-                            aggregator.aggregate(rowBatch);
-                        } else
-                        {
-                            pixelsWriter.addRowBatch(rowBatch);
-                        }
-                    }
-                } while (!rowBatch.endOfFile);
-                computeCostTimer.stop();
-                computeCostTimer.minus(recordReader.getReadTimeNanos());
-                readCostTimer.add(recordReader.getReadTimeNanos());
-                readBytes += recordReader.getCompletedBytes();
-                numReadRequests += recordReader.getNumReadRequests();
+                AsyncEventBus eventBus = new AsyncEventBus(Executors.newCachedThreadPool());
+                BaseScanEventSubscriber scansubscriber=null;
+
+                scansubscriber=new BaseScanEventSubscriber(filter,outputPath,rowBatchSchema,columnsToRead,scanProjection,outputScheme,encoding,writerLatch,endfilterLatch);
+                eventBus.register(scansubscriber);
+                
+                do{
+                    rowBatch=recordReader.readBatch(WorkerCommon.rowBatchSize);
+                    eventBus.post(rowBatch);
+                }while(!rowBatch.isEmpty());
+                
+                endfilterLatch.await();
+                System.out.println("finish all the batches now we need to close writer");
+            
+                Thread.sleep(10000);
+                eventBus.post(true);
+                writerLatch.await();
+                // Thread.sleep(10000);
+                
+                
+                return 1;   
             } catch (Exception e)
             {
-                throw new WorkerException("failed to scan the file '" +
-                        inputInfo.getPath() + "' and output the result", e);
-            }
-        }
-        // Finished scanning all the files in the split.
-        try
+                throw new WorkerException("error during main process scanfile", e);
+            }    
+    }
+    return 1;
+}
+
+}
+
+class BaseScanEventSubscriber {
+    private TableScanFilter filter;
+    private String outPutPath;
+    private PixelsWriter pixelsWriter;
+    private Scanner scanner;
+    private CountDownLatch writerLatch;
+    private CountDownLatch endfilterLatch;
+    // private TypeDescription rowBatchSchema;
+    // private String[] columnsToRead;
+    // private boolean[] scanProjection;
+    // private Storage.Scheme outputScheme;
+    // private boolean encoding;
+
+
+    public BaseScanEventSubscriber(TableScanFilter filter,
+    String outputpath,TypeDescription rowbatchschema,String[] columnstoread,
+    boolean[] scanprojection,Storage.Scheme outputscheme,boolean encoding,CountDownLatch writerLatch, CountDownLatch endfilterLatch) { 
+        this.filter =  filter;
+        this.outPutPath=outputpath;
+        this.writerLatch=writerLatch;
+        this.endfilterLatch=endfilterLatch;
+        // this.rowBatchSchema=rowbatchschema;
+        // this.columnsToRead=columnstoread;
+        // this.scanProjection=scanprojection;
+        // this.outputScheme=outputscheme;
+        // this.encoding =encoding;
+
+        PixelsWriter pixelsWriter=null;
+        Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, scanprojection, this.filter);
+        pixelsWriter=WorkerCommon.getWriter(scanner.getOutputSchema(), WorkerCommon.getStorage(outputscheme),
+        this.outPutPath, encoding, false, null);
+        this.pixelsWriter=pixelsWriter;
+        this.scanner=scanner;
+    } 
+
+    @Subscribe
+    public void onScan(VectorizedRowBatch event) {
+        VectorizedRowBatch rowBatch=null;
+        rowBatch=scanner.filterAndProject(event);
+        if (rowBatch.size > 0 )
         {
-            int numRowGroup = 0;
-            if (pixelsWriter != null)
-            {
-                // This is a pure scan without aggregation, compute time is the file writing time.
-                writeCostTimer.add(computeCostTimer.getElapsedNs());
-                writeCostTimer.start();
-                pixelsWriter.close();
-                if (outputScheme == Storage.Scheme.minio)
-                {
-                    while (!WorkerCommon.getStorage(Storage.Scheme.minio).exists(outputPath))
-                    {
-                        // Wait for 10ms and see if the output file is visible.
-                        TimeUnit.MILLISECONDS.sleep(10);
-                    }
+            try{
+                pixelsWriter.addRowBatch(rowBatch);
+                if(rowBatch.endOfFile){
+                    System.out.println("it's the end of file");
+                    endfilterLatch.countDown();
                 }
-                writeCostTimer.stop();
-                workerMetrics.addWriteBytes(pixelsWriter.getCompletedBytes());
-                workerMetrics.addNumWriteRequests(pixelsWriter.getNumWriteRequests());
-                workerMetrics.addOutputCostNs(writeCostTimer.getElapsedNs());
-                numRowGroup = pixelsWriter.getNumRowGroup();
             }
-            else
+            catch (Exception e)
             {
-                workerMetrics.addComputeCostNs(computeCostTimer.getElapsedNs());
+                throw new WorkerException("error during thread subscriber", e);
             }
-            workerMetrics.addReadBytes(readBytes);
-            workerMetrics.addNumReadRequests(numReadRequests);
-            workerMetrics.addInputCostNs(readCostTimer.getElapsedNs());
-            return numRowGroup;
-        } catch (Exception e)
-        {
-            throw new WorkerException(
-                    "failed finish writing and close the output file '" + outputPath + "'", e);
         }
     }
+
+    @Subscribe
+    public void onScanCloseWriter(Boolean onScanCloseWriter) {
+
+        
+        if(onScanCloseWriter){
+            try
+            {
+                // int numRowGroup = 0;
+                if (pixelsWriter != null)
+                {
+                    // This is a pure scan without aggregation, compute time is the file writing time.
+                    // writeCostTimer.add(computeCostTimer.getElapsedNs());
+                    // writeCostTimer.start();
+                    System.out.println("we are closing the writer");
+                    pixelsWriter.close();
+                    writerLatch.countDown();
+                    // if (outputScheme == Storage.Scheme.minio)
+                    // {
+                    //     while (!WorkerCommon.getStorage(Storage.Scheme.minio).exists(outputPath))
+                    //     {
+                    //         // Wait for 10ms and see if the output file is visible.
+                    //         TimeUnit.MILLISECONDS.sleep(10);
+                    //     }
+                    // }
+                    // writeCostTimer.stop();
+                    // workerMetrics.addWriteBytes(pixelsWriter1.getCompletedBytes());
+                    // workerMetrics.addNumWriteRequests(pixelsWriter1.getNumWriteRequests());
+                    // workerMetrics.addOutputCostNs(writeCostTimer.getElapsedNs());
+                    // numRowGroup = pixelsWriter1.getNumRowGroup();
+                }
+                // }
+                // else
+                // {
+                //     workerMetrics.addComputeCostNs(computeCostTimer.getElapsedNs());
+                // }
+                // workerMetrics.addReadBytes(readBytes);
+                // workerMetrics.addNumReadRequests(numReadRequests);
+                // workerMetrics.addInputCostNs(readCostTimer.getElapsedNs());
+                // return numRowGroup;
+            } catch (Exception e)
+            {
+                throw new WorkerException("error during subscriber onScanclost operation", e);
+            }     
+        }
+       
+    }
 }
+
+
