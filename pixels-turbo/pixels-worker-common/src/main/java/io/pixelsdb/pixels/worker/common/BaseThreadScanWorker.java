@@ -22,6 +22,7 @@ import io.pixelsdb.pixels.planner.plan.physical.input.ThreadScanInput;
 import io.pixelsdb.pixels.planner.plan.physical.output.ScanOutput;
 
 import org.checkerframework.checker.units.qual.C;
+import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 
@@ -41,11 +42,15 @@ import static java.util.Objects.requireNonNull;
 
 
 // publisher,subscriber
+import io.reactivex.rxjava3.processors.PublishProcessor;
 import io.reactivex.rxjava3.core.BackpressureStrategy;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.FlowableEmitter;
 import io.reactivex.rxjava3.core.FlowableOnSubscribe;
 import io.reactivex.rxjava3.schedulers.Schedulers;
+import software.amazon.awssdk.annotations.ToBuilderIgnoreField;
+import software.amazon.awssdk.core.endpointdiscovery.providers.SystemPropertiesEndpointDiscoveryProvider;
+
 
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -109,12 +114,11 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             List<TableScanFilter> scanfilterlist=new ArrayList<TableScanFilter>();
 
             /*start preparing batches */
-            int producerPoolSize=10;
+            int producerPoolSize=2;
             ExecutorService producerPool = Executors.newFixedThreadPool(producerPoolSize);
             LinkedBlockingQueue<VectorizedRowBatch> blockingQueue = new LinkedBlockingQueue<>();
             LinkedBlockingQueue<InputInfo> inputInfoQueue = new LinkedBlockingQueue<>();
             
-            long startTimeoninputinforqueue = System.currentTimeMillis();
             for (InputSplit inputSplit : inputSplits)
             {
                 List<InputInfo> scanInputs = inputSplit.getInputInfos();
@@ -122,9 +126,7 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                     inputInfoQueue.put(inputInfo);
                 }
             }
-            long endTimeoninputinforqueue = System.currentTimeMillis();
-            System.out.println("time spend in building inputinfo queu ：" + (endTimeoninputinforqueue-startTimeoninputinforqueue) + " ms");
-
+            int EOFsize=inputInfoQueue.size();
 
             long peektime1 = System.currentTimeMillis();
             InputInfo inputInfoaa=inputInfoQueue.peek();
@@ -194,17 +196,29 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             TypeDescription rowBatchSchema = recordReader.getResultSchema();
             long endTime1 = System.currentTimeMillis();
             System.out.println("time wasted in get the schema ：" + (endTime1-starttime1)+(endpeektime1-peektime1) + " ms");
-            // just for the schema!!!!!!         
-            Thread.sleep(5000);
-            System.out.println("our queue size of blocking queu "+blockingQueue.size());
-            CountDownLatch latch=new CountDownLatch(2);
-            GroupProcessor gourpProcessor=new GroupProcessor(blockingQueue,scanfilterlist,outputFolders,rowBatchSchema,includeCols,
-            scanProjection,encoding,outputStorageInfo.getScheme(), requestId,partialAggregationPresent,aggregatorList,filterOnAggreation,latch);
+            // just for the schema!!!!!!        
+
+            CountDownLatch latch=new CountDownLatch(EOFsize);
+            // GroupProcessor gourpProcessor=new GroupProcessor(blockingQueue,scanfilterlist,outputFolders,rowBatchSchema,includeCols,
+            // scanProjection,encoding,outputStorageInfo.getScheme(), requestId,partialAggregationPresent,aggregatorList,filterOnAggreation,latch,EOFsize);
             
             
             long starTime = System.currentTimeMillis();
-            gourpProcessor.start();
+            int consumerPoolSize=1;
+            ExecutorService consumerPool = Executors.newFixedThreadPool(consumerPoolSize);
+            // for(int i=0;i<consumerPoolSize;i++){
+            //     consumerPool.submit(new GroupProcessor(blockingQueue,scanfilterlist,outputFolders,rowBatchSchema,includeCols,
+            //     scanProjection,encoding,outputStorageInfo.getScheme(), requestId,partialAggregationPresent,aggregatorList,filterOnAggreation,latch,EOFsize));
+            // }
+
+            GroupProcessor groupProcessor=new GroupProcessor(blockingQueue,scanfilterlist,outputFolders,rowBatchSchema,includeCols,
+            scanProjection,encoding,outputStorageInfo.getScheme(), requestId,partialAggregationPresent,aggregatorList,filterOnAggreation,latch,EOFsize);
+            
+            consumerPool.submit(groupProcessor);
+            // gourpProcessor.start();            
             latch.await();
+            groupProcessor.trigger();
+
             long endTime = System.currentTimeMillis();
             long totalTime = endTime -starTime;
             System.out.println("the filter and aggregation cost time ：" + totalTime + " ms");
@@ -223,9 +237,8 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
     }
 }
 
-class GroupProcessor {
+class GroupProcessor implements Runnable{
     private LinkedBlockingQueue<VectorizedRowBatch> queue;
-    private int bufferSize;
     private int writeSize;
     private List<TableScanFilter> scanfilterlist;
     private Flowable<VectorizedRowBatch> publisher;
@@ -240,11 +253,14 @@ class GroupProcessor {
     private List<Aggregator> aggregatorList;
     private HashMap<String, List<Integer>> filterOnAggreation;
     private CountDownLatch latch;
+    private int EOFsize;
+    private PublishProcessor<Boolean> subject;
+
     public GroupProcessor(LinkedBlockingQueue<VectorizedRowBatch> queue,List<TableScanFilter> scanfilterlist,List<String> outputFolders,TypeDescription rowbatchschema,String[] columnstoread,
-    boolean[] scanprojection,boolean encoding, Storage.Scheme outputscheme,String requestId,boolean partialAggregationPresent,List<Aggregator> aggregatorList,HashMap<String, List<Integer>> filterOnAggreation,CountDownLatch latch) {
+    boolean[] scanprojection,boolean encoding, Storage.Scheme outputscheme,String requestId,boolean partialAggregationPresent,List<Aggregator> aggregatorList,HashMap<String, List<Integer>> filterOnAggreation,
+    CountDownLatch latch,int endOfFile) {
         this.queue = queue;
-        this.bufferSize = 5;
-        this.writeSize = 20;
+        this.writeSize = 70;
         this.scanfilterlist=scanfilterlist;
         this.outputFolders=outputFolders;
         this.rowbatchschema=rowbatchschema;
@@ -257,25 +273,23 @@ class GroupProcessor {
         this.aggregatorList=aggregatorList;
         this.filterOnAggreation=filterOnAggreation;
         this.latch=latch;
+        this.EOFsize=endOfFile;
     }
 
-    public void start() {
-
+    @Override
+    public void run() {
         publisher = Flowable.create(new FlowableOnSubscribe<VectorizedRowBatch>() {
             @Override
             public void subscribe(FlowableEmitter<VectorizedRowBatch> emitter) throws Exception {
                 while (!emitter.isCancelled()) {
-                    VectorizedRowBatch message = queue.poll();
-                    if(message==null){
-                        System.out.println("reach end of the queue");
-                        break;
-                    }
+                    VectorizedRowBatch message = queue.take();
                     emitter.onNext(message);
                 }
                 emitter.onComplete();
                 
             }
-        }, BackpressureStrategy.BUFFER).onBackpressureBuffer(1024).subscribeOn(Schedulers.newThread());
+        }, BackpressureStrategy.BUFFER).onBackpressureBuffer(1024).subscribeOn(Schedulers.newThread()).share();
+        // }, BackpressureStrategy.BUFFER).onBackpressureBuffer(1024).subscribeOn(Schedulers.newThread());
 
         // 创建 Observer 1
         FlowableSubscriber<VectorizedRowBatch> observer1 = new FlowableSubscriber<VectorizedRowBatch>() {
@@ -314,6 +328,7 @@ class GroupProcessor {
             public void onNext(VectorizedRowBatch message) {
                 messageCount++;
                 rowBatch=scanner.filterAndProject(message);
+
                 if(partialAggregationPresent){
                    
                     for (Aggregator aggregator:aggregatorOnFilterList){
@@ -360,6 +375,14 @@ class GroupProcessor {
                     }  
                 }
 
+                if(message.endOfFile){
+                    latch.countDown();
+                    // EOFsize--;
+                    // if(EOFsize==0){
+                    //     emitter.onNext(message);
+                    //     break;
+                    // }
+                }
                 subscription.request(1);
             }
 
@@ -394,7 +417,7 @@ class GroupProcessor {
                         e.printStackTrace();
                     }
                 }
-                latch.countDown();
+                // latch.countDown();
                 // 不需要处理
             }
         };
@@ -480,8 +503,14 @@ class GroupProcessor {
                         messageCount = 0;
                     }  
                 }
-
-
+                if(message.endOfFile){
+                    latch.countDown();
+                    // EOFsize--;
+                    // if(EOFsize==0){
+                    //     emitter.onNext(message);
+                    //     break;
+                    // }
+                }
                 subscription.request(1);
             }
 
@@ -517,15 +546,27 @@ class GroupProcessor {
                     }
                 }
                 // 不需要处理
-                latch.countDown();
+                // latch.countDown();
             }
         };
 
+        
         // 订阅 Observer 1
         publisher.observeOn(Schedulers.newThread()).subscribe(observer1);
 
         // 订阅 Observer 2
         publisher.observeOn(Schedulers.newThread()).subscribe(observer2);
+
+        subject.subscribe(ignore -> {
+            observer1.onComplete();
+            observer2.onComplete();
+        });
+
+
+    }
+
+    public void trigger() {
+        subject.onNext(true);
     }
 
 }
@@ -546,15 +587,14 @@ class ThreadScanProducer2 implements Callable{
         this.inputScheme=inputScheme;
     }
 
-
     @Override
     public Object call() throws IOException{
         while(true){
             try{
-                InputInfo inputInfo=inputInfoQueue.poll();
                 if(inputInfoQueue.isEmpty()){
                     return true;
                 }
+                InputInfo inputInfo=inputInfoQueue.poll();
                 PixelsReader pixelsReader = WorkerCommon.getReader(inputInfo.getPath(), WorkerCommon.getStorage(inputScheme));
                 if (inputInfo.getRgStart() >= pixelsReader.getRowGroupNum())
                 {
@@ -567,9 +607,14 @@ class ThreadScanProducer2 implements Callable{
                 PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, includeCols, inputInfo);
                 PixelsRecordReader recordReader = pixelsReader.read(option);
                 VectorizedRowBatch rowBatch=null;
+                // TODO: issue, if "rgStart": is not start from 0;
                 while(true){ 
                     rowBatch=recordReader.readBatch(WorkerCommon.rowBatchSize);
-                    if(rowBatch.endOfFile||rowBatch.isEmpty()){
+                    if(rowBatch.endOfFile){
+                        blockingQueue.put(rowBatch);
+                        break;
+                    }
+                    if(rowBatch.isEmpty()){
                         break;
                     }
                     blockingQueue.put(rowBatch);

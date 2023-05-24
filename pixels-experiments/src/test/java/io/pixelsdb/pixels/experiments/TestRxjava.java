@@ -9,7 +9,7 @@ import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 import io.reactivex.rxjava3.core.BackpressureStrategy;
-
+import io.reactivex.rxjava3.core.FlowableSubscriber;
 
 
 public class TestRxjava {
@@ -57,7 +57,7 @@ public class TestRxjava {
             public void subscribe(FlowableEmitter<Integer> emitter) throws Exception {
                 for (int i = 1; i <= 10 && !emitter.isCancelled(); i++) {
                     System.out.println(Thread.currentThread().getName());
-                    System.out.println("emmite roabatch");
+                    // System.out.println("emmite roabatch");
                     emitter.onNext(i);
                     // rowbatch=recordReader.readBatch(WorkerCommon.rowBatchSize);
                     // if(!rowbatch.isEmpty()){
@@ -69,9 +69,16 @@ public class TestRxjava {
                 }
                 emitter.onComplete();
             }
-        }, BackpressureStrategy.BUFFER);
+        }, BackpressureStrategy.BUFFER).subscribeOn(Schedulers.newThread());
         
-        flowable.subscribe(System.out::println);
+
+        // FlowableSubscriber<Integer> observer1 = new FlowableSubscriber<Integer>() {
+
+        // }
+        
+        flowable.observeOn(Schedulers.newThread()).subscribe(System.out::println);
+        flowable.observeOn(Schedulers.newThread()).subscribe(System.out::println);
+
         Thread.sleep(2000);
     }
 
