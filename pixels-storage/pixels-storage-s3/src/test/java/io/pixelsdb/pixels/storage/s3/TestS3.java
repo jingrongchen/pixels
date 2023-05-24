@@ -40,7 +40,7 @@ public class TestS3
     @Test
     public void testStorageScheme()
     {
-        System.out.println(Storage.Scheme.fromPath("s3://container/object"));
+        System.out.println(Storage.Scheme.fromPath("s3://jingrong-test/orders/v-0-order/"));
     }
 
     @Test
@@ -153,7 +153,7 @@ public class TestS3
     @Test
     public void testS3Reader() throws IOException
     {
-        PhysicalReader reader = PhysicalReaderUtil.newPhysicalReader(Storage.Scheme.s3, "pixels-dias-empty/object-4");
+        PhysicalReader reader = PhysicalReaderUtil.newPhysicalReader(Storage.Scheme.s3, "s3://jingrong-test/orders/v-0-order/20230425100657_1.pxl");
         CompletableFuture<ByteBuffer> future = reader.readAsync(0, 8);
         future.whenComplete((resp, err) ->
         {

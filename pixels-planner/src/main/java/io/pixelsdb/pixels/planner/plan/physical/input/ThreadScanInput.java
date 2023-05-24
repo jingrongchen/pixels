@@ -1,5 +1,6 @@
 package io.pixelsdb.pixels.planner.plan.physical.input;
-
+import java.util.List;
+import java.util.HashMap;
 import io.pixelsdb.pixels.common.turbo.Input;
 import io.pixelsdb.pixels.planner.plan.physical.domain.ThreadOutputInfo;
 import io.pixelsdb.pixels.planner.plan.physical.domain.PartialAggregationInfo;
@@ -25,12 +26,18 @@ public class ThreadScanInput extends Input {
     /**
      * The information of the partial aggregation.
      */
-    private PartialAggregationInfo partialAggregationInfo;
+    private List<PartialAggregationInfo> partialAggregationInfo;
 
     /**
      * The output of the scan.
      */
     private ThreadOutputInfo output;
+
+    /**
+     * The output of the scan.
+     */
+    private HashMap<String, List<Integer>> filterOnAggreation;
+
 
     /**
      * Default constructor for Jackson.
@@ -41,7 +48,7 @@ public class ThreadScanInput extends Input {
     }
 
     public ThreadScanInput(long queryId, ThreadScanTableInfo tableInfo, boolean[] scanProjection,
-                     boolean partialAggregationPresent, PartialAggregationInfo partialAggregationInfo, ThreadOutputInfo output)
+                     boolean partialAggregationPresent, List<PartialAggregationInfo> partialAggregationInfo, ThreadOutputInfo output,HashMap<String, List<Integer>> filterOnAggreation)
     {
         super(queryId);
         this.tableInfo = tableInfo;
@@ -49,6 +56,7 @@ public class ThreadScanInput extends Input {
         this.partialAggregationPresent = partialAggregationPresent;
         this.partialAggregationInfo = partialAggregationInfo;
         this.output = output;
+        this.filterOnAggreation=filterOnAggreation;
     }
 
     public ThreadScanTableInfo getTableInfo()
@@ -81,12 +89,12 @@ public class ThreadScanInput extends Input {
         this.partialAggregationPresent = partialAggregationPresent;
     }
 
-    public PartialAggregationInfo getPartialAggregationInfo()
+    public List<PartialAggregationInfo> getPartialAggregationInfo()
     {
         return partialAggregationInfo;
     }
 
-    public void setPartialAggregationInfo(PartialAggregationInfo partialAggregationInfo)
+    public void setPartialAggregationInfo(List<PartialAggregationInfo> partialAggregationInfo)
     {
         this.partialAggregationInfo = partialAggregationInfo;
     }
@@ -100,4 +108,17 @@ public class ThreadScanInput extends Input {
     {
         this.output = output;
     }
+
+    public void setFilterOnAggreation(HashMap<String, List<Integer>> filterOnAggreation)
+    {
+        this.filterOnAggreation=filterOnAggreation;
+
+    }
+
+    public HashMap<String, List<Integer>> getFilterOnAggreation()
+    {
+        return filterOnAggreation;
+
+    }
+
 }

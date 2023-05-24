@@ -1,6 +1,10 @@
 package io.pixelsdb.pixels.worker.common;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONValidator.Type;
+
+import io.pixelsdb.pixels.common.metadata.domain.Column;
 import io.pixelsdb.pixels.common.physical.Storage;
+import io.pixelsdb.pixels.common.turbo.Input;
 import io.pixelsdb.pixels.core.PixelsReader;
 import io.pixelsdb.pixels.core.PixelsWriter;
 import io.pixelsdb.pixels.core.TypeDescription;
@@ -16,25 +20,37 @@ import io.pixelsdb.pixels.planner.plan.physical.domain.PartialAggregationInfo;
 import io.pixelsdb.pixels.planner.plan.physical.domain.StorageInfo;
 import io.pixelsdb.pixels.planner.plan.physical.input.ThreadScanInput;
 import io.pixelsdb.pixels.planner.plan.physical.output.ScanOutput;
+
+import org.checkerframework.checker.units.qual.C;
+import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.concurrent.*; 
 import java.util.ArrayList;
-import java.util.Arrays;
+
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.ThreadLocalRandom;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.eventbus.AsyncEventBus;
-import com.google.common.eventbus.Subscribe;
-import java.util.concurrent.Executors;
 
+
+// publisher,subscriber
+import io.reactivex.rxjava3.core.BackpressureStrategy;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.FlowableEmitter;
+import io.reactivex.rxjava3.core.FlowableOnSubscribe;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
+import java.util.concurrent.LinkedBlockingQueue;
+
+import java.util.UUID;
+import io.reactivex.rxjava3.core.FlowableSubscriber;
 /**
  * Scan a table split and apply multi filter method
  *
@@ -68,7 +84,7 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
         {
             int cores = Runtime.getRuntime().availableProcessors();
             logger.info("Number of cores available: " + cores);
-            ExecutorService threadPool = Executors.newFixedThreadPool(cores * 2);
+            // ExecutorService threadPool = Executors.newFixedThreadPool(cores * 2);
             String requestId = context.getRequestId();
 
             long queryId = event.getQueryId();
@@ -83,6 +99,7 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             List<String> outputFolders = event.getOutput().getPath();
             StorageInfo outputStorageInfo = event.getOutput().getStorageInfo();
             boolean encoding = event.getOutput().isEncoding();
+            HashMap<String, List<Integer>> filterOnAggreation=event.getFilterOnAggreation();
 
             WorkerCommon.initStorage(inputStorageInfo);
             WorkerCommon.initStorage(outputStorageInfo);
@@ -91,102 +108,106 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             List<String> filterlist=event.getTableInfo().getFilter();
             List<TableScanFilter> scanfilterlist=new ArrayList<TableScanFilter>();
 
-            for (String filter:filterlist){
-                scanfilterlist.add(JSON.parseObject(filter, TableScanFilter.class));
-            }
-            Aggregator aggregator=null;
-            // if (partialAggregationPresent)
-            // {
-            //     logger.info("start get output schema");
-            //     TypeDescription inputSchema = WorkerCommon.getFileSchemaFromSplits(
-            //             WorkerCommon.getStorage(inputStorageInfo.getScheme()), inputSplits);
-            //     inputSchema = WorkerCommon.getResultSchema(inputSchema, includeCols);
-            //     PartialAggregationInfo partialAggregationInfo = event.getPartialAggregationInfo();
-            //     requireNonNull(partialAggregationInfo, "event.partialAggregationInfo is null");
-            //     boolean[] groupKeyProjection = new boolean[partialAggregationInfo.getGroupKeyColumnAlias().length];
-            //     Arrays.fill(groupKeyProjection, true);
-            //     aggregator = new Aggregator(WorkerCommon.rowBatchSize, inputSchema,
-            //             partialAggregationInfo.getGroupKeyColumnAlias(),
-            //             partialAggregationInfo.getGroupKeyColumnIds(), groupKeyProjection,
-            //             partialAggregationInfo.getAggregateColumnIds(),
-            //             partialAggregationInfo.getResultColumnAlias(),
-            //             partialAggregationInfo.getResultColumnTypes(),
-            //             partialAggregationInfo.getFunctionTypes(),
-            //             partialAggregationInfo.isPartition(),
-            //             partialAggregationInfo.getNumPartition());
-            // }
-            // else
-            // {
-            //     aggregator = null;
-            // }
+            /*start preparing batches */
+            int producerPoolSize=10;
+            ExecutorService producerPool = Executors.newFixedThreadPool(producerPoolSize);
+            LinkedBlockingQueue<VectorizedRowBatch> blockingQueue = new LinkedBlockingQueue<>();
+            LinkedBlockingQueue<InputInfo> inputInfoQueue = new LinkedBlockingQueue<>();
             
-            this.fileId=0;
-            logger.info("start scan and aggregate");
-            logger.info("start threadversion.start threadversion.start threadversion");
-
+            long startTimeoninputinforqueue = System.currentTimeMillis();
             for (InputSplit inputSplit : inputSplits)
             {
                 List<InputInfo> scanInputs = inputSplit.getInputInfos();
+                for (InputInfo inputInfo : scanInputs){
+                    inputInfoQueue.put(inputInfo);
+                }
+            }
+            long endTimeoninputinforqueue = System.currentTimeMillis();
+            System.out.println("time spend in building inputinfo queu ：" + (endTimeoninputinforqueue-startTimeoninputinforqueue) + " ms");
+
+
+            long peektime1 = System.currentTimeMillis();
+            InputInfo inputInfoaa=inputInfoQueue.peek();
+            long endpeektime1 = System.currentTimeMillis();
+
+            Storage.Scheme outputschema=event.getOutput().getStorageInfo().getScheme();
+
+            for(int i=0;i<producerPoolSize;i++){
+                producerPool.submit(new ThreadScanProducer2(queryId,includeCols,blockingQueue,inputInfoQueue,outputschema));
+            }
+            /*start preparing batches */
+
+            long startTimeonFilter = System.currentTimeMillis();
+            for (String filter:filterlist){
+                scanfilterlist.add(JSON.parseObject(filter, TableScanFilter.class));
+            }
+            long endTimeonFilter = System.currentTimeMillis();
+            System.out.println("time wasted in loding the filter ：" + (endTimeonFilter-startTimeonFilter) + " ms");
+
+            List<Aggregator> aggregatorList = new ArrayList<>();
+            if (partialAggregationPresent)
+            {   
+                logger.info("start get output schema");
+                TypeDescription inputSchema = WorkerCommon.getFileSchemaFromSplits(
+                        WorkerCommon.getStorage(inputStorageInfo.getScheme()), inputSplits);
+                inputSchema = WorkerCommon.getResultSchema(inputSchema, includeCols);
+                List<PartialAggregationInfo> partialAggregationInfoList = event.getPartialAggregationInfo();
+                requireNonNull(partialAggregationInfoList, "event.partialAggregationInfo is null");
+                for(int i=0;i<partialAggregationInfoList.size();i++){
+                    boolean[] groupKeyProjection = new boolean[partialAggregationInfoList.get(i).getGroupKeyColumnAlias().length];
+                    Arrays.fill(groupKeyProjection, true);
+                    Aggregator aggregator = new Aggregator(WorkerCommon.rowBatchSize, inputSchema,
+                    partialAggregationInfoList.get(i).getGroupKeyColumnAlias(),
+                    partialAggregationInfoList.get(i).getGroupKeyColumnIds(), groupKeyProjection,
+                    partialAggregationInfoList.get(i).getAggregateColumnIds(),
+                    partialAggregationInfoList.get(i).getResultColumnAlias(),
+                    partialAggregationInfoList.get(i).getResultColumnTypes(),
+                    partialAggregationInfoList.get(i).getFunctionTypes(),
+                    partialAggregationInfoList.get(i).isPartition(),
+                    partialAggregationInfoList.get(i).getNumPartition());
+
+                    aggregatorList.add(aggregator);
+                }                
+            }
+            else
+            {
+                aggregatorList = null;
+            }
+            logger.info("start scan and aggregate");
+            logger.info("start threadversion.start threadversion.start threadversion");
             
-                threadPool.execute(() -> {
-                    try
-                    {   
-                        // ThreadLocalRandom random = ThreadLocalRandom.current();
-                        // int number = random.nextInt(1024);
-                        List<String> folders= new ArrayList<String>();
-                        for(String outputfolder :outputFolders){
-                            folders.add(outputfolder + requestId + "_Threadscan_" + this.fileId);
-                        }
-                        this.fileId++;
+            // All the batches will put into the blocingqueue, and all the consumer, consumer the data from this queue, 
+            // producershould be 
+            // 1. Put **VectorizedRowBatch** to the queue, nothing else
+            // 2. Each thread do, read each inputinofo and put batches
+            // 3. Should use take() from a blocking queue?
+            // 4. Each thread should read each inputeinfo and produce vbatch
+            // 有一个inputeinfo linkedqueue 来存信息，不会很大，for循环就好
+            // 每次都从这个queue里面取来放进
 
 
-                        int rowGroupNum = scanFile(queryId, scanInputs, includeCols, inputStorageInfo.getScheme(),
-                                scanProjection, scanfilterlist, folders, encoding, outputStorageInfo.getScheme(),
-                                partialAggregationPresent, aggregator);
-                        
-                                // if (rowGroupNum > 0)
-                        // {
-                        //     scanOutput.addOutput(outputFolders.get(0), rowGroupNum);
-                        // }
-                    }
-                    catch (Exception e)
-                    {
-                        throw new WorkerException("error during scan", e);
-                    }
-                });
-            }
-            threadPool.shutdown();
-            try
-            {
-                while (!threadPool.awaitTermination(60, TimeUnit.SECONDS));
-            } catch (InterruptedException e)
-            {
-                throw new WorkerException("interrupted while waiting for the termination of scan", e);
-            }
-
-            // logger.info("start write aggregation result");
-            // if (partialAggregationPresent)
-            // {
-            //     String outputPath = event.getOutput().getPath();
-            //     WorkerMetrics.Timer writeCostTimer = new WorkerMetrics.Timer().start();
-            //     PixelsWriter pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
-            //             WorkerCommon.getStorage(outputStorageInfo.getScheme()), outputPath, encoding,
-            //             aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
-            //     aggregator.writeAggrOutput(pixelsWriter);
-            //     pixelsWriter.close();
-            //     if (outputStorageInfo.getScheme() == Storage.Scheme.minio)
-            //     {
-            //         while (!WorkerCommon.getStorage(Storage.Scheme.minio).exists(outputPath))
-            //         {
-            //             // Wait for 10ms and see if the output file is visible.
-            //             TimeUnit.MILLISECONDS.sleep(10);
-            //         }
-            //     }
-            //     workerMetrics.addOutputCostNs(writeCostTimer.stop());
-            //     workerMetrics.addWriteBytes(pixelsWriter.getCompletedBytes());
-            //     workerMetrics.addNumWriteRequests(pixelsWriter.getNumWriteRequests());
-            //     scanOutput.addOutput(outputPath, pixelsWriter.getNumRowGroup());
-            // }
+            // just for the schema!!!!!!
+            long starttime1 = System.currentTimeMillis();
+            PixelsReader pixelsReader = WorkerCommon.getReader(inputInfoaa.getPath(), WorkerCommon.getStorage(inputStorageInfo.getScheme()));
+            PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, includeCols,inputInfoaa );
+            PixelsRecordReader recordReader = pixelsReader.read(option);
+            TypeDescription rowBatchSchema = recordReader.getResultSchema();
+            long endTime1 = System.currentTimeMillis();
+            System.out.println("time wasted in get the schema ：" + (endTime1-starttime1)+(endpeektime1-peektime1) + " ms");
+            // just for the schema!!!!!!         
+            Thread.sleep(5000);
+            System.out.println("our queue size of blocking queu "+blockingQueue.size());
+            CountDownLatch latch=new CountDownLatch(2);
+            GroupProcessor gourpProcessor=new GroupProcessor(blockingQueue,scanfilterlist,outputFolders,rowBatchSchema,includeCols,
+            scanProjection,encoding,outputStorageInfo.getScheme(), requestId,partialAggregationPresent,aggregatorList,filterOnAggreation,latch);
+            
+            
+            long starTime = System.currentTimeMillis();
+            gourpProcessor.start();
+            latch.await();
+            long endTime = System.currentTimeMillis();
+            long totalTime = endTime -starTime;
+            System.out.println("the filter and aggregation cost time ：" + totalTime + " ms");
 
             scanOutput.setDurationMs((int) (System.currentTimeMillis() - startTime));
             WorkerCommon.setPerfMetrics(scanOutput, workerMetrics);
@@ -200,324 +221,362 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             return scanOutput;
         }
     }
+}
 
-    /**
-     * Scan the files in a query split, apply projection and filters, and output the
-     * results to the given path.
-     * @param queryId the query id used by I/O scheduler
-     * @param scanInputs the information of the files to scan
-     * @param columnsToRead the included columns
-     * @param inputScheme the storage scheme of the input files
-     * @param scanProjection whether the column in columnsToRead is included in the scan output
-     * @param filter the filter for the scan
-     * @param outputPath fileName for the scan results
-     * @param encoding whether encode the scan results or not
-     * @param outputScheme the storage scheme for the scan result
-     * @param partialAggregate whether perform partial aggregation on the scan result
-     * @param aggregator the aggregator for the partial aggregation
-     * @return the number of row groups that have been written into the output.
-     */
-    private int scanFile(long queryId, List<InputInfo> scanInputs, String[] columnsToRead, Storage.Scheme inputScheme,
-                         boolean[] scanProjection, List<TableScanFilter> filter, List<String> outputPath, boolean encoding,
-                         Storage.Scheme outputScheme, boolean partialAggregate, Aggregator aggregator)
-    {
-        WorkerMetrics.Timer readCostTimer = new WorkerMetrics.Timer();
-        WorkerMetrics.Timer writeCostTimer = new WorkerMetrics.Timer();
-        WorkerMetrics.Timer computeCostTimer = new WorkerMetrics.Timer();
-        long readBytes = 0L;
-        int numReadRequests = 0;
-        for (InputInfo inputInfo : scanInputs)
-        {   
-            readCostTimer.start();
-            try (PixelsReader pixelsReader = WorkerCommon.getReader(inputInfo.getPath(), WorkerCommon.getStorage(inputScheme)))
-            {
-                readCostTimer.stop();
+class GroupProcessor {
+    private LinkedBlockingQueue<VectorizedRowBatch> queue;
+    private int bufferSize;
+    private int writeSize;
+    private List<TableScanFilter> scanfilterlist;
+    private Flowable<VectorizedRowBatch> publisher;
+    private List<String> outputFolders;
+    private TypeDescription rowbatchschema;
+    private String[] columnstoread;
+    private boolean[] scanprojection;
+    private boolean encoding;
+    private Storage.Scheme outputscheme;
+    private String requestId;
+    private boolean partialAggregationPresent;
+    private List<Aggregator> aggregatorList;
+    private HashMap<String, List<Integer>> filterOnAggreation;
+    private CountDownLatch latch;
+    public GroupProcessor(LinkedBlockingQueue<VectorizedRowBatch> queue,List<TableScanFilter> scanfilterlist,List<String> outputFolders,TypeDescription rowbatchschema,String[] columnstoread,
+    boolean[] scanprojection,boolean encoding, Storage.Scheme outputscheme,String requestId,boolean partialAggregationPresent,List<Aggregator> aggregatorList,HashMap<String, List<Integer>> filterOnAggreation,CountDownLatch latch) {
+        this.queue = queue;
+        this.bufferSize = 5;
+        this.writeSize = 20;
+        this.scanfilterlist=scanfilterlist;
+        this.outputFolders=outputFolders;
+        this.rowbatchschema=rowbatchschema;
+        this.columnstoread=columnstoread;
+        this.scanprojection=scanprojection;
+        this.encoding=encoding;
+        this.outputscheme=outputscheme;
+        this.requestId=requestId;
+        this.partialAggregationPresent=partialAggregationPresent;
+        this.aggregatorList=aggregatorList;
+        this.filterOnAggreation=filterOnAggreation;
+        this.latch=latch;
+    }
+
+    public void start() {
+
+        publisher = Flowable.create(new FlowableOnSubscribe<VectorizedRowBatch>() {
+            @Override
+            public void subscribe(FlowableEmitter<VectorizedRowBatch> emitter) throws Exception {
+                while (!emitter.isCancelled()) {
+                    VectorizedRowBatch message = queue.poll();
+                    if(message==null){
+                        System.out.println("reach end of the queue");
+                        break;
+                    }
+                    emitter.onNext(message);
+                }
+                emitter.onComplete();
+                
+            }
+        }, BackpressureStrategy.BUFFER).onBackpressureBuffer(1024).subscribeOn(Schedulers.newThread());
+
+        // 创建 Observer 1
+        FlowableSubscriber<VectorizedRowBatch> observer1 = new FlowableSubscriber<VectorizedRowBatch>() {
+            private int messageCount = 0;
+            private PixelsWriter pixelsWriter=null;
+            private int fileCount=0;
+            private String outputPath;
+            private Scanner scanner;
+            private TypeDescription outputschema;
+            private VectorizedRowBatch rowBatch;
+            private Subscription subscription;
+            private List<Aggregator> aggregatorOnFilterList=new ArrayList<>(); ;
+
+            @Override
+            public void onSubscribe(Subscription d) {
+                subscription=d;
+                // 不需要处理
+                // PixelsWriter pixelsWriter=null;
+                Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, scanprojection, scanfilterlist.get(0));
+                if(partialAggregationPresent){
+                    System.out.println("partialAggregationPresent start preparing");
+                    UUID uuid = UUID.randomUUID();
+                    this.outputPath=outputFolders.get(0) + uuid.toString() + requestId +"_scan1_";
+                    List<Integer> aggregationList= filterOnAggreation.get("0"); 
+                    for (Integer i : aggregationList) {
+                        System.out.println("filter 1 get aggregator: "+ i);
+                        this.aggregatorOnFilterList.add(aggregatorList.get(i));
+                    } 
+                }
+                this.outputschema =scanner.getOutputSchema();
+                this.scanner=scanner;
+                subscription.request(1);
+            }
+
+            @Override
+            public void onNext(VectorizedRowBatch message) {
+                messageCount++;
+                rowBatch=scanner.filterAndProject(message);
+                if(partialAggregationPresent){
+                   
+                    for (Aggregator aggregator:aggregatorOnFilterList){
+                        aggregator.aggregate(rowBatch);
+                    }
+
+
+                    if (messageCount == writeSize) {
+                        for (Aggregator aggregator:aggregatorOnFilterList){
+                            String tempPath=outputPath +"aggregation_"+ aggregatorOnFilterList.indexOf(aggregator)+fileCount++;
+                            pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
+                                    WorkerCommon.getStorage(outputscheme), tempPath, encoding,
+                                    aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
+                            try{
+                                aggregator.writeAggrOutput(pixelsWriter);
+                                pixelsWriter.close();
+                            }catch (Exception e){ 
+                                e.printStackTrace();
+                            }
+                        }
+                        messageCount = 0;
+                    }  
+                } else {
+                    if(pixelsWriter==null){
+                        String tempPath=outputPath+fileCount++;
+                        pixelsWriter=WorkerCommon.getWriter(outputschema, WorkerCommon.getStorage(outputscheme),
+                        tempPath, encoding, false, null);
+                    }
+
+                    try{
+                        pixelsWriter.addRowBatch(rowBatch);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
+                    if (messageCount == writeSize) {
+                        try{
+                            pixelsWriter.close();
+                        }catch (Exception e){
+                            e.printStackTrace();
+                        }
+                        pixelsWriter=null;
+                        messageCount = 0;
+                    }  
+                }
+
+                subscription.request(1);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onComplete() {
+                System.out.println("filter 1 oncomplete begins.");
+                if(partialAggregationPresent){
+                    System.out.println("filter 1 on partial complete");
+                    for (Aggregator aggregator:aggregatorOnFilterList){
+                        String tempPath=outputPath +"aggregation_"+ aggregatorOnFilterList.indexOf(aggregator)+fileCount++;
+                        pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
+                                WorkerCommon.getStorage(outputscheme), tempPath, encoding,
+                                aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
+                        try{
+                            aggregator.writeAggrOutput(pixelsWriter);
+                            pixelsWriter.close();
+                        }catch (Exception e){ 
+                            e.printStackTrace();
+                        }
+                    }
+                } else{
+                    try{
+                        if(pixelsWriter!=null){
+                            pixelsWriter.close();
+                        }
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
+                latch.countDown();
+                // 不需要处理
+            }
+        };
+
+        // 创建 Observer 2
+        FlowableSubscriber<VectorizedRowBatch> observer2 = new FlowableSubscriber<VectorizedRowBatch>() {
+            private int messageCount = 0;
+            private PixelsWriter pixelsWriter=null;
+            private int fileCount=0;
+            private String outputPath;
+            private Scanner scanner;
+            private TypeDescription outputschema;
+            private VectorizedRowBatch rowBatch;
+            private Subscription subscription;
+            private List<Aggregator> aggregatorOnFilterList=new ArrayList<>();;
+
+            @Override
+            public void onSubscribe(Subscription d) {
+                subscription=d;
+                // 不需要处理
+                // PixelsWriter pixelsWriter=null;
+                Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, scanprojection, scanfilterlist.get(0));
+                if(partialAggregationPresent){
+                    UUID uuid = UUID.randomUUID();
+                    this.outputPath=outputFolders.get(1) + uuid.toString() + requestId +"_scan2_";
+                    List<Integer> aggregationList= filterOnAggreation.get("1"); 
+                    for (Integer i : aggregationList) {
+                        System.out.println("filter 2 get aggregator: "+ i);
+                        this.aggregatorOnFilterList.add(aggregatorList.get(i));
+                    } 
+                }
+                this.outputschema =scanner.getOutputSchema();
+                this.scanner=scanner;
+                subscription.request(1);
+            }
+
+            @Override
+            public void onNext(VectorizedRowBatch message) {
+                messageCount++;
+                rowBatch=scanner.filterAndProject(message);
+
+                if(partialAggregationPresent){
+                   
+                    for (Aggregator aggregator:aggregatorOnFilterList){
+                        aggregator.aggregate(rowBatch);
+                    }
+
+                    if (messageCount == writeSize) {
+                        for (Aggregator aggregator:aggregatorOnFilterList){
+                            String tempPath=outputPath +"aggregation_"+ aggregatorOnFilterList.indexOf(aggregator)+fileCount++;
+                            pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
+                                    WorkerCommon.getStorage(outputscheme), tempPath, encoding,
+                                    aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
+                            try{
+                                aggregator.writeAggrOutput(pixelsWriter);
+                                pixelsWriter.close();
+                            }catch (Exception e){ 
+                                e.printStackTrace();
+                            }
+                        }
+                        messageCount = 0;
+                    }  
+                } else {
+                    if(pixelsWriter==null){
+                        String tempPath=outputPath+fileCount++;
+                        pixelsWriter=WorkerCommon.getWriter(outputschema, WorkerCommon.getStorage(outputscheme),
+                        tempPath, encoding, false, null);
+                    }
+
+                    try{
+                        pixelsWriter.addRowBatch(rowBatch);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
+                    if (messageCount == writeSize) {
+                        try{
+                            pixelsWriter.close();
+                        }catch (Exception e){
+                            e.printStackTrace();
+                        }
+                        pixelsWriter=null;
+                        messageCount = 0;
+                    }  
+                }
+
+
+                subscription.request(1);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onComplete() {
+                System.out.println("filter 2 oncomplete begins.");
+                if(partialAggregationPresent){
+                    System.out.println("filter 2 on partial complete");
+                    for (Aggregator aggregator:aggregatorOnFilterList){
+                        String tempPath=outputPath +"aggregation_"+ aggregatorOnFilterList.indexOf(aggregator)+fileCount++;
+                        pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
+                                WorkerCommon.getStorage(outputscheme), tempPath, encoding,
+                                aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
+                        try{
+                            aggregator.writeAggrOutput(pixelsWriter);
+                            pixelsWriter.close();
+                        }catch (Exception e){ 
+                            e.printStackTrace();
+                        }
+                    }
+                } else{
+                    try{
+                        if(pixelsWriter!=null){
+                            pixelsWriter.close();
+                        }
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
+                // 不需要处理
+                latch.countDown();
+            }
+        };
+
+        // 订阅 Observer 1
+        publisher.observeOn(Schedulers.newThread()).subscribe(observer1);
+
+        // 订阅 Observer 2
+        publisher.observeOn(Schedulers.newThread()).subscribe(observer2);
+    }
+
+}
+
+
+class ThreadScanProducer2 implements Callable{
+    private long queryId;
+    private String[] includeCols;
+    private LinkedBlockingQueue<VectorizedRowBatch> blockingQueue;
+    private LinkedBlockingQueue<InputInfo> inputInfoQueue;
+    private Storage.Scheme inputScheme;
+
+    public ThreadScanProducer2(long queryId,String[] includeCols,LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue, Storage.Scheme inputScheme){
+        this.queryId=queryId;
+        this.includeCols=includeCols;
+        this.blockingQueue=blockingque;
+        this.inputInfoQueue=inputInfoQueue;
+        this.inputScheme=inputScheme;
+    }
+
+
+    @Override
+    public Object call() throws IOException{
+        while(true){
+            try{
+                InputInfo inputInfo=inputInfoQueue.poll();
+                if(inputInfoQueue.isEmpty()){
+                    return true;
+                }
+                PixelsReader pixelsReader = WorkerCommon.getReader(inputInfo.getPath(), WorkerCommon.getStorage(inputScheme));
                 if (inputInfo.getRgStart() >= pixelsReader.getRowGroupNum())
                 {
-                    continue;
+                    return true;
                 }
                 if (inputInfo.getRgStart() + inputInfo.getRgLength() >= pixelsReader.getRowGroupNum())
                 {
                     inputInfo.setRgLength(pixelsReader.getRowGroupNum() - inputInfo.getRgStart());
                 }
-                PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, columnsToRead, inputInfo);
+                PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, includeCols, inputInfo);
                 PixelsRecordReader recordReader = pixelsReader.read(option);
-                TypeDescription rowBatchSchema = recordReader.getResultSchema();
-                
-                AsyncEventBus eventBus = new AsyncEventBus(Executors.newCachedThreadPool());
-
-                for(int k=0; k<filter.size();k++){
-                    ScanEventSubscriber scanevent=null;
-                    scanevent=new ScanEventSubscriber(filter.get(k),outputPath.get(k),rowBatchSchema,columnsToRead,scanProjection,outputScheme,encoding);
-                    eventBus.register(scanevent);
-                }
-
                 VectorizedRowBatch rowBatch=null;
-                do{
+                while(true){ 
                     rowBatch=recordReader.readBatch(WorkerCommon.rowBatchSize);
-                    eventBus.post(rowBatch);
-                }while(!rowBatch.isEmpty());
-
-                
-                
-
-                // ConcurrentLinkedQueue<VectorizedRowBatch> queue = new ConcurrentLinkedQueue<VectorizedRowBatch>();
-                
-                // ExecutorService executorService = Executors.newFixedThreadPool(filter.size()+1);
-
-                // executorService.submit(new ScanProducer(queue,recordReader));
-                // // threadgoeshere
-                // for(int k=0; k<filter.size();k++){
-                //     executorService.submit(new filterThread(queue,filter.get(k),outputPath.get(k),rowBatchSchema,columnsToRead,scanProjection,outputScheme,encoding)); 
-                // }
-                // executorService.shutdown();
-                // while(!executorService.isTerminated());
-                
-                // wait for the thread finish
-
-                // try {//wait for all the  thread finish
-                //     executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);
-                // } catch (InterruptedException e) {
-                //     e.printStackTrace();
-                // }
-
-                // threadgoeshere
-
-                computeCostTimer.stop();
-                computeCostTimer.minus(recordReader.getReadTimeNanos());
-                readCostTimer.add(recordReader.getReadTimeNanos());
-                readBytes += recordReader.getCompletedBytes();
-                numReadRequests += recordReader.getNumReadRequests();
-                
-                
-            } catch (Exception e)
-            {
-                throw new WorkerException("failed to scan the file '" +
-                        inputInfo.getPath() + "' and output the result", e);
-            }
-        }
-        // Finished scanning all the files in the split.
-        return 0;
-    }
-    
-}
-
-
-class ScanEventSubscriber {
-    private TableScanFilter filter;
-    private String outPutPath;
-    private PixelsWriter pixelsWriter;
-    private Scanner scanner;
-    // private TypeDescription rowBatchSchema;
-    // private String[] columnsToRead;
-    // private boolean[] scanProjection;
-    // private Storage.Scheme outputScheme;
-    // private boolean encoding;
-
-
-    public ScanEventSubscriber(TableScanFilter filter,
-    String outputpath,TypeDescription rowbatchschema,String[] columnstoread,
-    boolean[] scanprojection,Storage.Scheme outputscheme,boolean encoding) { 
-        this.filter =  filter;
-        this.outPutPath=outputpath;
-        // this.rowBatchSchema=rowbatchschema;
-        // this.columnsToRead=columnstoread;
-        // this.scanProjection=scanprojection;
-        // this.outputScheme=outputscheme;
-        // this.encoding =encoding;
-
-        PixelsWriter pixelsWriter=null;
-        Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, scanprojection, this.filter);
-        pixelsWriter=WorkerCommon.getWriter(scanner.getOutputSchema(), WorkerCommon.getStorage(outputscheme),
-        this.outPutPath, encoding, false, null);
-        this.pixelsWriter=pixelsWriter;
-        this.scanner=scanner;
-    } 
-
-
-
-
-    @Subscribe
-    public void onScan(VectorizedRowBatch event) {
-        VectorizedRowBatch rowBatch=null;
-        rowBatch=scanner.filterAndProject(event);
-        if (rowBatch.size > 0 )
-        {
-            try{
-                pixelsWriter.addRowBatch(rowBatch);
-            }
-            catch (Exception e)
-            {
-                throw new WorkerException("error during thread subscriber", e);
-            }
-        }
-    }
-
-    @Subscribe
-    public void onScanCloseWriter(Boolean onScanCloseWriter) {
-        if(onScanCloseWriter){
-            try
-            {
-                // int numRowGroup = 0;
-                if (pixelsWriter != null)
-                {
-                    // This is a pure scan without aggregation, compute time is the file writing time.
-                    // writeCostTimer.add(computeCostTimer.getElapsedNs());
-                    // writeCostTimer.start();
-                
-                    pixelsWriter.close();
-                    // if (outputScheme == Storage.Scheme.minio)
-                    // {
-                    //     while (!WorkerCommon.getStorage(Storage.Scheme.minio).exists(outputPath))
-                    //     {
-                    //         // Wait for 10ms and see if the output file is visible.
-                    //         TimeUnit.MILLISECONDS.sleep(10);
-                    //     }
-                    // }
-                    // writeCostTimer.stop();
-                    // workerMetrics.addWriteBytes(pixelsWriter1.getCompletedBytes());
-                    // workerMetrics.addNumWriteRequests(pixelsWriter1.getNumWriteRequests());
-                    // workerMetrics.addOutputCostNs(writeCostTimer.getElapsedNs());
-                    // numRowGroup = pixelsWriter1.getNumRowGroup();
+                    if(rowBatch.endOfFile||rowBatch.isEmpty()){
+                        break;
+                    }
+                    blockingQueue.put(rowBatch);
                 }
-                // }
-                // else
-                // {
-                //     workerMetrics.addComputeCostNs(computeCostTimer.getElapsedNs());
-                // }
-                // workerMetrics.addReadBytes(readBytes);
-                // workerMetrics.addNumReadRequests(numReadRequests);
-                // workerMetrics.addInputCostNs(readCostTimer.getElapsedNs());
-                // return numRowGroup;
-            } catch (Exception e)
-            {
-                throw new WorkerException("error during close writer", e);
+            }catch (Exception e){
+                throw new WorkerException("error in producer", e);
             }
         }
     }
 }
-
-
-class ScanProducer implements Runnable{
-    private ConcurrentLinkedQueue<VectorizedRowBatch> queue;
-    private PixelsRecordReader recordReader;
-    
-    public ScanProducer(ConcurrentLinkedQueue<VectorizedRowBatch> queue, PixelsRecordReader recordReader) {
-        this.queue = queue;
-        this.recordReader=recordReader;
-    }
-
-    public void run() {
-        VectorizedRowBatch rowBatch=null;
-        
-        try{
-            rowBatch=recordReader.readBatch(WorkerCommon.rowBatchSize);
-            queue.offer(rowBatch);
-        } catch (IOException e) {
-            System.out.println("error in read first batch");
-        }
-        
-        do{
-            try{
-                rowBatch=recordReader.readBatch(WorkerCommon.rowBatchSize);
-                queue.offer(rowBatch);
-                } catch (IOException e) {
-                    System.out.println("error in read subsequent batch");
-                }
-        }while(!rowBatch.isEmpty());
-    }
-}
-
-
-
-// class filterThread implements Callable<VectorizedRowBatch> { 
-//     private ConcurrentLinkedQueue<VectorizedRowBatch> queue;
-//     private TableScanFilter filter;
-//     private String outPutPath;
-//     private TypeDescription rowBatchSchema;
-//     private String[] columnsToRead;
-//     private boolean[] scanProjection;
-//     private Storage.Scheme outputScheme;
-//     private boolean encoding;
-    
-//     public filterThread(ConcurrentLinkedQueue<VectorizedRowBatch> queue,TableScanFilter filter,
-//     String outputpath,TypeDescription rowbatchschema,String[] columnstoread,
-//     boolean[] scanprojection,Storage.Scheme outputscheme,boolean encoding) { 
-//         this.queue = queue;
-//         this.filter =  filter;
-//         this.outPutPath=outputpath;
-//         this.rowBatchSchema=rowbatchschema;
-//         this.columnsToRead=columnstoread;
-//         this.scanProjection=scanprojection;
-//         this.outputScheme=outputscheme;
-//         this.encoding =encoding;
-//     } 
-
-//     /** 
-//      * Reads a the whole VectorizedRowBatch and do filter and writes to file
-//      * 
-//      * @return 
-//      * @throws Exception 
-//      */
-//     public VectorizedRowBatch call() throws IOException { 
-//         PixelsWriter pixelsWriter=null;
-//         Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, this.rowBatchSchema, this.columnsToRead, this.scanProjection, this.filter);
-//         pixelsWriter=WorkerCommon.getWriter(scanner.getOutputSchema(), WorkerCommon.getStorage(this.outputScheme),
-//         this.outPutPath, encoding, false, null);
-//         VectorizedRowBatch a=null;
-
-
-        
-
-//         for (VectorizedRowBatch rawBatch:allRawBacth){
-//             VectorizedRowBatch rowBatch=null;
-//             rowBatch=scanner.filterAndProject(rawBatch);
-//             if (rowBatch.size > 0 )
-//             {
-//                 pixelsWriter.addRowBatch(rowBatch);
-//             }
-//         }
-
-
-
-
-//         try
-//         {
-//             // int numRowGroup = 0;
-//             if (pixelsWriter != null)
-//             {
-//                 // This is a pure scan without aggregation, compute time is the file writing time.
-//                 // writeCostTimer.add(computeCostTimer.getElapsedNs());
-//                 // writeCostTimer.start();
-            
-//                 pixelsWriter.close();
-//                 // if (outputScheme == Storage.Scheme.minio)
-//                 // {
-//                 //     while (!WorkerCommon.getStorage(Storage.Scheme.minio).exists(outputPath))
-//                 //     {
-//                 //         // Wait for 10ms and see if the output file is visible.
-//                 //         TimeUnit.MILLISECONDS.sleep(10);
-//                 //     }
-//                 // }
-//                 // writeCostTimer.stop();
-//                 // workerMetrics.addWriteBytes(pixelsWriter1.getCompletedBytes());
-//                 // workerMetrics.addNumWriteRequests(pixelsWriter1.getNumWriteRequests());
-//                 // workerMetrics.addOutputCostNs(writeCostTimer.getElapsedNs());
-//                 // numRowGroup = pixelsWriter1.getNumRowGroup();
-//             }
-//             // }
-//             // else
-//             // {
-//             //     workerMetrics.addComputeCostNs(computeCostTimer.getElapsedNs());
-//             // }
-//             // workerMetrics.addReadBytes(readBytes);
-//             // workerMetrics.addNumReadRequests(numReadRequests);
-//             // workerMetrics.addInputCostNs(readCostTimer.getElapsedNs());
-//             // return numRowGroup;
-//         } catch (Exception e)
-//         {
-//             throw new IOException();
-//         }
-//         return a;         
-//     } 
-// }

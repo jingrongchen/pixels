@@ -65,7 +65,12 @@
             <artifactId>guava</artifactId>
             <optional>true</optional>
         </dependency>
-
+                <!-- RXjava -->
+        <dependency>
+            <groupId>io.reactivex.rxjava3</groupId>
+            <artifactId>rxjava</artifactId>
+            <version>3.1.6</version>
+        </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>

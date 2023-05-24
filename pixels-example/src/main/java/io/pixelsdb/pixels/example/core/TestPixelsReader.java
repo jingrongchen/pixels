@@ -27,10 +27,9 @@ import io.pixelsdb.pixels.core.TypeDescription;
 import io.pixelsdb.pixels.core.reader.PixelsReaderOption;
 import io.pixelsdb.pixels.core.reader.PixelsRecordReader;
 import io.pixelsdb.pixels.core.vector.VectorizedRowBatch;
-
 import java.io.IOException;
 import java.util.List;
-
+import io.pixelsdb.pixels.common.utils.ConfigFactory;
 /**
  * @author hank
  */
@@ -38,9 +37,15 @@ public class TestPixelsReader
 {
     public static void main(String[] args)
     {
-        String currentPath = "hdfs://localhost:9000/pixels/pixels/test_105/v_1_order/20190111212837_0.pxl";
+        String currentPath = "s3://jingrong-test/orders/v-0-order/20230425100657_1.pxl";
         try {
-            Storage storage = StorageFactory.Instance().getStorage("hdfs");
+            // ConfigFactory config = ConfigFactory.Instance();
+            // config.addProperty("enabled.storage.schemes", "s3");
+            
+            // StorageInfo inputStorageInfo = event.getTableInfo().getStorageInfo();
+            Storage storage = StorageFactory.Instance().getStorage("s3://jingrong-test/orders/v-0-order/20230425100657_1.pxl");
+            
+            
             PixelsReader reader = PixelsReaderImpl.newBuilder()
                     .setStorage(storage)
                     .setPath(currentPath)
