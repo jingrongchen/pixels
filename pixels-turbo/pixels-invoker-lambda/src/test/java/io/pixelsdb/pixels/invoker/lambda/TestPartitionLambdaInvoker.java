@@ -61,7 +61,7 @@ public class TestPartitionLambdaInvoker
                             "\\\"upperBound\\\":{\\\"type\\\":\\\"UNBOUNDED\\\"}}]," +
                             "\\\"discreteValues\\\":[]}\"}}}";
             PartitionInput input = new PartitionInput();
-            input.setQueryId(123456);
+            input.setTransId(123456);
             ScanTableInfo tableInfo = new ScanTableInfo();
             tableInfo.setTableName("orders");
             tableInfo.setInputSplits(Arrays.asList(
@@ -94,6 +94,7 @@ public class TestPartitionLambdaInvoker
     {
         for (int i = 0; i < 2; ++i)
         {
+<<<<<<< HEAD
                 String filter =
                         "{\"schemaName\":\"tpch\",\"tableName\":\"lineitem\",\"columnFilters\":{}}";
                 PartitionInput input = new PartitionInput();
@@ -121,6 +122,35 @@ public class TestPartitionLambdaInvoker
                 input.setPartitionInfo(partitionInfo);
                 input.setOutput(new OutputInfo("jingrong-lambda-test/unit_tests/lineitem_part_" + i, false,
                         new StorageInfo(Storage.Scheme.s3, null, null, null), true));
+=======
+            String filter =
+                    "{\"schemaName\":\"tpch\",\"tableName\":\"lineitem\",\"columnFilters\":{}}";
+            PartitionInput input = new PartitionInput();
+            input.setTransId(123456);
+            ScanTableInfo tableInfo = new ScanTableInfo();
+            tableInfo.setTableName("lineitem");
+            tableInfo.setInputSplits(Arrays.asList(
+                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 0, 4))),
+                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 4, 4))),
+                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 8, 4))),
+                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 12, 4))),
+                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 16, 4))),
+                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 20, 4))),
+                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 24, 4))),
+                    new InputSplit(Arrays.asList(new InputInfo("pixels-tpch/lineitem/v-0-compact/20230416153320_" + i + "_compact.pxl", 28, 4)))));
+            tableInfo.setFilter(filter);
+            tableInfo.setBase(true);
+            tableInfo.setColumnsToRead(new String[]{"l_orderkey", "l_suppkey", "l_extendedprice", "l_discount"});
+            tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+            input.setTableInfo(tableInfo);
+            input.setProjection(new boolean[]{true, true, true, true});
+            PartitionInfo partitionInfo = new PartitionInfo();
+            partitionInfo.setNumPartition(40);
+            partitionInfo.setKeyColumnIds(new int[]{0});
+            input.setPartitionInfo(partitionInfo);
+            input.setOutput(new OutputInfo("pixels-lambda-test/unit_tests/lineitem_part_" + i, false,
+                    new StorageInfo(Storage.Scheme.s3, null, null, null), true));
+>>>>>>> upstream/master
 
                 System.out.println(JSON.toJSONString(input));
 

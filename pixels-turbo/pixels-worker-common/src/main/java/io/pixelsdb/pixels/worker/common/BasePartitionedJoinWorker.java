@@ -81,7 +81,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
             logger.info("Number of cores available: " + cores);
             ExecutorService threadPool = Executors.newFixedThreadPool(cores * 2);
 
-            long queryId = event.getQueryId();
+            long transId = event.getTransId();
             requireNonNull(event.getSmallTable(), "event.smallTable is null");
             StorageInfo leftInputStorageInfo = event.getSmallTable().getStorageInfo();
             List<String> leftPartitioned = event.getSmallTable().getInputFiles();
@@ -177,7 +177,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
                 leftFutures.add(threadPool.submit(() -> {
                     try
                     {
-                        buildHashTable(queryId, joiner, parts, leftColumnsToRead, leftInputStorageInfo.getScheme(),
+                        buildHashTable(transId, joiner, parts, leftColumnsToRead, leftInputStorageInfo.getScheme(),
                                 hashValues, numPartition, workerMetrics);
                     }
                     catch (Exception e)
@@ -227,10 +227,10 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
                         {
                             int numJoinedRows = partitionOutput ?
                                     joinWithRightTableAndPartition(
-                                            queryId, joiner, parts, rightColumnsToRead,
+                                            transId, joiner, parts, rightColumnsToRead,
                                             rightInputStorageInfo.getScheme(), hashValues,
                                             numPartition, outputPartitionInfo, result, workerMetrics) :
-                                    joinWithRightTable(queryId, joiner, parts, rightColumnsToRead,
+                                    joinWithRightTable(transId, joiner, parts, rightColumnsToRead,
                                             rightInputStorageInfo.getScheme(), hashValues, numPartition,
                                             result.get(0), workerMetrics);
                         } catch (Exception e)
@@ -355,7 +355,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
     /**
      * Scan the partitioned file of the left table and populate the hash table for the join.
      *
-     * @param queryId the query id used by I/O scheduler
+     * @param transId the transaction id used by I/O scheduler
      * @param joiner the joiner for which the hash table is built
      * @param leftParts the information of partitioned files of the left table
      * @param leftCols the column names of the left table
@@ -364,7 +364,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
      * @param numPartition the total number of partitions
      * @param workerMetrics the collector of the performance metrics
      */
-    protected static void buildHashTable(long queryId, Joiner joiner, List<String> leftParts, String[] leftCols,
+    protected static void buildHashTable(long transId, Joiner joiner, List<String> leftParts, String[] leftCols,
                                          Storage.Scheme leftScheme, List<Integer> hashValues, int numPartition,
                                          WorkerMetrics workerMetrics)
     {
@@ -394,7 +394,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
                         {
                             continue;
                         }
-                        PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, leftCols, pixelsReader,
+                        PixelsReaderOption option = WorkerCommon.getReaderOption(transId, leftCols, pixelsReader,
                                 hashValue, numPartition);
                         VectorizedRowBatch rowBatch;
                         PixelsRecordReader recordReader = pixelsReader.read(option);
@@ -446,7 +446,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
     /**
      * Scan the partitioned file of the right table and do the join.
      *
-     * @param queryId the query id used by I/O scheduler
+     * @param transId the transaction id used by I/O scheduler
      * @param joiner the joiner for the partitioned join
      * @param rightParts the information of partitioned files of the right table
      * @param rightCols the column names of the right table
@@ -458,7 +458,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
      * @return the number of joined rows produced in this split
      */
     protected static int joinWithRightTable(
-            long queryId, Joiner joiner, List<String> rightParts, String[] rightCols, Storage.Scheme rightScheme,
+            long transId, Joiner joiner, List<String> rightParts, String[] rightCols, Storage.Scheme rightScheme,
             List<Integer> hashValues, int numPartition, ConcurrentLinkedQueue<VectorizedRowBatch> joinResult,
             WorkerMetrics workerMetrics)
     {
@@ -489,7 +489,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
                         {
                             continue;
                         }
-                        PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, rightCols, pixelsReader,
+                        PixelsReaderOption option = WorkerCommon.getReaderOption(transId, rightCols, pixelsReader,
                                 hashValue, numPartition);
                         VectorizedRowBatch rowBatch;
                         PixelsRecordReader recordReader = pixelsReader.read(option);
@@ -550,7 +550,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
     /**
      * Scan the partitioned file of the right table, do the join, and partition the output.
      *
-     * @param queryId the query id used by I/O scheduler
+     * @param transId the transaction id used by I/O scheduler
      * @param joiner the joiner for the partitioned join
      * @param rightParts the information of partitioned files of the right table
      * @param rightCols the column names of the right table
@@ -563,7 +563,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
      * @return the number of joined rows produced in this split
      */
     protected static int joinWithRightTableAndPartition(
-            long queryId, Joiner joiner, List<String> rightParts, String[] rightCols, Storage.Scheme rightScheme,
+            long transId, Joiner joiner, List<String> rightParts, String[] rightCols, Storage.Scheme rightScheme,
             List<Integer> hashValues, int numPartition, PartitionInfo postPartitionInfo,
             List<ConcurrentLinkedQueue<VectorizedRowBatch>> partitionResult, WorkerMetrics workerMetrics)
     {
@@ -597,7 +597,7 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
                         {
                             continue;
                         }
-                        PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, rightCols, pixelsReader,
+                        PixelsReaderOption option = WorkerCommon.getReaderOption(transId, rightCols, pixelsReader,
                                 hashValue, numPartition);
                         VectorizedRowBatch rowBatch;
                         PixelsRecordReader recordReader = pixelsReader.read(option);

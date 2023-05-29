@@ -48,6 +48,7 @@ import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.FlowableEmitter;
 import io.reactivex.rxjava3.core.FlowableOnSubscribe;
 import io.reactivex.rxjava3.schedulers.Schedulers;
+import io.reactivex.rxjava3.subjects.PublishSubject;
 import software.amazon.awssdk.annotations.ToBuilderIgnoreField;
 import software.amazon.awssdk.core.endpointdiscovery.providers.SystemPropertiesEndpointDiscoveryProvider;
 
@@ -198,13 +199,18 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             System.out.println("time wasted in get the schema ：" + (endTime1-starttime1)+(endpeektime1-peektime1) + " ms");
             // just for the schema!!!!!!        
 
-            CountDownLatch latch=new CountDownLatch(EOFsize);
+
             // GroupProcessor gourpProcessor=new GroupProcessor(blockingQueue,scanfilterlist,outputFolders,rowBatchSchema,includeCols,
             // scanProjection,encoding,outputStorageInfo.getScheme(), requestId,partialAggregationPresent,aggregatorList,filterOnAggreation,latch,EOFsize);
             
             
             long starTime = System.currentTimeMillis();
             int consumerPoolSize=1;
+
+            System.out.println("EOFsize is : "+ EOFsize);
+            CountDownLatch latch=new CountDownLatch(EOFsize*2*consumerPoolSize);
+            CountDownLatch triggerlatch=new CountDownLatch(consumerPoolSize*2);
+
             ExecutorService consumerPool = Executors.newFixedThreadPool(consumerPoolSize);
             // for(int i=0;i<consumerPoolSize;i++){
             //     consumerPool.submit(new GroupProcessor(blockingQueue,scanfilterlist,outputFolders,rowBatchSchema,includeCols,
@@ -212,12 +218,16 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             // }
 
             GroupProcessor groupProcessor=new GroupProcessor(blockingQueue,scanfilterlist,outputFolders,rowBatchSchema,includeCols,
-            scanProjection,encoding,outputStorageInfo.getScheme(), requestId,partialAggregationPresent,aggregatorList,filterOnAggreation,latch,EOFsize);
+            scanProjection,encoding,outputStorageInfo.getScheme(), requestId,partialAggregationPresent,aggregatorList,filterOnAggreation,latch,EOFsize,triggerlatch);
             
+
+
             consumerPool.submit(groupProcessor);
             // gourpProcessor.start();            
             latch.await();
             groupProcessor.trigger();
+            triggerlatch.await();
+
 
             long endTime = System.currentTimeMillis();
             long totalTime = endTime -starTime;
@@ -254,13 +264,14 @@ class GroupProcessor implements Runnable{
     private HashMap<String, List<Integer>> filterOnAggreation;
     private CountDownLatch latch;
     private int EOFsize;
-    private PublishProcessor<Boolean> subject;
+    private PublishProcessor<Boolean> subject=PublishProcessor.create();
+    private CountDownLatch triggerLatch;
 
     public GroupProcessor(LinkedBlockingQueue<VectorizedRowBatch> queue,List<TableScanFilter> scanfilterlist,List<String> outputFolders,TypeDescription rowbatchschema,String[] columnstoread,
     boolean[] scanprojection,boolean encoding, Storage.Scheme outputscheme,String requestId,boolean partialAggregationPresent,List<Aggregator> aggregatorList,HashMap<String, List<Integer>> filterOnAggreation,
-    CountDownLatch latch,int endOfFile) {
+    CountDownLatch latch,int endOfFile,CountDownLatch triggerLatch) {
         this.queue = queue;
-        this.writeSize = 70;
+        this.writeSize = 37;
         this.scanfilterlist=scanfilterlist;
         this.outputFolders=outputFolders;
         this.rowbatchschema=rowbatchschema;
@@ -274,8 +285,10 @@ class GroupProcessor implements Runnable{
         this.filterOnAggreation=filterOnAggreation;
         this.latch=latch;
         this.EOFsize=endOfFile;
+        this.triggerLatch=triggerLatch;
     }
 
+    //TODO: writesize proplem arise? if file is above 7 or 8, the observer doesn't get enough latch count down to continue.
     @Override
     public void run() {
         publisher = Flowable.create(new FlowableOnSubscribe<VectorizedRowBatch>() {
@@ -284,12 +297,18 @@ class GroupProcessor implements Runnable{
                 while (!emitter.isCancelled()) {
                     VectorizedRowBatch message = queue.take();
                     emitter.onNext(message);
+
+                    if(message.endOfFile){
+                        System.out.println("take an end of file message from queue");
+                    }
+
                 }
+                System.out.println("emitter start to do onComplete");
                 emitter.onComplete();
                 
             }
-        }, BackpressureStrategy.BUFFER).onBackpressureBuffer(1024).subscribeOn(Schedulers.newThread()).share();
-        // }, BackpressureStrategy.BUFFER).onBackpressureBuffer(1024).subscribeOn(Schedulers.newThread());
+        }, BackpressureStrategy.BUFFER).onBackpressureBuffer(1024).share();
+        // }, BackpressureStrategy.BUFFER).onBackpressureBuffer(1024).subscribeOn(Schedulers.newThread()).share();
 
         // 创建 Observer 1
         FlowableSubscriber<VectorizedRowBatch> observer1 = new FlowableSubscriber<VectorizedRowBatch>() {
@@ -327,6 +346,16 @@ class GroupProcessor implements Runnable{
             @Override
             public void onNext(VectorizedRowBatch message) {
                 messageCount++;
+                if(message.endOfFile){
+                    
+                    System.out.println("filter 1 receive a endOfFile");
+                    System.out.println("filter 1 receive a endOfFile"+Thread.currentThread().getName());
+                    // EOFsize--;
+                    // if(EOFsize==0){
+                    //     emitter.onNext(message);
+                    //     break;
+                    // }
+                }
                 rowBatch=scanner.filterAndProject(message);
 
                 if(partialAggregationPresent){
@@ -334,7 +363,6 @@ class GroupProcessor implements Runnable{
                     for (Aggregator aggregator:aggregatorOnFilterList){
                         aggregator.aggregate(rowBatch);
                     }
-
 
                     if (messageCount == writeSize) {
                         for (Aggregator aggregator:aggregatorOnFilterList){
@@ -344,8 +372,10 @@ class GroupProcessor implements Runnable{
                                     aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
                             try{
                                 aggregator.writeAggrOutput(pixelsWriter);
+                                
                                 pixelsWriter.close();
                             }catch (Exception e){ 
+                                System.out.print("filter 1 count an exception in write size");
                                 e.printStackTrace();
                             }
                         }
@@ -377,6 +407,7 @@ class GroupProcessor implements Runnable{
 
                 if(message.endOfFile){
                     latch.countDown();
+                    System.out.println("filter 1 receive a endOfFile count down latch");
                     // EOFsize--;
                     // if(EOFsize==0){
                     //     emitter.onNext(message);
@@ -402,6 +433,7 @@ class GroupProcessor implements Runnable{
                                 WorkerCommon.getStorage(outputscheme), tempPath, encoding,
                                 aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
                         try{
+                            
                             aggregator.writeAggrOutput(pixelsWriter);
                             pixelsWriter.close();
                         }catch (Exception e){ 
@@ -417,6 +449,7 @@ class GroupProcessor implements Runnable{
                         e.printStackTrace();
                     }
                 }
+                triggerLatch.countDown();
                 // latch.countDown();
                 // 不需要处理
             }
@@ -503,6 +536,7 @@ class GroupProcessor implements Runnable{
                         messageCount = 0;
                     }  
                 }
+
                 if(message.endOfFile){
                     latch.countDown();
                     // EOFsize--;
@@ -545,6 +579,7 @@ class GroupProcessor implements Runnable{
                         e.printStackTrace();
                     }
                 }
+                triggerLatch.countDown();
                 // 不需要处理
                 // latch.countDown();
             }
@@ -558,6 +593,7 @@ class GroupProcessor implements Runnable{
         publisher.observeOn(Schedulers.newThread()).subscribe(observer2);
 
         subject.subscribe(ignore -> {
+            System.out.println("trigger on complete triggering");
             observer1.onComplete();
             observer2.onComplete();
         });
