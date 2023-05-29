@@ -93,7 +93,7 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             // ExecutorService threadPool = Executors.newFixedThreadPool(cores * 2);
             String requestId = context.getRequestId();
 
-            long queryId = event.getQueryId();
+            long queryId = event.getTransId();
             requireNonNull(event.getTableInfo(), "even.tableInfo is null");
             StorageInfo inputStorageInfo = event.getTableInfo().getStorageInfo();
             List<InputSplit> inputSplits = event.getTableInfo().getInputSplits();

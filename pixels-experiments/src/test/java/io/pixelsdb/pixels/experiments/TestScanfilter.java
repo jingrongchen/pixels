@@ -59,7 +59,7 @@ public class TestScanfilter {
         }
 
         ScanInput scaninput = new ScanInput();
-        scaninput.setQueryId(123456);
+        scaninput.setTransId(123456);
         ScanTableInfo tableInfo = new ScanTableInfo();
         tableInfo.setTableName("orders");
 
@@ -139,7 +139,7 @@ public class TestScanfilter {
         List<String> filterlist=Arrays.asList(filter1,filter2);
 
         ThreadScanInput scaninput = new ThreadScanInput();
-        scaninput.setQueryId(123456);
+        scaninput.setTransId(123456);
         ThreadScanTableInfo tableInfo = new ThreadScanTableInfo();
         tableInfo.setTableName("orders");
 
