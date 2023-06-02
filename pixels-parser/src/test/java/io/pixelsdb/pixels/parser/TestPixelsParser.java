@@ -29,10 +29,29 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
-
+import org.apache.calcite.rel.RelVisitor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlKind;
+
+import java.io.*;
+
+
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.rules.*;
+import org.apache.calcite.plan.RelOptUtil;
+
+import org.apache.calcite.rel.externalize.RelWriterImpl;
+
+import java.util.List;
 
 import java.util.Properties;
 
@@ -79,6 +98,90 @@ public class TestPixelsParser
         final RelJsonWriter writer = new RelJsonWriter();
         rel.explain(writer);
         System.out.println("Logical plan: \n" + writer.asString());
+    }
+
+    @Test
+    public void testPixelsParserTestExample() throws SqlParseException{
+
+        String query = TestQuery.Q5;
+        SqlNode parsedNode = this.tpchPixelsParser.parseQuery(query);
+        // System.out.println("Parsed SQL Query: \n" + parsedNode);
+
+        SqlNode validatedNode = this.tpchPixelsParser.validate(parsedNode);
+        System.out.println("No exception, validation success.");
+
+        RelNode rel = this.tpchPixelsParser.toRelNode(validatedNode);
+
+        
+        // RelWriterImpl writer = new RelWriterImpl(new PrintWriter(System.out, true), SqlExplainLevel.ALL_ATTRIBUTES, false);
+        
+        RelVisitor visitor = new RelVisitor() {
+            @Override
+            public void visit(RelNode node, int ordinal, RelNode parent) {
+                // node.getInputs().forEach(input -> {
+                //     System.out.println("Node: "+ input.getId() + "  "+ input.getClass().getSimpleName());
+                //     System.out.println(input.getDigest());
+                // });
+                
+                System.out.println(node.getDigest());
+                
+                super.visit(node, ordinal, parent);
+            }
+        };
+        visitor.go(rel);
+
+
+
+        
+
+        // rel.explain(writer);
+        // System.out.println(writer.asString());
+        // System.out.println("Logical plan: \n" + writer.asString());
+
+        // try {
+        //     BufferedWriter out = new BufferedWriter(new FileWriter("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/testlogicalPlan.json"));
+        //     out.write(writer.asString());
+        //     out.close();
+        //     System.out.println("to finle success！");
+        // } catch (IOException e) {
+        // }
+        
+
+    }
+
+
+    @Test
+    public void testPixelsParserTest3Example() throws SqlParseException{
+
+        // SqlNode sqlTree = optimizer.parse(sql);
+        // SqlNode validatedSqlTree = optimizer.validate(sqlTree);
+        // RelNode relTree = optimizer.convert(validatedSqlTree);
+
+
+        String query = TestQuery.Q3;
+        SqlNode parsedNode = this.tpchPixelsParser.parseQuery(query);
+        System.out.println("Parsed SQL Query: \n" + parsedNode);
+
+        SqlNode validatedNode = this.tpchPixelsParser.validate(parsedNode);
+        System.out.println("No exception, validation success.");
+
+        RelNode rel = this.tpchPixelsParser.toRelNode(validatedNode);
+        final RelJsonWriter writer = new RelJsonWriter();
+        rel.explain(writer);
+
+        
+        
+        System.out.println("Logical plan: \n" + writer.asString());
+
+        try {
+            BufferedWriter out = new BufferedWriter(new FileWriter("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/testlogicalPlan2.json"));
+            out.write(writer.asString());
+            out.close();
+            System.out.println("to finle success！");
+        } catch (IOException e) {
+        }
+        
+
     }
 
     @Test(expected = SqlParseException.class)

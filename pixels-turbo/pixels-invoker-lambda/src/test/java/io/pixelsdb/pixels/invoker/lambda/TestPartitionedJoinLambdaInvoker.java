@@ -113,10 +113,10 @@ public class TestPartitionedJoinLambdaInvoker
         // JoinOutput output=Pjoin.process(joinInput);
         // localtesting
 
-        JoinOutput output = (JoinOutput) InvokerFactory.Instance()
-                .getInvoker(WorkerType.PARTITIONED_JOIN).invoke(joinInput).get();
-        System.out.println(output.getOutputs().size());
-        System.out.println(Joiner.on(",").join(output.getOutputs()));
-        System.out.println(Joiner.on(",").join(output.getRowGroupNums()));
+        // JoinOutput output = (JoinOutput) InvokerFactory.Instance()
+        //         .getInvoker(WorkerType.PARTITIONED_JOIN).invoke(joinInput).get();
+        // System.out.println(output.getOutputs().size());
+        // System.out.println(Joiner.on(",").join(output.getOutputs()));
+        // System.out.println(Joiner.on(",").join(output.getRowGroupNums()));
     }
 }

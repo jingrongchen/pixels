@@ -126,6 +126,7 @@ public class PixelsParser
         SqlToRelConverter.Config converterConfig = SqlToRelConverter.config()
                 .withInSubQueryThreshold(Integer.MAX_VALUE)
                 .withExpand(false);
+                
         SqlToRelConverter sqlToRelConverter = new SqlToRelConverter(null, validator, catalogReader, cluster,
                 StandardConvertletTable.INSTANCE, converterConfig);
 
