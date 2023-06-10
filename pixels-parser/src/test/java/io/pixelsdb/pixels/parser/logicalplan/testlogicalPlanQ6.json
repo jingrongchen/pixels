@@ -1,0 +1,159 @@
+{
+  "rels": [
+    {
+      "id": "0",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "orders"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "1",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "lineitem"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "2",
+      "relOp": "LogicalJoin",
+      "condition": {
+        "literal": true,
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "id": "3",
+      "relOp": "LogicalFilter",
+      "condition": {
+        "op": {
+          "name": "=",
+          "kind": "EQUALS",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "input": 0,
+            "name": "$0"
+          },
+          {
+            "input": 9,
+            "name": "$9"
+          }
+        ]
+      }
+    },
+    {
+      "id": "4",
+      "relOp": "LogicalProject",
+      "fields": [
+        "key",
+        "num"
+      ],
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 14,
+          "name": "$14"
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "lineitem"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "6",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "partsupp"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "7",
+      "relOp": "LogicalJoin",
+      "condition": {
+        "literal": true,
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "5",
+        "6"
+      ]
+    },
+    {
+      "id": "8",
+      "relOp": "LogicalFilter",
+      "condition": {
+        "op": {
+          "name": "=",
+          "kind": "EQUALS",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "input": 2,
+            "name": "$2"
+          },
+          {
+            "input": 17,
+            "name": "$17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "9",
+      "relOp": "LogicalProject",
+      "fields": [
+        "key",
+        "num"
+      ],
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 19,
+          "name": "$19"
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "relOp": "LogicalUnion",
+      "all": true,
+      "inputs": [
+        "4",
+        "9"
+      ]
+    }
+  ]
+}

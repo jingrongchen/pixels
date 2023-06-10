@@ -63,10 +63,12 @@ import io.reactivex.rxjava3.core.FlowableSubscriber;
  * @author Jingrong
  * @create 2023-05-08
  */
+
 public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
     private final Logger logger;
     private final WorkerMetrics workerMetrics;
     private int fileId;
+    // static TypeDescription rowBatchSchema;
 
     public BaseThreadScanWorker(WorkerContext context)
     {
@@ -105,8 +107,10 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             List<String> outputFolders = event.getOutput().getPath();
             StorageInfo outputStorageInfo = event.getOutput().getStorageInfo();
             boolean encoding = event.getOutput().isEncoding();
-            HashMap<String, List<Integer>> filterOnAggreation=event.getFilterOnAggreation();
-
+            HashMap<String, List<Integer>> filterOnAggreation = null;
+            if (partialAggregationPresent){
+                filterOnAggreation=event.getFilterOnAggreation();
+            }
             WorkerCommon.initStorage(inputStorageInfo);
             WorkerCommon.initStorage(outputStorageInfo);
 
@@ -129,14 +133,18 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             }
             int EOFsize=inputInfoQueue.size();
 
+
+            CountDownLatch schemaLatch=new CountDownLatch(1);
+
             long peektime1 = System.currentTimeMillis();
             InputInfo inputInfoaa=inputInfoQueue.peek();
             long endpeektime1 = System.currentTimeMillis();
 
             Storage.Scheme outputschema=event.getOutput().getStorageInfo().getScheme();
+            // GlobalVariable globalVariable=new GlobalVariable();
 
             for(int i=0;i<producerPoolSize;i++){
-                producerPool.submit(new ThreadScanProducer2(queryId,includeCols,blockingQueue,inputInfoQueue,outputschema));
+                producerPool.submit(new ThreadScanProducer2(queryId,includeCols,blockingQueue,inputInfoQueue,outputschema,schemaLatch));
             }
             /*start preparing batches */
 
@@ -190,41 +198,47 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
 
 
             // just for the schema!!!!!!
-            long starttime1 = System.currentTimeMillis();
+            // long starttime1 = System.currentTimeMillis();
             PixelsReader pixelsReader = WorkerCommon.getReader(inputInfoaa.getPath(), WorkerCommon.getStorage(inputStorageInfo.getScheme()));
             PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, includeCols,inputInfoaa );
             PixelsRecordReader recordReader = pixelsReader.read(option);
             TypeDescription rowBatchSchema = recordReader.getResultSchema();
-            long endTime1 = System.currentTimeMillis();
-            System.out.println("time wasted in get the schema ：" + (endTime1-starttime1)+(endpeektime1-peektime1) + " ms");
-            // just for the schema!!!!!!        
+            // long endTime1 = System.currentTimeMillis();
 
+            // System.out.println("time wasted in get the schema ：" + (endTime1-starttime1)+(endpeektime1-peektime1) + " ms");
+            // just for the schema!!!!!!        
 
             // GroupProcessor gourpProcessor=new GroupProcessor(blockingQueue,scanfilterlist,outputFolders,rowBatchSchema,includeCols,
             // scanProjection,encoding,outputStorageInfo.getScheme(), requestId,partialAggregationPresent,aggregatorList,filterOnAggreation,latch,EOFsize);
             
-            
+           
             long starTime = System.currentTimeMillis();
             int consumerPoolSize=1;
 
             System.out.println("EOFsize is : "+ EOFsize);
             CountDownLatch latch=new CountDownLatch(EOFsize*2*consumerPoolSize);
+            // CountDownLatch latch=new CountDownLatch(EOFsize*consumerPoolSize);
+
+            System.out.println("latch size is : " + latch.getCount());
+
             CountDownLatch triggerlatch=new CountDownLatch(consumerPoolSize*2);
+            // CountDownLatch triggerlatch=new CountDownLatch(consumerPoolSize);
 
             ExecutorService consumerPool = Executors.newFixedThreadPool(consumerPoolSize);
             // for(int i=0;i<consumerPoolSize;i++){
             //     consumerPool.submit(new GroupProcessor(blockingQueue,scanfilterlist,outputFolders,rowBatchSchema,includeCols,
             //     scanProjection,encoding,outputStorageInfo.getScheme(), requestId,partialAggregationPresent,aggregatorList,filterOnAggreation,latch,EOFsize));
             // }
-
+            
+            // schemaLatch.await();
+            System.out.println("check if rowBatchSchema is null: "+ (rowBatchSchema == null));
             GroupProcessor groupProcessor=new GroupProcessor(blockingQueue,scanfilterlist,outputFolders,rowBatchSchema,includeCols,
             scanProjection,encoding,outputStorageInfo.getScheme(), requestId,partialAggregationPresent,aggregatorList,filterOnAggreation,latch,EOFsize,triggerlatch);
             
-
-
-            consumerPool.submit(groupProcessor);
-            // gourpProcessor.start();            
+            consumerPool.submit(groupProcessor);       
             latch.await();
+
+            System.out.println("latch all count down. start trigger shut down");
             groupProcessor.trigger();
             triggerlatch.await();
 
@@ -245,260 +259,190 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             return scanOutput;
         }
     }
-}
 
-class GroupProcessor implements Runnable{
-    private LinkedBlockingQueue<VectorizedRowBatch> queue;
-    private int writeSize;
-    private List<TableScanFilter> scanfilterlist;
-    private Flowable<VectorizedRowBatch> publisher;
-    private List<String> outputFolders;
-    private TypeDescription rowbatchschema;
-    private String[] columnstoread;
-    private boolean[] scanprojection;
-    private boolean encoding;
-    private Storage.Scheme outputscheme;
-    private String requestId;
-    private boolean partialAggregationPresent;
-    private List<Aggregator> aggregatorList;
-    private HashMap<String, List<Integer>> filterOnAggreation;
-    private CountDownLatch latch;
-    private int EOFsize;
-    private PublishProcessor<Boolean> subject=PublishProcessor.create();
-    private CountDownLatch triggerLatch;
 
-    public GroupProcessor(LinkedBlockingQueue<VectorizedRowBatch> queue,List<TableScanFilter> scanfilterlist,List<String> outputFolders,TypeDescription rowbatchschema,String[] columnstoread,
-    boolean[] scanprojection,boolean encoding, Storage.Scheme outputscheme,String requestId,boolean partialAggregationPresent,List<Aggregator> aggregatorList,HashMap<String, List<Integer>> filterOnAggreation,
-    CountDownLatch latch,int endOfFile,CountDownLatch triggerLatch) {
-        this.queue = queue;
-        this.writeSize = 37;
-        this.scanfilterlist=scanfilterlist;
-        this.outputFolders=outputFolders;
-        this.rowbatchschema=rowbatchschema;
-        this.columnstoread=columnstoread;
-        this.scanprojection=scanprojection;
-        this.encoding=encoding;
-        this.outputscheme=outputscheme;
-        this.requestId=requestId;
-        this.partialAggregationPresent=partialAggregationPresent;
-        this.aggregatorList=aggregatorList;
-        this.filterOnAggreation=filterOnAggreation;
-        this.latch=latch;
-        this.EOFsize=endOfFile;
-        this.triggerLatch=triggerLatch;
-    }
-
-    //TODO: writesize proplem arise? if file is above 7 or 8, the observer doesn't get enough latch count down to continue.
-    @Override
-    public void run() {
-        publisher = Flowable.create(new FlowableOnSubscribe<VectorizedRowBatch>() {
-            @Override
-            public void subscribe(FlowableEmitter<VectorizedRowBatch> emitter) throws Exception {
-                while (!emitter.isCancelled()) {
-                    VectorizedRowBatch message = queue.take();
-                    emitter.onNext(message);
-
-                    if(message.endOfFile){
-                        System.out.println("take an end of file message from queue");
+    class GroupProcessor implements Runnable{
+        private LinkedBlockingQueue<VectorizedRowBatch> queue;
+        private int writeSize;
+        private List<TableScanFilter> scanfilterlist;
+        private Flowable<VectorizedRowBatch> publisher;
+        private List<String> outputFolders;
+        private TypeDescription rowbatchschema;
+        private String[] columnstoread;
+        private boolean[] scanprojection;
+        private boolean encoding;
+        private Storage.Scheme outputscheme;
+        private String requestId;
+        private boolean partialAggregationPresent;
+        private List<Aggregator> aggregatorList;
+        private HashMap<String, List<Integer>> filterOnAggreation;
+        private CountDownLatch latch;
+        private int EOFsize;
+        private PublishProcessor<Boolean> subject=PublishProcessor.create();
+        private CountDownLatch triggerLatch;
+    
+        public GroupProcessor(LinkedBlockingQueue<VectorizedRowBatch> queue,List<TableScanFilter> scanfilterlist,List<String> outputFolders,TypeDescription rowbatchschema,String[] columnstoread,
+        boolean[] scanprojection,boolean encoding, Storage.Scheme outputscheme,String requestId,boolean partialAggregationPresent,List<Aggregator> aggregatorList,HashMap<String, List<Integer>> filterOnAggreation,
+        CountDownLatch latch,int endOfFile,CountDownLatch triggerLatch) {
+            this.queue = queue;
+            this.writeSize = 37;
+            this.scanfilterlist=scanfilterlist;
+            this.outputFolders=outputFolders;
+            this.rowbatchschema=rowbatchschema;
+            this.columnstoread=columnstoread;
+            this.scanprojection=scanprojection;
+            this.encoding=encoding;
+            this.outputscheme=outputscheme;
+            this.requestId=requestId;
+            this.partialAggregationPresent=partialAggregationPresent;
+            this.aggregatorList=aggregatorList;
+            this.filterOnAggreation=filterOnAggreation;
+            this.latch=latch;
+            this.EOFsize=endOfFile;
+            this.triggerLatch=triggerLatch;
+        }
+    
+        //TODO: emitter send too fast.
+        @Override
+        public void run() {
+            publisher = Flowable.create(new FlowableOnSubscribe<VectorizedRowBatch>() {
+                @Override
+                public void subscribe(FlowableEmitter<VectorizedRowBatch> emitter) throws Exception {
+                    int batchcount=0;
+                    while (!emitter.isCancelled()) {
+                        VectorizedRowBatch message = queue.take();
+                        emitter.onNext(message);
+                        batchcount++;
+                        
+                        if(batchcount==writeSize){
+                            try{
+                                Thread.sleep(500);
+                                batchcount=0;
+                            }catch (Exception e){}
+                        }
+                        if(message.endOfFile){
+                            System.out.println("emitter send a endOfFile count maker"+ System.currentTimeMillis() );
+                        }
                     }
-
-                }
-                System.out.println("emitter start to do onComplete");
-                emitter.onComplete();
-                
-            }
-        }, BackpressureStrategy.BUFFER).onBackpressureBuffer(1024).share();
-        // }, BackpressureStrategy.BUFFER).onBackpressureBuffer(1024).subscribeOn(Schedulers.newThread()).share();
-
-        // 创建 Observer 1
-        FlowableSubscriber<VectorizedRowBatch> observer1 = new FlowableSubscriber<VectorizedRowBatch>() {
-            private int messageCount = 0;
-            private PixelsWriter pixelsWriter=null;
-            private int fileCount=0;
-            private String outputPath;
-            private Scanner scanner;
-            private TypeDescription outputschema;
-            private VectorizedRowBatch rowBatch;
-            private Subscription subscription;
-            private List<Aggregator> aggregatorOnFilterList=new ArrayList<>(); ;
-
-            @Override
-            public void onSubscribe(Subscription d) {
-                subscription=d;
-                // 不需要处理
-                // PixelsWriter pixelsWriter=null;
-                Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, scanprojection, scanfilterlist.get(0));
-                if(partialAggregationPresent){
-                    System.out.println("partialAggregationPresent start preparing");
-                    UUID uuid = UUID.randomUUID();
-                    this.outputPath=outputFolders.get(0) + uuid.toString() + requestId +"_scan1_";
-                    List<Integer> aggregationList= filterOnAggreation.get("0"); 
-                    for (Integer i : aggregationList) {
-                        System.out.println("filter 1 get aggregator: "+ i);
-                        this.aggregatorOnFilterList.add(aggregatorList.get(i));
-                    } 
-                }
-                this.outputschema =scanner.getOutputSchema();
-                this.scanner=scanner;
-                subscription.request(1);
-            }
-
-            @Override
-            public void onNext(VectorizedRowBatch message) {
-                messageCount++;
-                if(message.endOfFile){
+                    System.out.println("emitter start to do onComplete");
+                    emitter.onComplete();
                     
-                    System.out.println("filter 1 receive a endOfFile");
-                    System.out.println("filter 1 receive a endOfFile"+Thread.currentThread().getName());
-                    // EOFsize--;
-                    // if(EOFsize==0){
-                    //     emitter.onNext(message);
-                    //     break;
-                    // }
                 }
-                rowBatch=scanner.filterAndProject(message);
-
-                if(partialAggregationPresent){
-                   
-                    for (Aggregator aggregator:aggregatorOnFilterList){
-                        aggregator.aggregate(rowBatch);
+    
+            }, BackpressureStrategy.BUFFER).onBackpressureBuffer(1024).subscribeOn(Schedulers.newThread()).share();
+    
+            // 创建 Observer 1
+            FlowableSubscriber<VectorizedRowBatch> observer1 = new FlowableSubscriber<VectorizedRowBatch>() {
+                private int messageCount = 0;
+                private PixelsWriter pixelsWriter=null;
+                private int fileCount=0;
+                private String outputPath;
+                private Scanner scanner;
+                private TypeDescription outputschema;
+                private VectorizedRowBatch rowBatch;
+                private Subscription subscription;
+                private List<Aggregator> aggregatorOnFilterList=new ArrayList<>(); ;
+    
+                @Override
+                public void onSubscribe(Subscription d) {
+                    subscription=d;   
+                    Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, scanprojection, scanfilterlist.get(0));
+    
+                    if(partialAggregationPresent){
+                        System.out.println("partialAggregationPresent start preparing");
+                        UUID uuid = UUID.randomUUID();
+                        this.outputPath = outputFolders.get(0) + uuid.toString() + requestId +"_scan1_";
+                        List<Integer> aggregationList= filterOnAggreation.get("0"); 
+                        for (Integer i : aggregationList) {
+                            System.out.println("filter 1 get aggregator: "+ i);
+                            this.aggregatorOnFilterList.add(aggregatorList.get(i));
+                        } 
+                    } else{
+                        this.outputPath=outputFolders.get(0);
                     }
-
-                    if (messageCount == writeSize) {
+                    this.outputschema =scanner.getOutputSchema();
+                    this.scanner=scanner;
+                    subscription.request(1);
+                }
+    
+                @Override
+                public void onNext(VectorizedRowBatch message) {
+                    messageCount++;
+                    
+                    if(message.endOfFile){
+                        System.out.println("filter 1111 receive a endOfFile count maker" + System.currentTimeMillis());
+                    }
+                    rowBatch = scanner.filterAndProject(message);
+    
+                    if(partialAggregationPresent){
                         for (Aggregator aggregator:aggregatorOnFilterList){
-                            String tempPath=outputPath +"aggregation_"+ aggregatorOnFilterList.indexOf(aggregator)+fileCount++;
-                            pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
-                                    WorkerCommon.getStorage(outputscheme), tempPath, encoding,
-                                    aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
-                            try{
-                                aggregator.writeAggrOutput(pixelsWriter);
-                                
-                                pixelsWriter.close();
-                            }catch (Exception e){ 
-                                System.out.print("filter 1 count an exception in write size");
-                                e.printStackTrace();
-                            }
+                            aggregator.aggregate(rowBatch);
                         }
-                        messageCount = 0;
-                    }  
-                } else {
-                    if(pixelsWriter==null){
-                        String tempPath=outputPath+fileCount++;
-                        pixelsWriter=WorkerCommon.getWriter(outputschema, WorkerCommon.getStorage(outputscheme),
-                        tempPath, encoding, false, null);
-                    }
-
-                    try{
-                        pixelsWriter.addRowBatch(rowBatch);
-                    }catch (Exception e){
-                        e.printStackTrace();
-                    }
-
-                    if (messageCount == writeSize) {
+                        if (messageCount == writeSize) {
+                            for (Aggregator aggregator:aggregatorOnFilterList){
+                                String tempPath = outputPath +"aggregation_"+ aggregatorOnFilterList.indexOf(aggregator)+fileCount++;
+                                pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
+                                        WorkerCommon.getStorage(outputscheme), tempPath, encoding,
+                                        aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
+                                try{
+                                    aggregator.writeAggrOutput(pixelsWriter);
+                                    pixelsWriter.close();
+                                }catch (Exception e){ 
+                                    System.out.print("filter 1 count an exception in write size");
+                                    e.printStackTrace();
+                                }
+    
+                            }
+                            messageCount = 0;
+                        }  
+                    } else {
+    
+                        if(pixelsWriter==null){
+                            String tempPath=outputPath+fileCount++;
+                            pixelsWriter=WorkerCommon.getWriter(outputschema, WorkerCommon.getStorage(outputscheme),
+                            tempPath, encoding, false, null);
+                        }
+    
                         try{
-                            pixelsWriter.close();
+                            pixelsWriter.addRowBatch(rowBatch);
                         }catch (Exception e){
                             e.printStackTrace();
                         }
-                        pixelsWriter=null;
-                        messageCount = 0;
-                    }  
-                }
-
-                if(message.endOfFile){
-                    latch.countDown();
-                    System.out.println("filter 1 receive a endOfFile count down latch");
-                    // EOFsize--;
-                    // if(EOFsize==0){
-                    //     emitter.onNext(message);
-                    //     break;
-                    // }
-                }
-                subscription.request(1);
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                e.printStackTrace();
-            }
-
-            @Override
-            public void onComplete() {
-                System.out.println("filter 1 oncomplete begins.");
-                if(partialAggregationPresent){
-                    System.out.println("filter 1 on partial complete");
-                    for (Aggregator aggregator:aggregatorOnFilterList){
-                        String tempPath=outputPath +"aggregation_"+ aggregatorOnFilterList.indexOf(aggregator)+fileCount++;
-                        pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
-                                WorkerCommon.getStorage(outputscheme), tempPath, encoding,
-                                aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
-                        try{
-                            
-                            aggregator.writeAggrOutput(pixelsWriter);
-                            pixelsWriter.close();
-                        }catch (Exception e){ 
-                            e.printStackTrace();
-                        }
+    
+                        if (messageCount == writeSize) {     
+    
+                            if(pixelsWriter!=null && partialAggregationPresent==false){
+                                try{
+                                    pixelsWriter.close();
+                                }catch (Exception e){
+                                    System.out.println("filter 1 count an exception in messageCount == writeSize");
+                                    e.printStackTrace();
+                                }
+                            }
+                            pixelsWriter = null;
+                            messageCount = 0;
+                        }  
                     }
-                } else{
-                    try{
-                        if(pixelsWriter!=null){
-                            pixelsWriter.close();
-                        }
-                    }catch (Exception e){
-                        e.printStackTrace();
+    
+                    if(message.endOfFile){
+                        latch.countDown();
+                        // System.out.println("filter 111111 receive a endOfFile count down latch");
                     }
+                    // System.out.println("filter 1 onNext: code can run after latch.countDown()");
+                    subscription.request(1);
                 }
-                triggerLatch.countDown();
-                // latch.countDown();
-                // 不需要处理
-            }
-        };
-
-        // 创建 Observer 2
-        FlowableSubscriber<VectorizedRowBatch> observer2 = new FlowableSubscriber<VectorizedRowBatch>() {
-            private int messageCount = 0;
-            private PixelsWriter pixelsWriter=null;
-            private int fileCount=0;
-            private String outputPath;
-            private Scanner scanner;
-            private TypeDescription outputschema;
-            private VectorizedRowBatch rowBatch;
-            private Subscription subscription;
-            private List<Aggregator> aggregatorOnFilterList=new ArrayList<>();;
-
-            @Override
-            public void onSubscribe(Subscription d) {
-                subscription=d;
-                // 不需要处理
-                // PixelsWriter pixelsWriter=null;
-                Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, scanprojection, scanfilterlist.get(0));
-                if(partialAggregationPresent){
-                    UUID uuid = UUID.randomUUID();
-                    this.outputPath=outputFolders.get(1) + uuid.toString() + requestId +"_scan2_";
-                    List<Integer> aggregationList= filterOnAggreation.get("1"); 
-                    for (Integer i : aggregationList) {
-                        System.out.println("filter 2 get aggregator: "+ i);
-                        this.aggregatorOnFilterList.add(aggregatorList.get(i));
-                    } 
+    
+                @Override
+                public void onError(Throwable e) {
+                    // System.out.println("filter 1 onerror begins.");
+                    e.printStackTrace();
                 }
-                this.outputschema =scanner.getOutputSchema();
-                this.scanner=scanner;
-                subscription.request(1);
-            }
-
-            @Override
-            public void onNext(VectorizedRowBatch message) {
-                messageCount++;
-                rowBatch=scanner.filterAndProject(message);
-
-                if(partialAggregationPresent){
-                   
-                    for (Aggregator aggregator:aggregatorOnFilterList){
-                        aggregator.aggregate(rowBatch);
-                    }
-
-                    if (messageCount == writeSize) {
+    
+                @Override
+                public void onComplete() {
+                    System.out.println("filter 1 oncomplete begins.");
+                    if(partialAggregationPresent){
+                        System.out.println("filter 1 on partial complete");
                         for (Aggregator aggregator:aggregatorOnFilterList){
                             String tempPath=outputPath +"aggregation_"+ aggregatorOnFilterList.indexOf(aggregator)+fileCount++;
                             pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
@@ -508,156 +452,248 @@ class GroupProcessor implements Runnable{
                                 aggregator.writeAggrOutput(pixelsWriter);
                                 pixelsWriter.close();
                             }catch (Exception e){ 
-                                e.printStackTrace();
+                                // e.printStackTrace();
+                                System.out.println("filter 1 count an exception in partial complete");
                             }
+    
+    
                         }
-                        messageCount = 0;
-                    }  
-                } else {
-                    if(pixelsWriter==null){
-                        String tempPath=outputPath+fileCount++;
-                        pixelsWriter=WorkerCommon.getWriter(outputschema, WorkerCommon.getStorage(outputscheme),
-                        tempPath, encoding, false, null);
-                    }
-
-                    try{
-                        pixelsWriter.addRowBatch(rowBatch);
-                    }catch (Exception e){
-                        e.printStackTrace();
-                    }
-
-                    if (messageCount == writeSize) {
+                    } else{
                         try{
-                            pixelsWriter.close();
+                            if(pixelsWriter!=null){
+                                pixelsWriter.close();
+                            }
                         }catch (Exception e){
                             e.printStackTrace();
                         }
-                        pixelsWriter=null;
-                        messageCount = 0;
-                    }  
+                    }
+                    triggerLatch.countDown();
+                    // latch.countDown();
+                    // 不需要处理
                 }
-
-                if(message.endOfFile){
-                    latch.countDown();
-                    // EOFsize--;
-                    // if(EOFsize==0){
-                    //     emitter.onNext(message);
-                    //     break;
-                    // }
+            };
+    
+            // 创建 Observer 2
+            FlowableSubscriber<VectorizedRowBatch> observer2 = new FlowableSubscriber<VectorizedRowBatch>() {
+                private int messageCount = 0;
+                private PixelsWriter pixelsWriter=null;
+                private int fileCount=0;
+                private String outputPath;
+                private Scanner scanner;
+                private TypeDescription outputschema;
+                private VectorizedRowBatch rowBatch;
+                private Subscription subscription;
+                private List<Aggregator> aggregatorOnFilterList=new ArrayList<>();;
+    
+                @Override
+                public void onSubscribe(Subscription d) {
+                    subscription=d;
+                    // 不需要处理
+                    // PixelsWriter pixelsWriter=null;
+                    Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, scanprojection, scanfilterlist.get(0));
+                    if(partialAggregationPresent){
+                        UUID uuid = UUID.randomUUID();
+                        this.outputPath=outputFolders.get(1) + uuid.toString() + requestId +"_scan2_";
+                        // System.out.println(this.outputPath);
+                        List<Integer> aggregationList= filterOnAggreation.get("1"); 
+                        for (Integer i : aggregationList) {
+                            System.out.println("filter 2 get aggregator: "+ i);
+                            this.aggregatorOnFilterList.add(aggregatorList.get(i));
+                        } 
+                    } else {
+                        this.outputPath=outputFolders.get(1);
+                    }
+    
+                    this.outputschema =scanner.getOutputSchema();
+                    this.scanner=scanner;
+                    subscription.request(1);
                 }
-                subscription.request(1);
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                e.printStackTrace();
-            }
-
-            @Override
-            public void onComplete() {
-                System.out.println("filter 2 oncomplete begins.");
-                if(partialAggregationPresent){
-                    System.out.println("filter 2 on partial complete");
-                    for (Aggregator aggregator:aggregatorOnFilterList){
-                        String tempPath=outputPath +"aggregation_"+ aggregatorOnFilterList.indexOf(aggregator)+fileCount++;
-                        pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
-                                WorkerCommon.getStorage(outputscheme), tempPath, encoding,
-                                aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
+    
+                @Override
+                public void onNext(VectorizedRowBatch message) {
+                    messageCount++;
+                    rowBatch=scanner.filterAndProject(message);
+    
+                    if(message.endOfFile){
+                        System.out.println("filter 2222 receive a endOfFile count maker" + System.currentTimeMillis());
+                    }
+    
+                    if(partialAggregationPresent){
+                       
+                        for (Aggregator aggregator:aggregatorOnFilterList){
+                            aggregator.aggregate(rowBatch);
+                        }
+    
+                        if (messageCount == writeSize) {
+                            for (Aggregator aggregator:aggregatorOnFilterList){
+                                String tempPath=outputPath +"aggregation_"+ aggregatorOnFilterList.indexOf(aggregator)+fileCount++;
+                                pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
+                                        WorkerCommon.getStorage(outputscheme), tempPath, encoding,
+                                        aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
+                                try{
+                                    aggregator.writeAggrOutput(pixelsWriter);
+                                    pixelsWriter.close();
+                                }catch (Exception e){ 
+                                    e.printStackTrace();
+                                }
+    
+    
+                            }
+                            messageCount = 0;
+                        }  
+                    } else {
+                        if(pixelsWriter==null){
+                            String tempPath=outputPath+fileCount++;
+                            pixelsWriter=WorkerCommon.getWriter(outputschema, WorkerCommon.getStorage(outputscheme),
+                            tempPath, encoding, false, null);
+                        }
+    
                         try{
-                            aggregator.writeAggrOutput(pixelsWriter);
-                            pixelsWriter.close();
-                        }catch (Exception e){ 
+                            pixelsWriter.addRowBatch(rowBatch);
+                        }catch (Exception e){
+                            e.printStackTrace();
+                        }
+    
+                        if (messageCount == writeSize) {
+                            try{
+                                pixelsWriter.close();
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            pixelsWriter=null;
+                            messageCount = 0;
+                        }  
+                    }
+    
+                    if(message.endOfFile){
+                        latch.countDown();
+                        // System.out.println("filter 2 receive a endOfFile count down latch");
+                    }
+                    subscription.request(1);
+                }
+    
+                @Override
+                public void onError(Throwable e) {
+                    e.printStackTrace();
+                }
+    
+                @Override
+                public void onComplete() {
+                    System.out.println("filter 2 oncomplete begins.");
+                    if(partialAggregationPresent){
+                        System.out.println("filter 2 on partial complete");
+                        for (Aggregator aggregator:aggregatorOnFilterList){
+                            String tempPath=outputPath +"aggregation_"+ aggregatorOnFilterList.indexOf(aggregator)+fileCount++;
+                            pixelsWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
+                                    WorkerCommon.getStorage(outputscheme), tempPath, encoding,
+                                    aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
+                            try{
+                                aggregator.writeAggrOutput(pixelsWriter);
+                                pixelsWriter.close();
+                            }catch (Exception e){ 
+                                e.printStackTrace();
+                            }
+    
+    
+                        }
+                    } else{
+                        try{
+                            if(pixelsWriter!=null){
+                                pixelsWriter.close();
+                            }
+                        }catch (Exception e){
                             e.printStackTrace();
                         }
                     }
-                } else{
-                    try{
-                        if(pixelsWriter!=null){
-                            pixelsWriter.close();
-                        }
-                    }catch (Exception e){
-                        e.printStackTrace();
+                    triggerLatch.countDown();
+                }
+            };
+    
+            
+            // 订阅 Observer 1
+            publisher.observeOn(Schedulers.newThread()).subscribe(observer1);
+    
+            // 订阅 Observer 2
+            publisher.observeOn(Schedulers.newThread()).subscribe(observer2);
+    
+            subject.subscribe(ignore -> {
+                System.out.println("trigger on complete triggering");
+                observer1.onComplete();
+                observer2.onComplete();
+            });
+    
+    
+        }
+    
+        public void trigger() {
+            subject.onNext(true);
+        }
+    
+    }
+    
+    
+    class ThreadScanProducer2 implements Callable{
+        private long queryId;
+        private String[] includeCols;
+        private LinkedBlockingQueue<VectorizedRowBatch> blockingQueue;
+        private LinkedBlockingQueue<InputInfo> inputInfoQueue;
+        private Storage.Scheme inputScheme;
+        private CountDownLatch schemaLatch;
+    
+        public ThreadScanProducer2(long queryId,String[] includeCols,LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue, Storage.Scheme inputScheme,CountDownLatch schemaLatch){
+            this.queryId=queryId;
+            this.includeCols=includeCols;
+            this.blockingQueue=blockingque;
+            this.inputInfoQueue=inputInfoQueue;
+            this.inputScheme=inputScheme;
+            this.schemaLatch=schemaLatch;
+        }
+    
+        @Override
+        public Object call() throws IOException{
+            while(true){
+                try{
+                    if(inputInfoQueue.isEmpty()){
+                        return true;
                     }
-                }
-                triggerLatch.countDown();
-                // 不需要处理
-                // latch.countDown();
-            }
-        };
+                    InputInfo inputInfo=inputInfoQueue.poll();
+                    PixelsReader pixelsReader = WorkerCommon.getReader(inputInfo.getPath(), WorkerCommon.getStorage(inputScheme));
+                    if (inputInfo.getRgStart() >= pixelsReader.getRowGroupNum())
+                    {
+                        return true;
+                    }
+                    if (inputInfo.getRgStart() + inputInfo.getRgLength() >= pixelsReader.getRowGroupNum())
+                    {
+                        inputInfo.setRgLength(pixelsReader.getRowGroupNum() - inputInfo.getRgStart());
+                    }
+                    PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, includeCols, inputInfo);
+                    PixelsRecordReader recordReader = pixelsReader.read(option);
+                    
 
-        
-        // 订阅 Observer 1
-        publisher.observeOn(Schedulers.newThread()).subscribe(observer1);
+                    // if(rowBatchSchema==null){
+                    //     rowBatchSchema = recordReader.getResultSchema();
+                    //     schemaLatch.countDown();
+                    // }
+                    // rowBatchSchema = recordReader.getResultSchema();
 
-        // 订阅 Observer 2
-        publisher.observeOn(Schedulers.newThread()).subscribe(observer2);
-
-        subject.subscribe(ignore -> {
-            System.out.println("trigger on complete triggering");
-            observer1.onComplete();
-            observer2.onComplete();
-        });
-
-
-    }
-
-    public void trigger() {
-        subject.onNext(true);
-    }
-
-}
-
-
-class ThreadScanProducer2 implements Callable{
-    private long queryId;
-    private String[] includeCols;
-    private LinkedBlockingQueue<VectorizedRowBatch> blockingQueue;
-    private LinkedBlockingQueue<InputInfo> inputInfoQueue;
-    private Storage.Scheme inputScheme;
-
-    public ThreadScanProducer2(long queryId,String[] includeCols,LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue, Storage.Scheme inputScheme){
-        this.queryId=queryId;
-        this.includeCols=includeCols;
-        this.blockingQueue=blockingque;
-        this.inputInfoQueue=inputInfoQueue;
-        this.inputScheme=inputScheme;
-    }
-
-    @Override
-    public Object call() throws IOException{
-        while(true){
-            try{
-                if(inputInfoQueue.isEmpty()){
-                    return true;
-                }
-                InputInfo inputInfo=inputInfoQueue.poll();
-                PixelsReader pixelsReader = WorkerCommon.getReader(inputInfo.getPath(), WorkerCommon.getStorage(inputScheme));
-                if (inputInfo.getRgStart() >= pixelsReader.getRowGroupNum())
-                {
-                    return true;
-                }
-                if (inputInfo.getRgStart() + inputInfo.getRgLength() >= pixelsReader.getRowGroupNum())
-                {
-                    inputInfo.setRgLength(pixelsReader.getRowGroupNum() - inputInfo.getRgStart());
-                }
-                PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, includeCols, inputInfo);
-                PixelsRecordReader recordReader = pixelsReader.read(option);
-                VectorizedRowBatch rowBatch=null;
-                // TODO: issue, if "rgStart": is not start from 0;
-                while(true){ 
-                    rowBatch=recordReader.readBatch(WorkerCommon.rowBatchSize);
-                    if(rowBatch.endOfFile){
+                    VectorizedRowBatch rowBatch=null;
+                    // TODO: issue, if "rgStart": is not start from 0;
+                    while(true){ 
+                        rowBatch=recordReader.readBatch(WorkerCommon.rowBatchSize);
+                        if(rowBatch.endOfFile){
+                            blockingQueue.put(rowBatch);
+                            break;
+                        }
+                        if(rowBatch.isEmpty()){
+                            break;
+                        }
                         blockingQueue.put(rowBatch);
-                        break;
                     }
-                    if(rowBatch.isEmpty()){
-                        break;
-                    }
-                    blockingQueue.put(rowBatch);
+                }catch (Exception e){
+                    throw new WorkerException("error in producer", e);
                 }
-            }catch (Exception e){
-                throw new WorkerException("error in producer", e);
             }
         }
     }
+    
 }

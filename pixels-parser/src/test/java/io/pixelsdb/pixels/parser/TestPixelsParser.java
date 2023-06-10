@@ -55,6 +55,10 @@ import java.util.List;
 
 import java.util.Properties;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 public class TestPixelsParser
 {
     String hostAddr = "ec2-18-218-128-203.us-east-2.compute.amazonaws.com";
@@ -100,10 +104,27 @@ public class TestPixelsParser
         System.out.println("Logical plan: \n" + writer.asString());
     }
 
+    public static String replaceBlank(String str) {
+        String dest = "";
+        if (str!=null) {
+            Pattern p = Pattern.compile("\t|\r|\n");
+            Matcher m = p.matcher(str);
+            dest = m.replaceAll(" ");
+        }
+        return dest;
+    }
+
     @Test
     public void testPixelsParserTestExample() throws SqlParseException{
 
-        String query = TestQuery.Q5;
+    try{
+        String query = TestQuery.TPCHQ1;
+        // String filePath = "/home/ubuntu/opt/lambda-java8/tpchsql/Q1.sql";
+        // byte[] bytes = Files.readAllBytes(Paths.get(filePath));
+        // String query = new String(bytes, "UTF-8");
+        // query = replaceBlank(query);
+        // System.out.println(query);
+
         SqlNode parsedNode = this.tpchPixelsParser.parseQuery(query);
         // System.out.println("Parsed SQL Query: \n" + parsedNode);
 
@@ -113,39 +134,37 @@ public class TestPixelsParser
         RelNode rel = this.tpchPixelsParser.toRelNode(validatedNode);
 
         
-        // RelWriterImpl writer = new RelWriterImpl(new PrintWriter(System.out, true), SqlExplainLevel.ALL_ATTRIBUTES, false);
-        
-        RelVisitor visitor = new RelVisitor() {
-            @Override
-            public void visit(RelNode node, int ordinal, RelNode parent) {
-                // node.getInputs().forEach(input -> {
-                //     System.out.println("Node: "+ input.getId() + "  "+ input.getClass().getSimpleName());
-                //     System.out.println(input.getDigest());
-                // });
+        // RelVisitor visitor = new RelVisitor() {
+        //     @Override
+        //     public void visit(RelNode node, int ordinal, RelNode parent) {
+        //         // node.getInputs().forEach(input -> {
+        //         //     System.out.println("Node: "+ input.getId() + "  "+ input.getClass().getSimpleName());
+        //         //     System.out.println(input.getDigest());
+        //         // });
                 
-                System.out.println(node.getDigest());
+        //         System.out.println(node.getDigest());
                 
-                super.visit(node, ordinal, parent);
-            }
-        };
-        visitor.go(rel);
-
-
-
+        //         super.visit(node, ordinal, parent);
+        //     }
+        // };
+        // visitor.go(rel);
         
+        final RelJsonWriter writer = new RelJsonWriter();    
+        rel.explain(writer);
+        System.out.println(writer.asString());
+        System.out.println("Logical plan: \n" + writer.asString());
 
-        // rel.explain(writer);
-        // System.out.println(writer.asString());
-        // System.out.println("Logical plan: \n" + writer.asString());
-
-        // try {
-        //     BufferedWriter out = new BufferedWriter(new FileWriter("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/testlogicalPlan.json"));
-        //     out.write(writer.asString());
-        //     out.close();
-        //     System.out.println("to finle success！");
-        // } catch (IOException e) {
-        // }
+        try {
+            BufferedWriter out = new BufferedWriter(new FileWriter("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/tpchq1.json"));
+            out.write(writer.asString());
+            out.close();
+            System.out.println("to finle success！");
+        } catch (IOException e) {
+        }
         
+        }catch(Exception e){
+            e.printStackTrace();
+        }
 
     }
 
