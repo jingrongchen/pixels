@@ -32,7 +32,7 @@ public class TestLambdaInvoker
     @Test
     public void test()
     {
-        int memorySize = InvokerFactory.Instance().getInvoker(WorkerType.PARTITIONED_JOIN).getMemoryMB();
+        int memorySize = InvokerFactory.Instance().getInvoker(WorkerType.THREAD_SCAN).getMemoryMB();
         System.out.println(memorySize);
     }
 }

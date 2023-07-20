@@ -41,6 +41,7 @@ public class PartitionedTableInfo extends TableInfo
      */
     private int[] keyColumnIds;
 
+    
     /**
      * Default constructor for Jackson.
      */

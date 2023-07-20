@@ -427,4 +427,7 @@ public abstract class ColumnVector implements AutoCloseable
         preFlattenIsRepeating = false;
         writeIndex = 0;
     }
+
+    public abstract ColumnVector clone();
+
 }

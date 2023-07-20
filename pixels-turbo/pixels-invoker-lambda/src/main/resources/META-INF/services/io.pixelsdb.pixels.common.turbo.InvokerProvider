@@ -1,3 +1,4 @@
+io.pixelsdb.pixels.invoker.lambda.ThreadScanInvokerProvider
 io.pixelsdb.pixels.invoker.lambda.ScanInvokerProvider
 io.pixelsdb.pixels.invoker.lambda.PartitionInvokerProvider
 io.pixelsdb.pixels.invoker.lambda.PartitionedJoinInvokerProvider

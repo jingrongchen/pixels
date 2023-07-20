@@ -278,4 +278,11 @@ public class ByteColumnVector extends ColumnVector
             }
         }
     }
+
+
+    //TODO： Object clone() 
+    @Override
+    public ByteColumnVector clone(){
+        return null;
+    }
 }

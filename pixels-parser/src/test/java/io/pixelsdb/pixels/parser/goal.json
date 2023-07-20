@@ -1,0 +1,114 @@
+{
+    "filterOnAggreation": {
+        "0": [
+            0
+        ],
+        "1": [
+            1
+        ]
+    },
+    "output": {
+        "encoding": true,
+        "path": [
+            "s3://jingrong-lambda-test/unit_tests/test_scan1/",
+            "s3://jingrong-lambda-test/unit_tests/test_scan2/"
+        ],
+        "randomFileName": false,
+        "storageInfo": {
+            "scheme": "s3"
+        }
+    },
+    "partialAggregationInfo": [
+        {
+            "aggregateColumnIds": [
+                1
+            ],
+            "functionTypes": [
+                "SUM"
+            ],
+            "groupKeyColumnAlias": [
+                "o_custkey_agg"
+            ],
+            "groupKeyColumnIds": [
+                0
+            ],
+            "numPartition": 0,
+            "partition": false,
+            "resultColumnAlias": [
+                "num_agg"
+            ],
+            "resultColumnTypes": [
+                "bigint"
+            ]
+        },
+        {
+            "aggregateColumnIds": [
+                0
+            ],
+            "functionTypes": [
+                "COUNT"
+            ],
+            "groupKeyColumnAlias": [
+                "o_custkey_agg"
+            ],
+            "groupKeyColumnIds": [
+                0
+            ],
+            "numPartition": 0,
+            "partition": false,
+            "resultColumnAlias": [
+                "num_agg"
+            ],
+            "resultColumnTypes": [
+                "bigint"
+            ]
+        }
+    ],
+    "partialAggregationPresent": true,
+    "scanProjection": {
+        "0": [
+            false,
+            true,
+            false,
+            false,
+            true
+        ],
+        "1": [
+            false,
+            true,
+            false,
+            false,
+            false
+        ]
+    },
+    "tableInfo": {
+        "base": true,
+        "columnsToRead": [
+            "o_orderkey",
+            "o_custkey",
+            "o_orderstatus",
+            "o_orderpriority",
+            "o_totalprice"
+        ],
+        "filter": [
+            "{\"schemaName\":\"tpch\",\"tableName\":\"orders\",\"columnFilters\":{3:{\"columnName\":\"o_orderpriority\",\"columnType\":\"CHAR\",\"filterJson\":\"{\\\"javaType\\\":\\\"java.lang.String\\\",\\\"isAll\\\":false,\\\"isNone\\\":false,\\\"allowNull\\\":false,\\\"onlyNull\\\":false,\\\"ranges\\\":[],\\\"discreteValues\\\":[{\\\"type\\\":\\\"INCLUDED\\\",\\\"value\\\":\\\"3-MEDIUM\\\"}]}\"}}}",
+            "{\"schemaName\":\"tpch\",\"tableName\":\"orders\",\"columnFilters\":{2:{\"columnName\":\"o_orderstatus\",\"columnType\":\"CHAR\",\"filterJson\":\"{\\\"javaType\\\":\\\"java.lang.String\\\",\\\"isAll\\\":false,\\\"isNone\\\":false,\\\"allowNull\\\":false,\\\"onlyNull\\\":false,\\\"ranges\\\":[],\\\"discreteValues\\\":[{\\\"type\\\":\\\"INCLUDED\\\",\\\"value\\\":\\\"P\\\"}]}\"}}}"
+        ],
+        "inputSplits": [
+            {
+                "inputInfos": [
+                    {
+                        "path": "jingrong-test/tpch/orders/v-0-order/20230425100725_12.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            }
+        ],
+        "storageInfo": {
+            "scheme": "s3"
+        },
+        "tableName": "orders"
+    },
+    "transId": 123456
+}

@@ -1,0 +1,247 @@
+{
+  "rels": [
+    {
+      "id": "0",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "lineitem"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "1",
+      "relOp": "LogicalFilter",
+      "condition": {
+        "op": {
+          "name": "AND",
+          "kind": "AND",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "op": {
+              "name": ">=",
+              "kind": "GREATER_THAN_OR_EQUAL",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 10,
+                "name": "$10"
+              },
+              {
+                "op": {
+                  "name": "CAST",
+                  "kind": "CAST",
+                  "syntax": "SPECIAL"
+                },
+                "operands": [
+                  {
+                    "literal": "1994-01-01",
+                    "type": {
+                      "type": "CHAR",
+                      "nullable": false,
+                      "precision": 10
+                    }
+                  }
+                ],
+                "type": {
+                  "type": "DATE",
+                  "nullable": false
+                }
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "<",
+              "kind": "LESS_THAN",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 10,
+                "name": "$10"
+              },
+              {
+                "op": {
+                  "name": "+",
+                  "kind": "PLUS",
+                  "syntax": "SPECIAL"
+                },
+                "operands": [
+                  {
+                    "literal": 8766,
+                    "type": {
+                      "type": "DATE",
+                      "nullable": false
+                    }
+                  },
+                  {
+                    "literal": 12,
+                    "type": {
+                      "type": "INTERVAL_YEAR",
+                      "nullable": false
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": ">=",
+              "kind": "GREATER_THAN_OR_EQUAL",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 6,
+                "name": "$6"
+              },
+              {
+                "op": {
+                  "name": "-",
+                  "kind": "MINUS",
+                  "syntax": "BINARY"
+                },
+                "operands": [
+                  {
+                    "literal": 0.06,
+                    "type": {
+                      "type": "DECIMAL",
+                      "nullable": false,
+                      "precision": 3,
+                      "scale": 2
+                    }
+                  },
+                  {
+                    "literal": 0.01,
+                    "type": {
+                      "type": "DECIMAL",
+                      "nullable": false,
+                      "precision": 3,
+                      "scale": 2
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "<=",
+              "kind": "LESS_THAN_OR_EQUAL",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 6,
+                "name": "$6"
+              },
+              {
+                "op": {
+                  "name": "+",
+                  "kind": "PLUS",
+                  "syntax": "BINARY"
+                },
+                "operands": [
+                  {
+                    "literal": 0.06,
+                    "type": {
+                      "type": "DECIMAL",
+                      "nullable": false,
+                      "precision": 3,
+                      "scale": 2
+                    }
+                  },
+                  {
+                    "literal": 0.01,
+                    "type": {
+                      "type": "DECIMAL",
+                      "nullable": false,
+                      "precision": 3,
+                      "scale": 2
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "<",
+              "kind": "LESS_THAN",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 4,
+                "name": "$4"
+              },
+              {
+                "literal": 24,
+                "type": {
+                  "type": "INTEGER",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "2",
+      "relOp": "LogicalProject",
+      "fields": [
+        "$f0"
+      ],
+      "exprs": [
+        {
+          "op": {
+            "name": "*",
+            "kind": "TIMES",
+            "syntax": "BINARY"
+          },
+          "operands": [
+            {
+              "input": 5,
+              "name": "$5"
+            },
+            {
+              "input": 6,
+              "name": "$6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "relOp": "LogicalAggregate",
+      "group": [],
+      "aggs": [
+        {
+          "agg": {
+            "name": "SUM",
+            "kind": "SUM",
+            "syntax": "FUNCTION"
+          },
+          "type": {
+            "type": "DECIMAL",
+            "nullable": true,
+            "precision": 19,
+            "scale": 4
+          },
+          "distinct": false,
+          "operands": [
+            0
+          ],
+          "name": "revenue"
+        }
+      ]
+    }
+  ]
+}

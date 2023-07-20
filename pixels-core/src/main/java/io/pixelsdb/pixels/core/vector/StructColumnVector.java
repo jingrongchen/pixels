@@ -251,4 +251,11 @@ public class StructColumnVector extends ColumnVector
             fields[i].unFlatten();
         }
     }
+
+    @Override
+    public StructColumnVector clone()
+    {
+        return null;
+    }
+
 }

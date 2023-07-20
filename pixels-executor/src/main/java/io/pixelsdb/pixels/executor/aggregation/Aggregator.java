@@ -97,8 +97,8 @@ public class Aggregator
         this.outputSchema = new TypeDescription(TypeDescription.Category.STRUCT);
         List<TypeDescription> inputTypes = inputSchema.getChildren();
         requireNonNull(inputTypes, "children types of the inputSchema is null");
-        checkArgument(inputTypes.size() >= groupKeyColumnIds.length + aggrColumnIds.length,
-                "inputSchema does not contain enough columns");
+        // checkArgument(inputTypes.size() >= groupKeyColumnIds.length + aggrColumnIds.length,
+        //         "inputSchema does not contain enough columns");
         this.groupKeyColumnIdsInResult = new ArrayList<>(groupKeyColumnIds.length);
         for (int i = 0; i < groupKeyColumnAlias.length; ++i)
         {

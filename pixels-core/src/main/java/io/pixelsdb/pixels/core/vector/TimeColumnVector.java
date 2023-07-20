@@ -542,4 +542,10 @@ public class TimeColumnVector extends ColumnVector
         super.close();
         this.times = null;
     }
+
+    @Override
+    public TimeColumnVector clone()
+    {
+        return null;
+    }
 }

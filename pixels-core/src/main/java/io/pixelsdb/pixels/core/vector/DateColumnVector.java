@@ -464,4 +464,11 @@ public class DateColumnVector extends ColumnVector
         super.close();
         this.dates = null;
     }
+
+    //TODO： Object clone() 
+    @Override
+    public DateColumnVector clone(){
+        return null;
+    }
+
 }

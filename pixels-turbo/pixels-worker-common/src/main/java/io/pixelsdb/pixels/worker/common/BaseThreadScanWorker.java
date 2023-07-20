@@ -1,13 +1,13 @@
 package io.pixelsdb.pixels.worker.common;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONValidator.Type;
 
 import io.pixelsdb.pixels.common.metadata.domain.Column;
+import io.pixelsdb.pixels.common.metadata.domain.Schema;
 import io.pixelsdb.pixels.common.physical.Storage;
-import io.pixelsdb.pixels.common.turbo.Input;
 import io.pixelsdb.pixels.core.PixelsReader;
 import io.pixelsdb.pixels.core.PixelsWriter;
 import io.pixelsdb.pixels.core.TypeDescription;
+import io.pixelsdb.pixels.core.TypeDescription.Category;
 import io.pixelsdb.pixels.core.reader.PixelsReaderOption;
 import io.pixelsdb.pixels.core.reader.PixelsRecordReader;
 import io.pixelsdb.pixels.core.vector.VectorizedRowBatch;
@@ -20,9 +20,6 @@ import io.pixelsdb.pixels.planner.plan.physical.domain.PartialAggregationInfo;
 import io.pixelsdb.pixels.planner.plan.physical.domain.StorageInfo;
 import io.pixelsdb.pixels.planner.plan.physical.input.ThreadScanInput;
 import io.pixelsdb.pixels.planner.plan.physical.output.ScanOutput;
-
-import org.checkerframework.checker.units.qual.C;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 
@@ -42,21 +39,21 @@ import static java.util.Objects.requireNonNull;
 
 
 // publisher,subscriber
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.rxjava3.processors.PublishProcessor;
 import io.reactivex.rxjava3.core.BackpressureStrategy;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.FlowableEmitter;
 import io.reactivex.rxjava3.core.FlowableOnSubscribe;
 import io.reactivex.rxjava3.schedulers.Schedulers;
-import io.reactivex.rxjava3.subjects.PublishSubject;
-import software.amazon.awssdk.annotations.ToBuilderIgnoreField;
-import software.amazon.awssdk.core.endpointdiscovery.providers.SystemPropertiesEndpointDiscoveryProvider;
-
-
+import io.pixelsdb.pixels.planner.plan.physical.domain.ThreadScanTableInfo;
+import com.google.common.primitives.Booleans;
 import java.util.concurrent.LinkedBlockingQueue;
+
 
 import java.util.UUID;
 import io.reactivex.rxjava3.core.FlowableSubscriber;
+
 /**
  * Scan a table split and apply multi filter method
  *
@@ -79,7 +76,9 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
 
     @Override
     public ScanOutput process(ThreadScanInput event)
-    {
+    {   
+
+        System.out.println("BaseThreadScanWorker process");
         ScanOutput scanOutput = new ScanOutput();
         long startTime = System.currentTimeMillis();
         scanOutput.setStartTimeMs(startTime);
@@ -94,13 +93,15 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             logger.info("Number of cores available: " + cores);
             // ExecutorService threadPool = Executors.newFixedThreadPool(cores * 2);
             String requestId = context.getRequestId();
-
             long queryId = event.getTransId();
-            requireNonNull(event.getTableInfo(), "even.tableInfo is null");
-            StorageInfo inputStorageInfo = event.getTableInfo().getStorageInfo();
-            List<InputSplit> inputSplits = event.getTableInfo().getInputSplits();
-            boolean[] scanProjection = requireNonNull(event.getScanProjection(),
+            ThreadScanTableInfo tableInfo = requireNonNull(event.getTableInfo(), "even.tableInfo is null");
+            
+            StorageInfo inputStorageInfo = tableInfo.getStorageInfo();
+            List<InputSplit> inputSplits = tableInfo.getInputSplits();
+            HashMap<String, List<Boolean>> scanProjection = requireNonNull(event.getScanProjection(),
                     "event.scanProjection is null");
+            // HashMap<String, List<String>> filterToRead = tableInfo.getFilterToRead();
+
             boolean partialAggregationPresent = event.isPartialAggregationPresent();
             checkArgument(partialAggregationPresent != event.getOutput().isRandomFileName(),
                     "partial aggregation and random output file name should not equal");
@@ -114,8 +115,8 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             WorkerCommon.initStorage(inputStorageInfo);
             WorkerCommon.initStorage(outputStorageInfo);
 
-            String[] includeCols = event.getTableInfo().getColumnsToRead();
-            List<String> filterlist=event.getTableInfo().getFilter();
+            String[] includeCols = tableInfo.getColumnsToRead();
+            List<String> filterlist=tableInfo.getFilter();
             List<TableScanFilter> scanfilterlist=new ArrayList<TableScanFilter>();
 
             /*start preparing batches */
@@ -137,10 +138,10 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             CountDownLatch schemaLatch=new CountDownLatch(1);
 
             long peektime1 = System.currentTimeMillis();
-            InputInfo inputInfoaa=inputInfoQueue.peek();
+            InputInfo inputInfoaa = inputInfoQueue.peek();
             long endpeektime1 = System.currentTimeMillis();
 
-            Storage.Scheme outputschema=event.getOutput().getStorageInfo().getScheme();
+            Storage.Scheme outputschema = event.getOutput().getStorageInfo().getScheme();
             // GlobalVariable globalVariable=new GlobalVariable();
 
             for(int i=0;i<producerPoolSize;i++){
@@ -153,21 +154,43 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                 scanfilterlist.add(JSON.parseObject(filter, TableScanFilter.class));
             }
             long endTimeonFilter = System.currentTimeMillis();
-            System.out.println("time wasted in loding the filter ：" + (endTimeonFilter-startTimeonFilter) + " ms");
+            // System.out.println("time wasted in loding the filter ：" + (endTimeonFilter-startTimeonFilter) + " ms");
 
             List<Aggregator> aggregatorList = new ArrayList<>();
             if (partialAggregationPresent)
             {   
+
                 logger.info("start get output schema");
                 TypeDescription inputSchema = WorkerCommon.getFileSchemaFromSplits(
-                        WorkerCommon.getStorage(inputStorageInfo.getScheme()), inputSplits);
-                inputSchema = WorkerCommon.getResultSchema(inputSchema, includeCols);
+                    WorkerCommon.getStorage(inputStorageInfo.getScheme()), inputSplits);
+
                 List<PartialAggregationInfo> partialAggregationInfoList = event.getPartialAggregationInfo();
                 requireNonNull(partialAggregationInfoList, "event.partialAggregationInfo is null");
                 for(int i=0;i<partialAggregationInfoList.size();i++){
+                    List<String> aggincludeCols = new ArrayList<>();
+                    List<String> includecolsList = Arrays.asList(includeCols);
+                    List<Boolean> includecolsProjectionList = scanProjection.get(Integer.toString(i));
+
+                    for (String col: includecolsList){
+                        Integer idOfList = includecolsList.indexOf(col);
+                        if (includecolsProjectionList.get(idOfList)){    
+                            aggincludeCols.add(includecolsList.get(idOfList));
+                        }
+                    }
+
+                    String [] FinalaggincludeCols = aggincludeCols.toArray(new String []{});
+
+                    System.out.println("final aggincludeCols is : " + Arrays.toString(FinalaggincludeCols));
+
+                    TypeDescription tempSchema = WorkerCommon.getResultSchema(inputSchema, FinalaggincludeCols);
+
+                    // List<TypeDescription> testtypes = tempSchema.getChildren();
+
                     boolean[] groupKeyProjection = new boolean[partialAggregationInfoList.get(i).getGroupKeyColumnAlias().length];
                     Arrays.fill(groupKeyProjection, true);
-                    Aggregator aggregator = new Aggregator(WorkerCommon.rowBatchSize, inputSchema,
+                    System.out.println("test partial aggregation");
+
+                    Aggregator aggregator = new Aggregator(WorkerCommon.rowBatchSize, tempSchema,
                     partialAggregationInfoList.get(i).getGroupKeyColumnAlias(),
                     partialAggregationInfoList.get(i).getGroupKeyColumnIds(), groupKeyProjection,
                     partialAggregationInfoList.get(i).getAggregateColumnIds(),
@@ -176,9 +199,17 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                     partialAggregationInfoList.get(i).getFunctionTypes(),
                     partialAggregationInfoList.get(i).isPartition(),
                     partialAggregationInfoList.get(i).getNumPartition());
-
+                    
                     aggregatorList.add(aggregator);
+
+                    System.out.println("successfuly add one aggregator ");
                 }                
+                
+                System.out.println("successfuly add all aggregator LIST");
+            
+            
+            
+            
             }
             else
             {
@@ -217,6 +248,7 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
 
             System.out.println("EOFsize is : "+ EOFsize);
             CountDownLatch latch=new CountDownLatch(EOFsize*2*consumerPoolSize);
+            
             // CountDownLatch latch=new CountDownLatch(EOFsize*consumerPoolSize);
 
             System.out.println("latch size is : " + latch.getCount());
@@ -260,6 +292,14 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
         }
     }
 
+    // public boolean[] toPrimitiveArray(final List<Boolean> booleanList) {
+    //     final boolean[] primitives = new boolean[booleanList.size()];
+    //     int index = 0;
+    //     for (Boolean object : booleanList) {
+    //         primitives[index++] = object;
+    //     }
+    //     return primitives;
+    // }
 
     class GroupProcessor implements Runnable{
         private LinkedBlockingQueue<VectorizedRowBatch> queue;
@@ -269,7 +309,8 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
         private List<String> outputFolders;
         private TypeDescription rowbatchschema;
         private String[] columnstoread;
-        private boolean[] scanprojection;
+        // private HashMap<String, List<String>> filterToRead;
+        private HashMap<String, List<Boolean>> scanprojection;
         private boolean encoding;
         private Storage.Scheme outputscheme;
         private String requestId;
@@ -280,16 +321,17 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
         private int EOFsize;
         private PublishProcessor<Boolean> subject=PublishProcessor.create();
         private CountDownLatch triggerLatch;
-    
+        private ObjectMapper mapper = new ObjectMapper();
         public GroupProcessor(LinkedBlockingQueue<VectorizedRowBatch> queue,List<TableScanFilter> scanfilterlist,List<String> outputFolders,TypeDescription rowbatchschema,String[] columnstoread,
-        boolean[] scanprojection,boolean encoding, Storage.Scheme outputscheme,String requestId,boolean partialAggregationPresent,List<Aggregator> aggregatorList,HashMap<String, List<Integer>> filterOnAggreation,
+        HashMap<String, List<Boolean>> scanprojection,boolean encoding, Storage.Scheme outputscheme,String requestId,boolean partialAggregationPresent,List<Aggregator> aggregatorList,HashMap<String, List<Integer>> filterOnAggreation,
         CountDownLatch latch,int endOfFile,CountDownLatch triggerLatch) {
             this.queue = queue;
-            this.writeSize = 37;
+            this.writeSize = 1000;
             this.scanfilterlist=scanfilterlist;
             this.outputFolders=outputFolders;
             this.rowbatchschema=rowbatchschema;
             this.columnstoread=columnstoread;
+            // this.filterToRead=filterToRead;
             this.scanprojection=scanprojection;
             this.encoding=encoding;
             this.outputscheme=outputscheme;
@@ -320,9 +362,9 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                                 batchcount=0;
                             }catch (Exception e){}
                         }
-                        if(message.endOfFile){
-                            System.out.println("emitter send a endOfFile count maker"+ System.currentTimeMillis() );
-                        }
+                        // if(message.endOfFile){
+                        //     System.out.println("emitter send a endOfFile count maker"+ System.currentTimeMillis() );
+                        // }
                     }
                     System.out.println("emitter start to do onComplete");
                     emitter.onComplete();
@@ -342,12 +384,18 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                 private VectorizedRowBatch rowBatch;
                 private Subscription subscription;
                 private List<Aggregator> aggregatorOnFilterList=new ArrayList<>(); ;
-    
+                private VectorizedRowBatch message;
+
                 @Override
                 public void onSubscribe(Subscription d) {
                     subscription=d;   
-                    Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, scanprojection, scanfilterlist.get(0));
-    
+                    // String [] filterColumnToRead = filterToRead.get("0").toArray(new String []{});
+                    boolean[] filterProjection = Booleans.toArray(scanprojection.get("0"));
+                    
+                    boolean aggAfterFilter = (filterOnAggreation.get("0") != null);
+                    
+                    Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, filterProjection, scanfilterlist.get(0));
+
                     if(partialAggregationPresent){
                         System.out.println("partialAggregationPresent start preparing");
                         UUID uuid = UUID.randomUUID();
@@ -366,14 +414,16 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                 }
     
                 @Override
-                public void onNext(VectorizedRowBatch message) {
+                public void onNext(VectorizedRowBatch Orgmessage) {
                     messageCount++;
                     
-                    if(message.endOfFile){
-                        System.out.println("filter 1111 receive a endOfFile count maker" + System.currentTimeMillis());
-                    }
+                    message = Orgmessage.clone();
+
+                    // if(message.endOfFile){
+                    //     System.out.println("filter 1111 receive a endOfFile count maker" + System.currentTimeMillis());
+                    // }
                     rowBatch = scanner.filterAndProject(message);
-    
+                    
                     if(partialAggregationPresent){
                         for (Aggregator aggregator:aggregatorOnFilterList){
                             aggregator.aggregate(rowBatch);
@@ -484,13 +534,15 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                 private VectorizedRowBatch rowBatch;
                 private Subscription subscription;
                 private List<Aggregator> aggregatorOnFilterList=new ArrayList<>();;
-    
+                private VectorizedRowBatch message;
+
                 @Override
                 public void onSubscribe(Subscription d) {
                     subscription=d;
-                    // 不需要处理
-                    // PixelsWriter pixelsWriter=null;
-                    Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, scanprojection, scanfilterlist.get(0));
+
+                    boolean[] filterProjection = Booleans.toArray(scanprojection.get("1"));
+
+                    Scanner scanner=new Scanner(WorkerCommon.rowBatchSize, rowbatchschema, columnstoread, filterProjection, scanfilterlist.get(1));
                     if(partialAggregationPresent){
                         UUID uuid = UUID.randomUUID();
                         this.outputPath=outputFolders.get(1) + uuid.toString() + requestId +"_scan2_";
@@ -510,14 +562,16 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                 }
     
                 @Override
-                public void onNext(VectorizedRowBatch message) {
+                public void onNext(VectorizedRowBatch Orgmessage) {
                     messageCount++;
-                    rowBatch=scanner.filterAndProject(message);
-    
-                    if(message.endOfFile){
-                        System.out.println("filter 2222 receive a endOfFile count maker" + System.currentTimeMillis());
-                    }
-    
+
+                    message = Orgmessage.clone();
+
+                    // if(message.endOfFile){
+                    //     System.out.println("filter 2222 receive a endOfFile count maker" + System.currentTimeMillis());
+                    // }
+                    rowBatch = scanner.filterAndProject(message);
+                    
                     if(partialAggregationPresent){
                        
                         for (Aggregator aggregator:aggregatorOnFilterList){
@@ -621,10 +675,25 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                 observer1.onComplete();
                 observer2.onComplete();
             });
+
+
     
     
         }
-    
+        
+        public <T> T deepCopy(T original) {
+            try {
+                // Serialize the original object to JSON
+                String json = mapper.writeValueAsString(original);
+
+                // Deserialize the JSON back into a new instance of the object
+                return mapper.readValue(json, (Class<T>) original.getClass());
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+
         public void trigger() {
             subject.onNext(true);
         }
@@ -679,7 +748,7 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                     VectorizedRowBatch rowBatch=null;
                     // TODO: issue, if "rgStart": is not start from 0;
                     while(true){ 
-                        rowBatch=recordReader.readBatch(WorkerCommon.rowBatchSize);
+                        rowBatch = recordReader.readBatch(WorkerCommon.rowBatchSize);
                         if(rowBatch.endOfFile){
                             blockingQueue.put(rowBatch);
                             break;

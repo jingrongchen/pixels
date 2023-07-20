@@ -33,6 +33,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
+import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.sql.SqlNode;
@@ -44,6 +45,8 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
+import org.apache.calcite.sql2rel.RelDecorrelator;
+import org.apache.calcite.tools.RelBuilder;
 
 import java.util.List;
 import java.util.Properties;
@@ -97,6 +100,9 @@ public class PixelsParser
         planner.registerAbstractRelationalRules();
         RelOptUtil.registerAbstractRels(planner);
 
+        // planner.addRule(null);
+        // planner.addRule(SubQueryRemoveRule);
+        
         for (RelOptRule rule : TRANSFORM_RULES) {
             planner.addRule(rule);
         }
@@ -125,12 +131,17 @@ public class PixelsParser
 
         SqlToRelConverter.Config converterConfig = SqlToRelConverter.config()
                 .withInSubQueryThreshold(Integer.MAX_VALUE)
-                .withExpand(false);
+                .withExpand(true)
+                .withDecorrelationEnabled(true)
+                ;
                 
         SqlToRelConverter sqlToRelConverter = new SqlToRelConverter(null, validator, catalogReader, cluster,
                 StandardConvertletTable.INSTANCE, converterConfig);
 
         RelRoot relRoot = sqlToRelConverter.convertQuery(sqlNode, false, true);
+        // Decorrelate
+        // RelBuilder relBuilder = config.getRelBuilderFactory().create(cluster, null);
+        // relRoot.rel = 
 
         return relRoot.rel;
     }
@@ -192,7 +203,8 @@ public class PixelsParser
                     CoreRules.SORT_REMOVE_CONSTANT_KEYS,
                     CoreRules.SORT_UNION_TRANSPOSE,
                     CoreRules.EXCHANGE_REMOVE_CONSTANT_KEYS,
-                    CoreRules.SORT_EXCHANGE_REMOVE_CONSTANT_KEYS);
+                    CoreRules.SORT_EXCHANGE_REMOVE_CONSTANT_KEYS
+                    );
 
     public static final List<RelOptRule> ENUMERABLE_RULES =
             ImmutableList.of(

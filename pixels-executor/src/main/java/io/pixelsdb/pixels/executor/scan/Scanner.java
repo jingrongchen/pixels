@@ -81,7 +81,8 @@ public class Scanner
      * @return the input row batch after filter and projection
      */
     public VectorizedRowBatch filterAndProject(VectorizedRowBatch inputRowBatch)
-    {
+    {   
+        
         if (!inputRowBatch.isEmpty())
         {
             this.filter.doFilter(inputRowBatch, filtered, tmp);

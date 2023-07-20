@@ -443,4 +443,10 @@ public class LongDecimalColumnVector extends ColumnVector
             }
         }
     }
+
+    @Override
+    public LongDecimalColumnVector clone()
+    {
+        return null;
+    }
 }

@@ -311,4 +311,10 @@ public class DoubleColumnVector extends ColumnVector
             }
         }
     }
+
+    //TODO： Object clone() 
+    @Override
+    public DoubleColumnVector clone(){
+        return null;
+    }
 }

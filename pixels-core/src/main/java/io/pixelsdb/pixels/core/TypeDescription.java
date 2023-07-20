@@ -159,7 +159,7 @@ public final class TypeDescription
         BYTE(true, byte.class, byte.class, "tinyint", "byte"),
         SHORT(true, short.class, long.class, "smallint", "short"),
         INT(true, int.class, long.class, "integer", "int"),
-        LONG(true, long.class, long.class, "bigint", "long"),
+        LONG(true, long.class, long.class, "bigint","long"),
         FLOAT(true, float.class, long.class, "float", "real"),
         DOUBLE(true, double.class, long.class, "double"),
         DECIMAL(true, double.class, Decimal.class, "decimal"),
@@ -586,7 +586,7 @@ public final class TypeDescription
     {
         TypeDescription result = new TypeDescription(parseCategory(source));
         switch (result.getCategory())
-        {
+        {   
             case BOOLEAN:
             case BYTE:
             case DATE:
@@ -1159,6 +1159,12 @@ public final class TypeDescription
         return children == null ? null : Collections.unmodifiableList(children);
     }
 
+
+    public void setChildren(List<TypeDescription> children)
+    {
+        this.children = children;
+    }
+
     /**
      * Assign ids to all of the nodes under this one.
      *
@@ -1204,7 +1210,7 @@ public final class TypeDescription
     private int maxId = -1;
     private TypeDescription parent;
     private final Category category;
-    private final List<TypeDescription> children;
+    private List<TypeDescription> children;
     private final List<String> fieldNames;
     private int maxLength = DEFAULT_LENGTH;
     private int precision = SHORT_DECIMAL_DEFAULT_PRECISION;

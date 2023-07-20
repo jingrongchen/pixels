@@ -179,6 +179,18 @@ public class DecimalColumnVector extends ColumnVector
     }
 
     @Override
+    public void add(long value)
+    {
+        if (writeIndex >= getLength())
+        {
+            ensureSize(writeIndex * 2, true);
+        }
+        int index = writeIndex++;
+        vector[index] = value;
+        isNull[index] = false;
+    }
+
+    @Override
     public void add(double value)
     {
         if (writeIndex >= getLength())
@@ -387,5 +399,25 @@ public class DecimalColumnVector extends ColumnVector
                 }
             }
         }
+    }
+
+    @Override
+    public DecimalColumnVector clone(){
+        DecimalColumnVector result = new DecimalColumnVector(length, precision, scale);
+        result.noNulls = noNulls;
+        result.isRepeating = isRepeating;
+        result.writeIndex = writeIndex;
+        result.precision = precision;
+        result.scale = scale;
+
+        long[] Copyvector = new long[length];
+        Copyvector = vector.clone();
+        result.vector = Copyvector;
+
+        boolean[] CopyisNull = new boolean[length];
+        CopyisNull = isNull.clone();
+        result.isNull = CopyisNull;
+
+        return result;
     }
 }

@@ -806,4 +806,34 @@ public class BinaryColumnVector extends ColumnVector
             this.vector = null;
         }
     }
+
+    @Override
+    public BinaryColumnVector clone() {
+        byte[][] Copyvector = new byte[vector.length][];
+        Copyvector = vector.clone();
+        int[] Copystart = new int[start.length];
+        Copystart = start.clone();
+        int[] Copylens = new int[lens.length];
+        Copylens = lens.clone();
+        boolean[] CopyisNull = new boolean[isNull.length];
+        CopyisNull = isNull.clone();
+        BinaryColumnVector copy = new BinaryColumnVector();
+        copy.vector = Copyvector;
+        copy.start = Copystart;
+        copy.lens = Copylens;
+        copy.isNull = CopyisNull;
+
+        copy.writeIndex = writeIndex;
+        copy.length = length;
+        copy.noNulls = noNulls;
+        copy.isRepeating = isRepeating;
+        copy.memoryUsage = memoryUsage;
+        copy.buffer = buffer;
+        copy.smallBuffer = smallBuffer;
+        copy.nextFree = nextFree;
+        copy.smallBufferNextFree = smallBufferNextFree;
+        copy.bufferAllocationCount = bufferAllocationCount;
+
+        return copy;
+    }
 }

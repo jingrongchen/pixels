@@ -1,0 +1,373 @@
+{
+  "rels": [
+    {
+      "id": "0",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "part"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "1",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "supplier"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "2",
+      "relOp": "LogicalJoin",
+      "condition": {
+        "literal": true,
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "id": "3",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "partsupp"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "4",
+      "relOp": "LogicalJoin",
+      "condition": {
+        "literal": true,
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "2",
+        "3"
+      ]
+    },
+    {
+      "id": "5",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "nation"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "6",
+      "relOp": "LogicalJoin",
+      "condition": {
+        "literal": true,
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "4",
+        "5"
+      ]
+    },
+    {
+      "id": "7",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "region"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "8",
+      "relOp": "LogicalJoin",
+      "condition": {
+        "literal": true,
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "6",
+        "7"
+      ]
+    },
+    {
+      "id": "9",
+      "relOp": "LogicalFilter",
+      "condition": {
+        "op": {
+          "name": "AND",
+          "kind": "AND",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 0,
+                "name": "$0"
+              },
+              {
+                "input": 16,
+                "name": "$16"
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 9,
+                "name": "$9"
+              },
+              {
+                "input": 17,
+                "name": "$17"
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 5,
+                "name": "$5"
+              },
+              {
+                "literal": 30,
+                "type": {
+                  "type": "INTEGER",
+                  "nullable": false
+                }
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "LIKE",
+              "kind": "LIKE",
+              "syntax": "SPECIAL"
+            },
+            "operands": [
+              {
+                "input": 4,
+                "name": "$4"
+              },
+              {
+                "literal": "%STEEL",
+                "type": {
+                  "type": "CHAR",
+                  "nullable": false,
+                  "precision": 6
+                }
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 12,
+                "name": "$12"
+              },
+              {
+                "input": 21,
+                "name": "$21"
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 23,
+                "name": "$23"
+              },
+              {
+                "input": 25,
+                "name": "$25"
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 26,
+                "name": "$26"
+              },
+              {
+                "op": {
+                  "name": "CAST",
+                  "kind": "CAST",
+                  "syntax": "SPECIAL"
+                },
+                "operands": [
+                  {
+                    "literal": "ASIA",
+                    "type": {
+                      "type": "CHAR",
+                      "nullable": false,
+                      "precision": 4
+                    }
+                  }
+                ],
+                "type": {
+                  "type": "CHAR",
+                  "nullable": false,
+                  "precision": 18
+                }
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 19,
+                "name": "$19"
+              },
+              {
+                "op": {
+                  "name": "$SCALAR_QUERY",
+                  "kind": "SCALAR_QUERY",
+                  "syntax": "INTERNAL"
+                },
+                "operands": []
+              }
+            ]
+          }
+        ]
+      },
+      "variablesSet": 0
+    },
+    {
+      "id": "10",
+      "relOp": "LogicalProject",
+      "fields": [
+        "s_acctbal",
+        "s_name",
+        "n_name",
+        "p_partkey",
+        "p_mfgr",
+        "s_address",
+        "s_phone",
+        "s_comment"
+      ],
+      "exprs": [
+        {
+          "input": 14,
+          "name": "$14"
+        },
+        {
+          "input": 10,
+          "name": "$10"
+        },
+        {
+          "input": 22,
+          "name": "$22"
+        },
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 11,
+          "name": "$11"
+        },
+        {
+          "input": 13,
+          "name": "$13"
+        },
+        {
+          "input": 15,
+          "name": "$15"
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "relOp": "LogicalSort",
+      "collation": [
+        {
+          "field": 0,
+          "direction": "DESCENDING",
+          "nulls": "FIRST"
+        },
+        {
+          "field": 2,
+          "direction": "ASCENDING",
+          "nulls": "LAST"
+        },
+        {
+          "field": 1,
+          "direction": "ASCENDING",
+          "nulls": "LAST"
+        },
+        {
+          "field": 3,
+          "direction": "ASCENDING",
+          "nulls": "LAST"
+        }
+      ],
+      "fetch": {
+        "literal": 100,
+        "type": {
+          "type": "INTEGER",
+          "nullable": false
+        }
+      }
+    }
+  ]
+}

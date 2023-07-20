@@ -323,4 +323,18 @@ public class VectorizedRowBatch implements AutoCloseable
             this.cols = null;
         }
     }
+
+    public VectorizedRowBatch clone()
+    {
+        VectorizedRowBatch clone = new VectorizedRowBatch(this.numCols, this.maxSize);
+        clone.size = this.size;
+        clone.projectionSize = this.projectionSize;
+        clone.endOfFile = this.endOfFile;
+        for (int i = 0; i < this.cols.length; ++i)
+        {
+            clone.cols[i] = this.cols[i].clone();
+        }
+        return clone;
+
+    }
 }

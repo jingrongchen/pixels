@@ -5,8 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class TestPrepareQuery {
-    
-
     @Test
     public void genQueryString(){
         String filePath = "/home/ubuntu/opt/lambda-java8/tpchsql/Q1.sql";
@@ -18,8 +16,6 @@ public class TestPrepareQuery {
             e.printStackTrace();
         }
 
-
     }
-
     
 }

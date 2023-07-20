@@ -1,0 +1,223 @@
+{
+    "filterOnAggreation": {
+        "0": [
+            0
+        ],
+        "1": [
+            1
+        ]
+    },
+    "output": {
+        "encoding": true,
+        "path": [
+            "s3://jingrong-lambda-test/unit_tests/intermediate_result/aggregate_3_output/",
+            "s3://jingrong-lambda-test/unit_tests/intermediate_result/aggregate_7_output/"
+        ],
+        "randomFileName": false,
+        "storageInfo": {
+            "scheme": "s3"
+        }
+    },
+    "partialAggregationInfo": [
+        {
+            "aggregateColumnIds": [
+                1
+            ],
+            "aggregateColumnNames": [
+                "o_totalprice"
+            ],
+            "functionTypes": [
+                "SUM"
+            ],
+            "groupKeyColumnAlias": [
+                "o_custkey"
+            ],
+            "groupKeyColumnIds": [
+                0
+            ],
+            "groupKeyColumnNames": [
+                "o_custkey"
+            ],
+            "numPartition": 0,
+            "partition": false,
+            "resultColumnAlias": [
+                "num"
+            ],
+            "resultColumnTypes": [
+                "DECIMAL"
+            ]
+        },
+        {
+            "aggregateColumnIds": [
+                0
+            ],
+            "aggregateColumnNames": [
+                "o_custkey"
+            ],
+            "functionTypes": [
+                "COUNT"
+            ],
+            "groupKeyColumnAlias": [
+                "o_custkey"
+            ],
+            "groupKeyColumnIds": [
+                0
+            ],
+            "groupKeyColumnNames": [
+                "o_custkey"
+            ],
+            "numPartition": 0,
+            "partition": false,
+            "resultColumnAlias": [
+                "num"
+            ],
+            "resultColumnTypes": [
+                "LONG"
+            ]
+        }
+    ],
+    "partialAggregationPresent": true,
+    "scanProjection": {
+        "0": [
+            false,
+            true,
+            true,
+            false
+        ],
+        "1": [
+            false,
+            true,
+            false,
+            false
+        ]
+    },
+    "tableInfo": {
+        "base": false,
+        "columnsToRead": [
+            "o_orderstatus",
+            "o_custkey",
+            "o_totalprice",
+            "o_orderpriority"
+        ],
+        "filter": [
+            "{\"schemaName\":\"tpch\",\"tableName\":\"orders\",\"columnFilters\":{3:{\"columnName\":\"o_orderpriority\",\"columnType\":\"CHAR\",\"filterJson\":\"{\\\"javaType\\\":\\\"[B\\\",\\\"isAll\\\":false,\\\"isNone\\\":false,\\\"allowNull\\\":false,\\\"onlyNull\\\":false,\\\"ranges\\\":[],\\\"discreteValues\\\":[{\\\"type\\\":\\\"INCLUDED\\\",\\\"value\\\":\\\"3-MEDIUM\\\"}]}\"}}}",
+            "{\"schemaName\":\"tpch\",\"tableName\":\"orders\",\"columnFilters\":{0:{\"columnName\":\"o_orderstatus\",\"columnType\":\"CHAR\",\"filterJson\":\"{\\\"javaType\\\":\\\"[B\\\",\\\"isAll\\\":false,\\\"isNone\\\":false,\\\"allowNull\\\":false,\\\"onlyNull\\\":false,\\\"ranges\\\":[],\\\"discreteValues\\\":[{\\\"type\\\":\\\"INCLUDED\\\",\\\"value\\\":\\\"P\\\"}]}\"}}}"
+        ],
+        "inputSplits": [
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100657_1.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            },
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100700_2.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            },
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100703_3.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            },
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100705_4.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            },
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100708_5.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            },
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100710_6.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            },
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100712_7.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            },
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100715_8.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            },
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100717_9.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            },
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100720_10.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            },
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100722_11.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            },
+            {
+                "inputInfos": [
+                    {
+                        "path": "s3://jingrong-test/tpch/orders/v-0-order/20230425100725_12.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            }
+        ],
+        "schemaName": "tpch",
+        "storageInfo": {
+            "scheme": "s3"
+        },
+        "tableName": "orders"
+    },
+    "transId": 1111379548
+}

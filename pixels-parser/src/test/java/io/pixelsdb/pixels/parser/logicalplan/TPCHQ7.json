@@ -1,0 +1,594 @@
+{
+  "rels": [
+    {
+      "id": "0",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "supplier"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "1",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "lineitem"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "2",
+      "relOp": "LogicalJoin",
+      "condition": {
+        "literal": true,
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "id": "3",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "orders"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "4",
+      "relOp": "LogicalJoin",
+      "condition": {
+        "literal": true,
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "2",
+        "3"
+      ]
+    },
+    {
+      "id": "5",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "customer"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "6",
+      "relOp": "LogicalJoin",
+      "condition": {
+        "literal": true,
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "4",
+        "5"
+      ]
+    },
+    {
+      "id": "7",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "nation"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "8",
+      "relOp": "LogicalJoin",
+      "condition": {
+        "literal": true,
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "6",
+        "7"
+      ]
+    },
+    {
+      "id": "9",
+      "relOp": "LogicalTableScan",
+      "table": [
+        "tpch",
+        "nation"
+      ],
+      "inputs": []
+    },
+    {
+      "id": "10",
+      "relOp": "LogicalJoin",
+      "condition": {
+        "literal": true,
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "8",
+        "9"
+      ]
+    },
+    {
+      "id": "11",
+      "relOp": "LogicalFilter",
+      "condition": {
+        "op": {
+          "name": "AND",
+          "kind": "AND",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 0,
+                "name": "$0"
+              },
+              {
+                "input": 9,
+                "name": "$9"
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 23,
+                "name": "$23"
+              },
+              {
+                "input": 7,
+                "name": "$7"
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 32,
+                "name": "$32"
+              },
+              {
+                "input": 24,
+                "name": "$24"
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 3,
+                "name": "$3"
+              },
+              {
+                "input": 40,
+                "name": "$40"
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 35,
+                "name": "$35"
+              },
+              {
+                "input": 44,
+                "name": "$44"
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "OR",
+              "kind": "OR",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "op": {
+                  "name": "AND",
+                  "kind": "AND",
+                  "syntax": "BINARY"
+                },
+                "operands": [
+                  {
+                    "op": {
+                      "name": "=",
+                      "kind": "EQUALS",
+                      "syntax": "BINARY"
+                    },
+                    "operands": [
+                      {
+                        "input": 41,
+                        "name": "$41"
+                      },
+                      {
+                        "op": {
+                          "name": "CAST",
+                          "kind": "CAST",
+                          "syntax": "SPECIAL"
+                        },
+                        "operands": [
+                          {
+                            "literal": "JAPAN",
+                            "type": {
+                              "type": "CHAR",
+                              "nullable": false,
+                              "precision": 5
+                            }
+                          }
+                        ],
+                        "type": {
+                          "type": "CHAR",
+                          "nullable": false,
+                          "precision": 18
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "op": {
+                      "name": "=",
+                      "kind": "EQUALS",
+                      "syntax": "BINARY"
+                    },
+                    "operands": [
+                      {
+                        "input": 45,
+                        "name": "$45"
+                      },
+                      {
+                        "op": {
+                          "name": "CAST",
+                          "kind": "CAST",
+                          "syntax": "SPECIAL"
+                        },
+                        "operands": [
+                          {
+                            "literal": "INDIA",
+                            "type": {
+                              "type": "CHAR",
+                              "nullable": false,
+                              "precision": 5
+                            }
+                          }
+                        ],
+                        "type": {
+                          "type": "CHAR",
+                          "nullable": false,
+                          "precision": 18
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "op": {
+                  "name": "AND",
+                  "kind": "AND",
+                  "syntax": "BINARY"
+                },
+                "operands": [
+                  {
+                    "op": {
+                      "name": "=",
+                      "kind": "EQUALS",
+                      "syntax": "BINARY"
+                    },
+                    "operands": [
+                      {
+                        "input": 41,
+                        "name": "$41"
+                      },
+                      {
+                        "op": {
+                          "name": "CAST",
+                          "kind": "CAST",
+                          "syntax": "SPECIAL"
+                        },
+                        "operands": [
+                          {
+                            "literal": "INDIA",
+                            "type": {
+                              "type": "CHAR",
+                              "nullable": false,
+                              "precision": 5
+                            }
+                          }
+                        ],
+                        "type": {
+                          "type": "CHAR",
+                          "nullable": false,
+                          "precision": 18
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "op": {
+                      "name": "=",
+                      "kind": "EQUALS",
+                      "syntax": "BINARY"
+                    },
+                    "operands": [
+                      {
+                        "input": 45,
+                        "name": "$45"
+                      },
+                      {
+                        "op": {
+                          "name": "CAST",
+                          "kind": "CAST",
+                          "syntax": "SPECIAL"
+                        },
+                        "operands": [
+                          {
+                            "literal": "JAPAN",
+                            "type": {
+                              "type": "CHAR",
+                              "nullable": false,
+                              "precision": 5
+                            }
+                          }
+                        ],
+                        "type": {
+                          "type": "CHAR",
+                          "nullable": false,
+                          "precision": 18
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": ">=",
+              "kind": "GREATER_THAN_OR_EQUAL",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 17,
+                "name": "$17"
+              },
+              {
+                "op": {
+                  "name": "CAST",
+                  "kind": "CAST",
+                  "syntax": "SPECIAL"
+                },
+                "operands": [
+                  {
+                    "literal": "1995-01-01",
+                    "type": {
+                      "type": "CHAR",
+                      "nullable": false,
+                      "precision": 10
+                    }
+                  }
+                ],
+                "type": {
+                  "type": "DATE",
+                  "nullable": false
+                }
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "<=",
+              "kind": "LESS_THAN_OR_EQUAL",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 17,
+                "name": "$17"
+              },
+              {
+                "op": {
+                  "name": "CAST",
+                  "kind": "CAST",
+                  "syntax": "SPECIAL"
+                },
+                "operands": [
+                  {
+                    "literal": "1996-12-31",
+                    "type": {
+                      "type": "CHAR",
+                      "nullable": false,
+                      "precision": 10
+                    }
+                  }
+                ],
+                "type": {
+                  "type": "DATE",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "12",
+      "relOp": "LogicalProject",
+      "fields": [
+        "supp_nation",
+        "cust_nation",
+        "l_year",
+        "volume"
+      ],
+      "exprs": [
+        {
+          "input": 41,
+          "name": "$41"
+        },
+        {
+          "input": 45,
+          "name": "$45"
+        },
+        {
+          "op": {
+            "name": "EXTRACT",
+            "kind": "EXTRACT",
+            "syntax": "FUNCTION"
+          },
+          "operands": [
+            {
+              "literal": "YEAR",
+              "type": {
+                "type": "SYMBOL",
+                "nullable": false
+              }
+            },
+            {
+              "input": 17,
+              "name": "$17"
+            }
+          ]
+        },
+        {
+          "op": {
+            "name": "*",
+            "kind": "TIMES",
+            "syntax": "BINARY"
+          },
+          "operands": [
+            {
+              "input": 12,
+              "name": "$12"
+            },
+            {
+              "op": {
+                "name": "-",
+                "kind": "MINUS",
+                "syntax": "BINARY"
+              },
+              "operands": [
+                {
+                  "literal": 1,
+                  "type": {
+                    "type": "INTEGER",
+                    "nullable": false
+                  }
+                },
+                {
+                  "input": 13,
+                  "name": "$13"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "relOp": "LogicalAggregate",
+      "group": [
+        0,
+        1,
+        2
+      ],
+      "aggs": [
+        {
+          "agg": {
+            "name": "SUM",
+            "kind": "SUM",
+            "syntax": "FUNCTION"
+          },
+          "type": {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 19,
+            "scale": 4
+          },
+          "distinct": false,
+          "operands": [
+            3
+          ],
+          "name": "revenue"
+        }
+      ]
+    },
+    {
+      "id": "14",
+      "relOp": "LogicalSort",
+      "collation": [
+        {
+          "field": 0,
+          "direction": "ASCENDING",
+          "nulls": "LAST"
+        },
+        {
+          "field": 1,
+          "direction": "ASCENDING",
+          "nulls": "LAST"
+        },
+        {
+          "field": 2,
+          "direction": "ASCENDING",
+          "nulls": "LAST"
+        }
+      ]
+    }
+  ]
+}

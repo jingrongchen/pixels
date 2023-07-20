@@ -19,6 +19,7 @@
  */
 package io.pixelsdb.pixels.planner.plan.physical.domain;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -36,6 +37,13 @@ public class ThreadScanTableInfo extends TableInfo  {
      */
     private List<String> filter;
 
+    /**
+     * The columns to read in the scan for each filter
+     */
+    private HashMap<String, List<String>> filterToRead;
+
+
+    private String schemaName;
     /**
      * Default constructor for Jackson.
      */
@@ -59,6 +67,16 @@ public class ThreadScanTableInfo extends TableInfo  {
         this.inputSplits = inputSplits;
     }
 
+    public HashMap<String, List<String>> getFilterToRead()
+    {
+        return filterToRead;
+    }
+
+    public void setFilterToRead(HashMap<String, List<String>> filterToRead)
+    {
+        this.filterToRead = filterToRead;
+    }
+
     public List<String> getFilter()
     {
         return filter;
@@ -68,4 +86,15 @@ public class ThreadScanTableInfo extends TableInfo  {
     {
         this.filter = filter;
     }
+
+    public void setSchemaName(String schemaName)
+    {
+        this.schemaName = schemaName;
+    }
+
+    public String getSchemaName()
+    {
+        return schemaName;
+    }
+
 }

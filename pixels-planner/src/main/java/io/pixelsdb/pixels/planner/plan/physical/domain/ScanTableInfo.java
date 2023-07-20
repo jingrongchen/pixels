@@ -37,6 +37,10 @@ public class ScanTableInfo extends TableInfo
     private String filter;
 
     /**
+     * The schemaName of the table.
+     */
+    private String schemaName;
+    /**
      * Default constructor for Jackson.
      */
     public ScanTableInfo() { }
@@ -67,5 +71,15 @@ public class ScanTableInfo extends TableInfo
     public void setFilter(String filter)
     {
         this.filter = filter;
+    }
+
+    public void setSchemaName(String schemaName)
+    {
+        this.schemaName = schemaName;
+    }
+
+    public String getSchemaName()
+    {
+        return schemaName;
     }
 }

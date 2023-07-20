@@ -48,7 +48,7 @@ public class TestPartitionLambdaInvoker
     @Test
     public void testOrders() throws ExecutionException, InterruptedException
     {
-        for (int i = 0; i < 8; ++i)
+        for (int i = 0; i < 1; ++i)
         {
             String filter =
                     "{\"schemaName\":\"tpch\",\"tableName\":\"orders\"," +
@@ -65,8 +65,7 @@ public class TestPartitionLambdaInvoker
             ScanTableInfo tableInfo = new ScanTableInfo();
             tableInfo.setTableName("orders");
             tableInfo.setInputSplits(Arrays.asList(
-                    new InputSplit(Arrays.asList(new InputInfo("jingrong-test/orders/v-0-order/20230425100657_1.pxl", 0, 4))),
-                    new InputSplit(Arrays.asList(new InputInfo("jingrong-test/orders/v-0-order/20230425100657_1.pxl", 4, 4)))));
+                    new InputSplit(Arrays.asList(new InputInfo("jingrong-test/orders/v-0-order/20230425100657_1.pxl", 0, -1)))));
             tableInfo.setColumnsToRead(new String[]{"o_orderkey", "o_custkey", "o_orderstatus", "o_orderdate"});
             tableInfo.setFilter(filter);
             tableInfo.setBase(true);

@@ -106,7 +106,7 @@ public class TestS3
     public void testGetStatus() throws IOException
     {
         Storage storage = StorageFactory.Instance().getStorage(Storage.Scheme.s3);
-        Status status = storage.getStatus("/pixels-tpch-1t/lineitem/");
+        Status status = storage.getStatus("/jingrong-test/tpch/lineitem/v-0-order/");
         System.out.println(status.getLength());
         System.out.println(status.getName());
         System.out.println(status.getPath());
@@ -127,8 +127,8 @@ public class TestS3
     @Test
     public void testListPaths() throws IOException
     {
-        Storage storage = StorageFactory.Instance().getStorage("s3://pixels-00");
-        List<String> paths = storage.listPaths("s3://pixels-00");
+        Storage storage = StorageFactory.Instance().getStorage("s3://jingrong-test/tpch/orders/v-0-order/");
+        List<String> paths = storage.listPaths("s3://jingrong-test/tpch/orders/v-0-order/");
         if (paths == null)
         {
             System.out.println("null");

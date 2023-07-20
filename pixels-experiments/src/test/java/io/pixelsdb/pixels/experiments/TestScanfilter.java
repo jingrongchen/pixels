@@ -165,7 +165,7 @@ public class TestScanfilter {
         tableInfo.setBase(true);
         tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
         scaninput.setTableInfo(tableInfo);
-        scaninput.setScanProjection(new boolean[]{true, true, true, true});
+        // scaninput.setScanProjection(new boolean[]{true, true, true, true});
         
         List<String> list=new ArrayList<String>();
         list.add("s3://jingrong-lambda-test/unit_tests/test_scan1");

@@ -21,6 +21,7 @@ package io.pixelsdb.pixels.core.vector;
 
 import io.pixelsdb.pixels.core.utils.Bitmap;
 
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 
@@ -542,5 +543,11 @@ public class TimestampColumnVector extends ColumnVector
     {
         super.close();
         this.times = null;
+    }
+
+    @Override
+    public TimeColumnVector clone()
+    {
+        return null;
     }
 }

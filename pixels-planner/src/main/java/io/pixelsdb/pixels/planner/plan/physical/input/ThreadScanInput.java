@@ -18,7 +18,7 @@ public class ThreadScanInput extends Input {
     /**
      * Whether the columns in tableInfo.columnsToRead should be included in the scan output.
      */
-    private boolean[] scanProjection;
+    private HashMap<String, List<Boolean>> scanProjection;
     /**
      * Whether the partial aggregation exists.
      */
@@ -47,7 +47,7 @@ public class ThreadScanInput extends Input {
         super(-1);
     }
 
-    public ThreadScanInput(long queryId, ThreadScanTableInfo tableInfo, boolean[] scanProjection,
+    public ThreadScanInput(long queryId, ThreadScanTableInfo tableInfo, HashMap<String, List<Boolean>> scanProjection,
                      boolean partialAggregationPresent, List<PartialAggregationInfo> partialAggregationInfo, ThreadOutputInfo output,HashMap<String, List<Integer>> filterOnAggreation)
     {
         super(queryId);
@@ -69,12 +69,12 @@ public class ThreadScanInput extends Input {
         this.tableInfo = tableInfo;
     }
 
-    public boolean[] getScanProjection()
+    public HashMap<String, List<Boolean>> getScanProjection()
     {
         return scanProjection;
     }
 
-    public void setScanProjection(boolean[] scanProjection)
+    public void setScanProjection(HashMap<String, List<Boolean>> scanProjection)
     {
         this.scanProjection = scanProjection;
     }

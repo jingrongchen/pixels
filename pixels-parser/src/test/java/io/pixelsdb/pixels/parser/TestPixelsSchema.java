@@ -58,7 +58,7 @@ public class TestPixelsSchema
         String schemaName = "pixels";
         PixelsSchema pixelsSchema = new PixelsSchema(schemaName, this.instance);
         Map<String, org.apache.calcite.schema.Table> tableMap = pixelsSchema.getTableMap();
-
+        
         assertNotNull(tableMap);
         assertEquals("Pixels metadata should have 3 tables.", 3, tableMap.size());
         assertTrue(tableMap.containsKey("test_1187"));

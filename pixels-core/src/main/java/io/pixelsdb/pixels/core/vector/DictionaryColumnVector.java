@@ -374,4 +374,10 @@ public class DictionaryColumnVector extends ColumnVector
         this.dictOffsets = null;
         this.ids = null;
     }
+
+    //TODO： Object clone() 
+    @Override
+    public DictionaryColumnVector clone(){
+        return null;
+    }
 }

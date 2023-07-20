@@ -20,6 +20,7 @@
 package io.pixelsdb.pixels.planner.plan.physical.domain;
 
 import io.pixelsdb.pixels.executor.aggregation.FunctionType;
+import java.util.List;
 
 /**
  * @author hank
@@ -61,6 +62,14 @@ public class PartialAggregationInfo
      * The number of partitions for the aggregations result.
      */
     private int numPartition;
+    /**
+     * The name of the group key.
+     */
+    private List<String> groupKeyColumnNames;
+    /**
+     * The name of the aggregatie column.
+    */
+    private List<String> aggregateColumnNames;
 
     /**
      * Default constructor for Jackson.
@@ -161,4 +170,25 @@ public class PartialAggregationInfo
     {
         this.numPartition = numPartition;
     }
+
+    public List<String> getGroupKeyColumnNames()
+    {
+        return groupKeyColumnNames;
+    }
+
+    public void setGroupKeyColumnNames(List<String> groupKeyColumnNames)
+    {
+        this.groupKeyColumnNames = groupKeyColumnNames;
+    }
+
+    public List<String> getAggregateColumnNames()
+    {
+        return aggregateColumnNames;
+    }
+
+    public void setAggregateColumnNames(List<String> aggregateColumnNames)
+    {
+        this.aggregateColumnNames = aggregateColumnNames;
+    }
+
 }
