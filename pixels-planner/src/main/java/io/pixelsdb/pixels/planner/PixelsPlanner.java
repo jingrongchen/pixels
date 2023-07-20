@@ -20,6 +20,7 @@
 package io.pixelsdb.pixels.planner;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ObjectArrays;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -29,7 +30,7 @@ import io.pixelsdb.pixels.common.layout.*;
 import io.pixelsdb.pixels.common.metadata.MetadataService;
 import io.pixelsdb.pixels.common.metadata.SchemaTableName;
 import io.pixelsdb.pixels.common.metadata.domain.Layout;
-import io.pixelsdb.pixels.common.metadata.domain.Order;
+import io.pixelsdb.pixels.common.metadata.domain.Ordered;
 import io.pixelsdb.pixels.common.metadata.domain.Projections;
 import io.pixelsdb.pixels.common.metadata.domain.Splits;
 import io.pixelsdb.pixels.common.physical.Storage;
@@ -78,18 +79,13 @@ public class PixelsPlanner
 
     static
     {
-        String inputStorageScheme = ConfigFactory.Instance().getProperty("executor.input.storage.scheme");
-        String inputStorageEndpoint = ConfigFactory.Instance().getProperty("executor.input.storage.endpoint");
-        String inputStorageAccessKey = ConfigFactory.Instance().getProperty("executor.input.storage.access.key");
-        String inputStorageSecretKey = ConfigFactory.Instance().getProperty("executor.input.storage.secret.key");
-        InputStorageInfo = new StorageInfo(Storage.Scheme.from(inputStorageScheme),
-                inputStorageEndpoint, inputStorageAccessKey, inputStorageSecretKey);
-        String interStorageScheme = ConfigFactory.Instance().getProperty("executor.intermediate.storage.scheme");
-        String interStorageEndpoint = ConfigFactory.Instance().getProperty("executor.intermediate.storage.endpoint");
-        String interStorageAccessKey = ConfigFactory.Instance().getProperty("executor.intermediate.storage.access.key");
-        String interStorageSecretKey = ConfigFactory.Instance().getProperty("executor.intermediate.storage.secret.key");
-        IntermediateStorageInfo = new StorageInfo(Storage.Scheme.from(interStorageScheme),
-                interStorageEndpoint, interStorageAccessKey, interStorageSecretKey);
+        Storage.Scheme inputStorageScheme = Storage.Scheme.from(
+                ConfigFactory.Instance().getProperty("executor.input.storage.scheme"));
+        InputStorageInfo = StorageInfoBuilder.BuildFromConfig(inputStorageScheme);
+
+        Storage.Scheme interStorageScheme = Storage.Scheme.from(
+                ConfigFactory.Instance().getProperty("executor.intermediate.storage.scheme"));
+        IntermediateStorageInfo = StorageInfoBuilder.BuildFromConfig(interStorageScheme);
         String interStorageFolder = ConfigFactory.Instance().getProperty("executor.intermediate.folder");
         if (!interStorageFolder.endsWith("/"))
         {
@@ -214,7 +210,7 @@ public class PixelsPlanner
                 scanInput.setPartialAggregationPresent(true);
                 scanInput.setPartialAggregationInfo(partialAggregationInfo);
                 String fileName = intermediateBase + (outputId++) + "/partial_aggr";
-                scanInput.setOutput(new OutputInfo(fileName, false, IntermediateStorageInfo, true));
+                scanInput.setOutput(new OutputInfo(fileName, IntermediateStorageInfo, true));
                 scanInputsBuilder.add(scanInput);
                 aggrInputFilesBuilder.add(fileName);
             }
@@ -282,7 +278,7 @@ public class PixelsPlanner
             aggregationInfo.setFunctionTypes(aggregation.getFunctionTypes());
             finalAggrInput.setAggregationInfo(aggregationInfo);
             String fileName = intermediateBase + (hash) + "/final_aggr";
-            finalAggrInput.setOutput(new OutputInfo(fileName, false, IntermediateStorageInfo, true));
+            finalAggrInput.setOutput(new OutputInfo(fileName, IntermediateStorageInfo, true));
             finalAggrInputsBuilder.add(finalAggrInput);
         }
 
@@ -326,6 +322,8 @@ public class PixelsPlanner
             rightOperator = getJoinOperator((JoinedTable) rightTable, Optional.empty());
             if (leftOperator.getJoinAlgo() == JoinAlgorithm.BROADCAST_CHAIN)
             {
+                // Issue #487: add incomplete check.
+                checkArgument(!leftOperator.isComplete(), "left broadcast chain join should be incomplete");
                 boolean postPartition = false;
                 PartitionInfo postPartitionInfo = null;
                 if (parent.isPresent() && parent.get().getJoin().getJoinAlgo() == JoinAlgorithm.PARTITIONED)
@@ -385,7 +383,7 @@ public class PixelsPlanner
                     }
 
                     SingleStageJoinOperator joinOperator = new SingleStageJoinOperator(
-                            joinedTable.getTableName(), joinInputs.build(), JoinAlgorithm.BROADCAST_CHAIN);
+                            joinedTable.getTableName(), true, joinInputs.build(), JoinAlgorithm.BROADCAST_CHAIN);
                     // The right operator must be set as the large child.
                     joinOperator.setLargeChild(rightOperator);
                     return joinOperator;
@@ -584,7 +582,7 @@ public class PixelsPlanner
                 chainJoinInfos.add(chainJoinInfo);
                 broadcastChainJoinInput.setChainJoinInfos(chainJoinInfos);
 
-                return new SingleStageJoinOperator(joinedTable.getTableName(),
+                return new SingleStageJoinOperator(joinedTable.getTableName(), false,
                         broadcastChainJoinInput, JoinAlgorithm.BROADCAST_CHAIN);
             }
         }
@@ -594,10 +592,10 @@ public class PixelsPlanner
             requireNonNull(childOperator, "failed to get child operator");
             // check if there is an incomplete chain join.
             if (childOperator.getJoinAlgo() == JoinAlgorithm.BROADCAST_CHAIN &&
-                    joinAlgo == JoinAlgorithm.BROADCAST &&
-                    join.getJoinEndian() == JoinEndian.SMALL_LEFT)
+                    !childOperator.isComplete() && // Issue #482: ensure the child operator is complete
+                    joinAlgo == JoinAlgorithm.BROADCAST && join.getJoinEndian() == JoinEndian.SMALL_LEFT)
             {
-                // the current join is still a broadcast join, thus the left child is an incomplete chain join.
+                // the current join is still a broadcast join and the left child is an incomplete chain join.
                 if (parent.isPresent() && parent.get().getJoin().getJoinAlgo() == JoinAlgorithm.BROADCAST &&
                         parent.get().getJoin().getJoinEndian() == JoinEndian.SMALL_LEFT)
                 {
@@ -635,11 +633,20 @@ public class PixelsPlanner
                                 parent.get().getJoin().getJoinEndian());
 
                         /*
-                        * If the program reaches here, as this is on a single-pipeline and the parent is present,
-                        * the current join must be the left child of the parent. Therefore, we can use the left key
-                        * column ids of the parent as the post partitioning key column ids.
+                        * Issue #484:
+                        * After we supported multi-pipeline join, this method might be called from getMultiPipelineJoinOperator().
+                        * Therefore, the current join might be either the left child or the right child of the parent, and we must
+                        * decide whether to use the left key column ids or the right key column ids of the parent as the post
+                        * partitioning key column ids.
                         * */
-                        postPartitionInfo = new PartitionInfo(parent.get().getJoin().getLeftKeyColumnIds(), numPartition);
+                        if (joinedTable == parent.get().getJoin().getLeftTable())
+                        {
+                            postPartitionInfo = new PartitionInfo(parent.get().getJoin().getLeftKeyColumnIds(), numPartition);
+                        }
+                        else
+                        {
+                            postPartitionInfo = new PartitionInfo(parent.get().getJoin().getRightKeyColumnIds(), numPartition);
+                        }
 
                         /*
                          * For broadcast and broadcast chain join, if every worker in its parent has to
@@ -685,7 +692,7 @@ public class PixelsPlanner
                         joinInputs.add(complete);
                     }
 
-                    return new SingleStageJoinOperator(joinedTable.getTableName(),
+                    return new SingleStageJoinOperator(joinedTable.getTableName(), true,
                             joinInputs.build(), JoinAlgorithm.BROADCAST_CHAIN);
                 }
             }
@@ -844,7 +851,7 @@ public class PixelsPlanner
                 }
             }
             SingleStageJoinOperator joinOperator =
-                    new SingleStageJoinOperator(joinedTable.getTableName(), joinInputs.build(), joinAlgo);
+                    new SingleStageJoinOperator(joinedTable.getTableName(), true, joinInputs.build(), joinAlgo);
             if (join.getJoinEndian() == JoinEndian.SMALL_LEFT)
             {
                 joinOperator.setSmallChild(childOperator);
@@ -1202,8 +1209,7 @@ public class PixelsPlanner
             }
             partitionInput.setTableInfo(tableInfo);
             partitionInput.setProjection(partitionProjection);
-            partitionInput.setOutput(new OutputInfo(outputBase + (outputId++) + "/part",
-                    false, InputStorageInfo, true));
+            partitionInput.setOutput(new OutputInfo(outputBase + (outputId++) + "/part", InputStorageInfo, true));
             int[] newKeyColumnIds = rewriteColumnIdsForPartitionedJoin(keyColumnIds, partitionProjection);
             partitionInput.setPartitionInfo(new PartitionInfo(newKeyColumnIds, numPartition));
             partitionInputsBuilder.add(partitionInput);
@@ -1371,17 +1377,17 @@ public class PixelsPlanner
         checkArgument(table.getTableType() == Table.TableType.BASE, "this is not a base table");
         ImmutableList.Builder<InputSplit> splitsBuilder = ImmutableList.builder();
         int splitSize = 0;
-        Storage.Scheme tableStorageScheme = Storage.Scheme.from(
-                metadataService.getTable(table.getSchemaName(), table.getTableName()).getStorageScheme());
+        Storage.Scheme tableStorageScheme =
+                metadataService.getTable(table.getSchemaName(), table.getTableName()).getStorageScheme();
         checkArgument(tableStorageScheme.equals(this.storage.getScheme()), String.format(
                 "the storage scheme of table '%s.%s' is not consistent with the input storage scheme for Pixels Turbo",
                 table.getSchemaName(), table.getTableName()));
         List<Layout> layouts = metadataService.getLayouts(table.getSchemaName(), table.getTableName());
         for (Layout layout : layouts)
         {
-            int version = layout.getVersion();
+            long version = layout.getVersion();
             SchemaTableName schemaTableName = new SchemaTableName(table.getSchemaName(), table.getTableName());
-            Order order = JSON.parseObject(layout.getOrder(), Order.class);
+            Ordered ordered = layout.getOrdered();
             ColumnSet columnSet = new ColumnSet();
             for (String column : table.getColumnNames())
             {
@@ -1389,7 +1395,7 @@ public class PixelsPlanner
             }
 
             // get split size
-            Splits splits = JSON.parseObject(layout.getSplits(), Splits.class);
+            Splits splits = layout.getSplits();
             if (this.fixedSplitSize > 0)
             {
                 splitSize = this.fixedSplitSize;
@@ -1400,14 +1406,14 @@ public class PixelsPlanner
                 if (splitsIndex == null)
                 {
                     logger.debug("splits index not exist in factory, building index...");
-                    splitsIndex = buildSplitsIndex(order, splits, schemaTableName);
+                    splitsIndex = buildSplitsIndex(ordered, splits, schemaTableName);
                 } else
                 {
                     int indexVersion = splitsIndex.getVersion();
                     if (indexVersion < version)
                     {
                         logger.debug("splits index version is not up-to-date, updating index...");
-                        splitsIndex = buildSplitsIndex(order, splits, schemaTableName);
+                        splitsIndex = buildSplitsIndex(ordered, splits, schemaTableName);
                     }
                 }
                 SplitPattern bestSplitPattern = splitsIndex.search(columnSet);
@@ -1432,18 +1438,18 @@ public class PixelsPlanner
                 logger.debug("split size for table '" + table.getTableName() + "': " + splitSize + " after adjustment");
             }
             logger.debug("using split size: " + splitSize);
-            int rowGroupNum = splits.getNumRowGroupInBlock();
+            int rowGroupNum = splits.getNumRowGroupInFile();
 
             // get compact path
-            String compactPath;
+            String[] compactPaths;
             if (projectionReadEnabled)
             {
                 ProjectionsIndex projectionsIndex = IndexFactory.Instance().getProjectionsIndex(schemaTableName);
-                Projections projections = JSON.parseObject(layout.getProjections(), Projections.class);
+                Projections projections = layout.getProjections();
                 if (projectionsIndex == null)
                 {
                     logger.debug("projections index not exist in factory, building index...");
-                    projectionsIndex = buildProjectionsIndex(order, projections, schemaTableName);
+                    projectionsIndex = buildProjectionsIndex(ordered, projections, schemaTableName);
                 }
                 else
                 {
@@ -1451,25 +1457,25 @@ public class PixelsPlanner
                     if (indexVersion < version)
                     {
                         logger.debug("projections index is not up-to-date, updating index...");
-                        projectionsIndex = buildProjectionsIndex(order, projections, schemaTableName);
+                        projectionsIndex = buildProjectionsIndex(ordered, projections, schemaTableName);
                     }
                 }
                 ProjectionPattern projectionPattern = projectionsIndex.search(columnSet);
                 if (projectionPattern != null)
                 {
-                    logger.debug("suitable projection pattern is found, path='" + projectionPattern.getPath() + '\'');
-                    compactPath = projectionPattern.getPath();
+                    logger.debug("suitable projection pattern is found, path='" + projectionPattern.getPaths() + '\'');
+                    compactPaths = projectionPattern.getPaths();
                 }
                 else
                 {
-                    compactPath = layout.getCompactPath();
+                    compactPaths = layout.getCompactPathUris();
                 }
             }
             else
             {
-                compactPath = layout.getCompactPath();
+                compactPaths = layout.getCompactPathUris();
             }
-            logger.debug("using compact path: " + compactPath);
+            logger.debug("using compact path: " + Joiner.on(";").join(compactPaths));
 
             // get the inputs from storage
             try
@@ -1477,7 +1483,7 @@ public class PixelsPlanner
                 // 1. add splits in orderedPath
                 if (orderedPathEnabled)
                 {
-                    List<String> orderedPaths = storage.listPaths(layout.getOrderPath());
+                    List<String> orderedPaths = storage.listPaths(layout.getOrderedPathUris());
 
                     for (int i = 0; i < orderedPaths.size();)
                     {
@@ -1494,10 +1500,10 @@ public class PixelsPlanner
                 // 2. add splits in compactPath
                 if (compactPathEnabled)
                 {
-                    List<String> compactPaths = storage.listPaths(compactPath);
+                    List<String> compactFilePaths = storage.listPaths(compactPaths);
 
                     int curFileRGIdx;
-                    for (String path : compactPaths)
+                    for (String path : compactFilePaths)
                     {
                         curFileRGIdx = 0;
                         while (curFileRGIdx < rowGroupNum)
@@ -1518,10 +1524,10 @@ public class PixelsPlanner
         return splitsBuilder.build();
     }
 
-    private SplitsIndex buildSplitsIndex(Order order, Splits splits, SchemaTableName schemaTableName)
+    private SplitsIndex buildSplitsIndex(Ordered ordered, Splits splits, SchemaTableName schemaTableName)
             throws MetadataException
     {
-        List<String> columnOrder = order.getColumnOrder();
+        List<String> columnOrder = ordered.getColumnOrder();
         SplitsIndex index;
         String indexTypeName = ConfigFactory.Instance().getProperty("splits.index.type");
         SplitsIndex.IndexType indexType = SplitsIndex.IndexType.valueOf(indexTypeName.toUpperCase());
@@ -1529,11 +1535,11 @@ public class PixelsPlanner
         {
             case INVERTED:
                 index = new InvertedSplitsIndex(columnOrder, SplitPattern.buildPatterns(columnOrder, splits),
-                        splits.getNumRowGroupInBlock());
+                        splits.getNumRowGroupInFile());
                 break;
             case COST_BASED:
                 index = new CostBasedSplitsIndex(this.metadataService, schemaTableName,
-                        splits.getNumRowGroupInBlock(), splits.getNumRowGroupInBlock());
+                        splits.getNumRowGroupInFile(), splits.getNumRowGroupInFile());
                 break;
             default:
                 throw new UnsupportedOperationException("splits index type '" + indexType + "' is not supported");
@@ -1543,8 +1549,8 @@ public class PixelsPlanner
         return index;
     }
 
-    private ProjectionsIndex buildProjectionsIndex(Order order, Projections projections, SchemaTableName schemaTableName) {
-        List<String> columnOrder = order.getColumnOrder();
+    private ProjectionsIndex buildProjectionsIndex(Ordered ordered, Projections projections, SchemaTableName schemaTableName) {
+        List<String> columnOrder = ordered.getColumnOrder();
         ProjectionsIndex index;
         index = new InvertedProjectionsIndex(columnOrder, ProjectionPattern.buildPatterns(columnOrder, projections));
         IndexFactory.Instance().cacheProjectionsIndex(schemaTableName, index);

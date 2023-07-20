@@ -48,13 +48,18 @@ public class LoadExecutor implements CommandExecutor
         String origin = ns.getString("original_data_path");
         int rowNum = Integer.parseInt(ns.getString("row_num"));
         String regex = ns.getString("row_regex");
-        String loadingDataPath = ns.getString("loading_data_path");
+        String paths = ns.getString("loading_data_paths");
         int threadNum = Integer.parseInt(ns.getString("consumer_thread_num"));
         boolean enableEncoding = Boolean.parseBoolean(ns.getString("enable_encoding"));
         System.out.println("enable encoding: " + enableEncoding);
-        if (loadingDataPath != null && !loadingDataPath.isEmpty())
+        String[] loadingDataPaths = null;
+        if (paths != null)
         {
-            validateOrderOrCompactPath(loadingDataPath);
+            loadingDataPaths = paths.split(";");
+            if (loadingDataPaths.length > 0)
+            {
+                validateOrderOrCompactPath(loadingDataPaths);
+            }
         }
 
         if (!origin.endsWith("/"))
@@ -64,7 +69,7 @@ public class LoadExecutor implements CommandExecutor
 
         Storage storage = StorageFactory.Instance().getStorage(origin);
 
-        Parameters parameters = new Parameters(schemaName, tableName, rowNum, regex, enableEncoding, loadingDataPath);
+        Parameters parameters = new Parameters(schemaName, tableName, rowNum, regex, enableEncoding, loadingDataPaths);
 
         // source already exist, producer option is false, add list of source to the queue
         List<String> fileList = storage.listPaths(origin);

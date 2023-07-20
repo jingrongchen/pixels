@@ -1,0 +1,3 @@
+[submodule "cpp/duckdb"]
+	path = cpp/duckdb
+	url = https://github.com/yuly16/duckdb

@@ -73,7 +73,7 @@ public class TestPartitionedJoinLambdaInvoker
                 "s3://jingrong-lambda-test/unit_tests/orders_part_7"));
         leftTableInfo.setParallelism(8);
         leftTableInfo.setBase(false);
-        leftTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+        leftTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null, null));
         joinInput.setSmallTable(leftTableInfo);
 
         PartitionedTableInfo rightTableInfo = new PartitionedTableInfo();
@@ -85,7 +85,7 @@ public class TestPartitionedJoinLambdaInvoker
                 "s3://jingrong-lambda-test/unit_tests/lineitem_part_1"));
         rightTableInfo.setParallelism(2);
         rightTableInfo.setBase(false);
-        rightTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+        rightTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null, null));
         joinInput.setLargeTable(rightTableInfo);
 
         PartitionedJoinInfo joinInfo = new PartitionedJoinInfo();
@@ -100,8 +100,8 @@ public class TestPartitionedJoinLambdaInvoker
         joinInfo.setPostPartitionInfo(new PartitionInfo(new int[] {0}, 100));
         joinInput.setJoinInfo(joinInfo);
 
-        joinInput.setOutput(new MultiOutputInfo("s3://jingrong-lambda-test/unit_tests/",
-                new StorageInfo(Storage.Scheme.s3, null, null, null),
+        joinInput.setOutput(new MultiOutputInfo("pixels-lambda-test/unit_tests/",
+                new StorageInfo(Storage.Scheme.s3, null, null, null, null),
                 true, Arrays.asList("partitioned_join_lineitem_orders_0"))); // force one file currently
         System.out.println(JSON.toJSONString(joinInput));
         
