@@ -1,6 +1,8 @@
 package io.pixelsdb.pixels.planner.plan.logical.operation;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
 /**
  * 
  * LogicalFilter operation
@@ -13,23 +15,39 @@ public class LogicalFilter {
 
     private String filterOpKind;
 
-    private List<operand> operands;
+    private List<operation> operands;
 
-    public class operand {
+    public LogicalFilter (String filterOpName, String filterOpKind, List<operation> operands) {
+        this.filterOpName = filterOpName;
+        this.filterOpKind = filterOpKind;
+        this.operands = operands;
+    }
 
-        int[] inputFieldId;
+    public LogicalFilter (String filterOpName, String filterOpKind) {
+        this.filterOpName = filterOpName;
+        this.filterOpKind = filterOpKind;
+        this.operands = new ArrayList<>();
+    }
+
+    public LogicalFilter() {
+        this.operands = new ArrayList<>();
+    }
+
+    public class operation {
+
+        int[] OpFieldId;
 
         String opName;
 
         String opKind;
 
         // when kind is equal, the literal and literalType are used are null
-        String literal;
+        Object literal;
 
         String literalType;
         
-        public operand(int[] inputFieldId, String opName, String opKind, String literal, String literalType) {
-            this.inputFieldId = inputFieldId;
+        public operation(int[] OpFieldId, String opName, String opKind, Object literal, String literalType) {
+            this.OpFieldId = OpFieldId;
             this.opName = opName;
             this.opKind = opKind;
             this.literal = literal;
@@ -37,11 +55,11 @@ public class LogicalFilter {
         }
 
         public int[] getInputFieldId() {
-            return inputFieldId;
+            return OpFieldId;
         }
 
-        public void setInputFieldId(int[] inputFieldId) {
-            this.inputFieldId = inputFieldId;
+        public void setInputFieldId(int[] OpFieldId) {
+            this.OpFieldId = OpFieldId;
         }
 
         public String getOpName() {
@@ -60,7 +78,7 @@ public class LogicalFilter {
             this.opKind = opKind;
         }
 
-        public String getLiteral() {
+        public Object getLiteral() {
             return literal;
         }
 
@@ -76,8 +94,17 @@ public class LogicalFilter {
             this.literalType = literalType;
         }
 
+        @Override
+        public String toString() {
+            return "operation [OpFieldId=" + Arrays.toString(OpFieldId) + ", literal=" + literal + ", literalType=" + literalType
+                    + ", opKind=" + opKind + ", opName=" + opName + "]";
+        }
+
     }
 
+    public void addOperation(int[] OpFieldId, String opName, String opKind, Object literal, String literalType) {
+        this.operands.add(new operation(OpFieldId, opName, opKind, literal, literalType));
+    }
 
     public String getFilterOpName() {
         return filterOpName;
@@ -95,17 +122,22 @@ public class LogicalFilter {
         this.filterOpKind = filterOpKind;
     }
 
-    public List<operand> getOperands() {
+    public List<operation> getOperands() {
         return operands;
     }
 
-    public void setOperands(List<operand> operands) {
+    public void setOperands(List<operation> operands) {
         this.operands = operands;
     }
 
-    public void addOperand(operand operand) {
+    public void addOperand(operation operand) {
         this.operands.add(operand);
     }
 
+    @Override
+    public String toString() {
+        return "LogicalFilter {filterOpKind=" + filterOpKind + ", filterOpName=" + filterOpName + ", operands="
+                + operands.toString() + "}";
+    }
 
 }

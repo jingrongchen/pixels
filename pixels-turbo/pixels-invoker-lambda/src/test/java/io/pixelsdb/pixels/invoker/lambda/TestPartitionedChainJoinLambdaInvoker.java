@@ -174,6 +174,8 @@ public class TestPartitionedChainJoinLambdaInvoker
                 true, Arrays.asList("partitioned_chain_join_0")));
 
         System.out.println(JSON.toJSONString(joinInput));
+                
+
         // JoinOutput output = (JoinOutput) InvokerFactory.Instance()
         //         .getInvoker(WorkerType.PARTITIONED_CHAIN_JOIN).invoke(joinInput).get();
         // System.out.println(output.getOutputs().size());

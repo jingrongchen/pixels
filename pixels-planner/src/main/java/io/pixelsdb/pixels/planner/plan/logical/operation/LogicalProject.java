@@ -1,6 +1,6 @@
 package io.pixelsdb.pixels.planner.plan.logical.operation;
 
-
+import java.util.Arrays;
 /**
  * 
  * logical project operation
@@ -34,5 +34,10 @@ public class LogicalProject {
         this.ProjectFieldIds = ProjectFieldIds;
     }
 
+    @Override
+    public String toString() {
+        return "LogicalProject {ProjectFieldIds=" + Arrays.toString(ProjectFieldIds) + ", projectFidlds="
+                + Arrays.toString(projectFidlds) + "}";
+    }
 
 }

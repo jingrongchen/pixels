@@ -67,12 +67,12 @@ public class TestScanfilter {
         tableInfo.setColumnsToRead(new String[]{"o_orderkey", "o_custkey", "o_orderstatus", "o_orderdate"});
         tableInfo.setFilter(filter1);
         tableInfo.setBase(true);
-        tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+        tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3,null, null, null, null));
         scaninput.setTableInfo(tableInfo);
         scaninput.setScanProjection(new boolean[]{true, true, true, true});
 
-        scaninput.setOutput(new OutputInfo("s3://jingrong-lambda-test/unit_tests/test_scan1", true,
-                new StorageInfo(Storage.Scheme.s3, null, null, null), true));
+        scaninput.setOutput(new OutputInfo("s3://jingrong-lambda-test/unit_tests/test_scan1",
+                new StorageInfo(Storage.Scheme.s3, null, null, null, null), true));
         
         ScanOutput output = (ScanOutput) InvokerFactory.Instance()
                 .getInvoker(WorkerType.SCAN).invoke(scaninput).get();    
@@ -163,7 +163,7 @@ public class TestScanfilter {
         tableInfo.setColumnsToRead(new String[]{"o_orderkey", "o_custkey", "o_orderstatus", "o_orderdate"});
         tableInfo.setFilter(filterlist);
         tableInfo.setBase(true);
-        tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+        tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3,null, null, null, null));
         scaninput.setTableInfo(tableInfo);
         // scaninput.setScanProjection(new boolean[]{true, true, true, true});
         
@@ -171,7 +171,7 @@ public class TestScanfilter {
         list.add("s3://jingrong-lambda-test/unit_tests/test_scan1");
         list.add("s3://jingrong-lambda-test/unit_tests/test_scan2");
         ThreadOutputInfo threadoutput = new ThreadOutputInfo(list, true,
-         new StorageInfo(Storage.Scheme.s3, null, null, null), true);
+         new StorageInfo(Storage.Scheme.s3, null, null, null,null), true);
         
         scaninput.setOutput(threadoutput);
                 

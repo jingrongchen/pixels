@@ -1,5 +1,6 @@
 package io.pixelsdb.pixels.planner.plan.logical.operation;
 
+import java.util.Arrays;
 
 /**
  * 
@@ -45,8 +46,6 @@ public class LogicalAggregate {
         this.aggregateColumnNames = null;
         this.distinct = false;
     }
-
-
 
 
     public String getAggregationName() {
@@ -97,4 +96,15 @@ public class LogicalAggregate {
         this.aggregateColumnNames = aggregateColumnNames;
     }
 
+    @Override
+    public String toString() {
+        return "LogicalAggregate {" +
+                "aggregationName='" + aggregationName + '\'' +
+                ", aggregationType='" + aggregationType + '\'' +
+                ", groupKeyColumnIds=" + Arrays.toString(groupKeyColumnIds) +
+                ", distinct=" + distinct +
+                ", aggregateColumnIds=" + Arrays.toString(aggregateColumnIds) +
+                ", aggregateColumnNames=" + aggregateColumnNames +
+                '}';
+    }
 }

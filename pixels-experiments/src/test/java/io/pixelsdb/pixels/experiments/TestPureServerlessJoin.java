@@ -62,7 +62,7 @@ public class TestPureServerlessJoin
                 "jingrong-test/orders/v-0-order/20230425100703_3.pxl"));
         leftTableInfo.setParallelism(8);
         leftTableInfo.setBase(false);
-        leftTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+        leftTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null,null, null, null));
         joinInput.setSmallTable(leftTableInfo);
 
         PartitionedTableInfo rightTableInfo = new PartitionedTableInfo();
@@ -74,7 +74,7 @@ public class TestPureServerlessJoin
                 "jingrong-test/lineitem/v-0-order/20230425092347_48.pxl"));
         rightTableInfo.setParallelism(2);
         rightTableInfo.setBase(false);
-        rightTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+        rightTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3,null, null, null, null));
         joinInput.setLargeTable(rightTableInfo);
 
         PartitionedJoinInfo joinInfo = new PartitionedJoinInfo();
@@ -90,7 +90,7 @@ public class TestPureServerlessJoin
         joinInput.setJoinInfo(joinInfo);
 
         joinInput.setOutput(new MultiOutputInfo("s3://jingrong-lambda-test/unit_tests/orders_part_1/",
-                new StorageInfo(Storage.Scheme.s3, null, null, null),
+                new StorageInfo(Storage.Scheme.s3,null, null, null, null),
                 true, Arrays.asList("partitioned_join_lineitem_orders_0"))); // force one file currently
 
         System.out.println(JSON.toJSONString(joinInput));

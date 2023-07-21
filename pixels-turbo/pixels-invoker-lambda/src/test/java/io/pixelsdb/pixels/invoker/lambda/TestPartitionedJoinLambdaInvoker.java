@@ -32,10 +32,10 @@ import org.junit.Test;
 
 import io.pixelsdb.pixels.worker.common.BasePartitionedJoinWorker;
 import io.pixelsdb.pixels.worker.common.WorkerContext;
-import org.slf4j.Logger;
 import io.pixelsdb.pixels.worker.common.WorkerMetrics;
-import org.slf4j.LoggerFactory;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -106,11 +106,11 @@ public class TestPartitionedJoinLambdaInvoker
         System.out.println(JSON.toJSONString(joinInput));
         
         // localtesting
-        // Logger logger= LoggerFactory.getLogger(TestPartitionedJoinLambdaInvoker.class);
-        // WorkerMetrics metrics=new WorkerMetrics();
-        // WorkerContext context=new WorkerContext(logger, metrics, "123456");
-        // BasePartitionedJoinWorker Pjoin=new BasePartitionedJoinWorker(context);
-        // JoinOutput output=Pjoin.process(joinInput);
+        Logger logger= LogManager.getLogger(TestPartitionedJoinLambdaInvoker.class);
+        WorkerMetrics metrics=new WorkerMetrics();
+        WorkerContext context=new WorkerContext(logger, metrics, "123456");
+        BasePartitionedJoinWorker Pjoin=new BasePartitionedJoinWorker(context);
+        JoinOutput output=Pjoin.process(joinInput);
         // localtesting
 
         // JoinOutput output = (JoinOutput) InvokerFactory.Instance()

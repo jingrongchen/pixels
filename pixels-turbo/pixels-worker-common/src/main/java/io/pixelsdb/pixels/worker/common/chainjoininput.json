@@ -1,216 +1,71 @@
 {
-    "chainJoinInfos": [
-        {
-            "joinType": "EQUI_INNER",
-            "keyColumnIds": [
-                1
-            ],
-            "largeColumnAlias": [
-                "n_nationkey",
-                "n_name"
-            ],
-            "largeProjection": [
-                true,
-                true,
-                false
-            ],
-            "postPartition": false,
-            "smallColumnAlias": [
-                "r_name"
-            ],
-            "smallProjection": [
-                false,
-                true
-            ]
-        },
-        {
-            "joinType": "EQUI_INNER",
-            "keyColumnIds": [
-                2
-            ],
-            "largeColumnAlias": [
-                "s_suppkey",
-                "s_name"
-            ],
-            "largeProjection": [
-                true,
-                true,
-                false
-            ],
-            "postPartition": false,
-            "smallColumnAlias": [
-                "r_name",
-                "n_name"
-            ],
-            "smallProjection": [
-                true,
-                false,
-                true
-            ]
-        },
-        {
-            "joinType": "EQUI_INNER",
-            "keyColumnIds": [
-                3
-            ],
-            "largeColumnAlias": [
-                "o_custkey",
-                "o_orderstatus",
-                "o_orderdate",
-                "l_extendedprice",
-                "l_discount"
-            ],
-            "largeProjection": [
-                true,
-                true,
-                true,
-                false,
-                true,
-                true
-            ],
-            "postPartition": true,
-            "postPartitionInfo": {
-                "keyColumnIds": [
-                    3
-                ],
-                "numPartition": 20
-            },
-            "smallColumnAlias": [
-                "r_name",
-                "n_name",
-                "s_name"
-            ],
-            "smallProjection": [
-                true,
-                true,
-                false,
-                true
-            ]
-        }
-    ],
-    "chainTables": [
-        {
-            "base": true,
-            "columnsToRead": [
-                "r_regionkey",
-                "r_name"
-            ],
-            "filter": "{\"schemaName\":\"tpch\",\"tableName\":\"region\",\"columnFilters\":{}}",
-            "inputSplits": [
-                {
-                    "inputInfos": [
-                        {
-                            "path": "pixels-tpch/region/v-0-order/20230416153117_0.pxl",
-                            "rgLength": 4,
-                            "rgStart": 0
-                        }
-                    ]
-                }
-            ],
-            "keyColumnIds": [
-                0
-            ],
-            "storageInfo": {
-                "scheme": "s3"
-            },
-            "tableName": "region"
-        },
-        {
-            "base": true,
-            "columnsToRead": [
-                "n_nationkey",
-                "n_name",
-                "n_regionkey"
-            ],
-            "filter": "{\"schemaName\":\"tpch\",\"tableName\":\"nation\",\"columnFilters\":{}}",
-            "inputSplits": [
-                {
-                    "inputInfos": [
-                        {
-                            "path": "pixels-tpch/nation/v-0-order/20230416135645_0.pxl",
-                            "rgLength": 4,
-                            "rgStart": 0
-                        }
-                    ]
-                }
-            ],
-            "keyColumnIds": [
-                2
-            ],
-            "storageInfo": {
-                "scheme": "s3"
-            },
-            "tableName": "nation"
-        },
-        {
-            "base": true,
-            "columnsToRead": [
-                "s_suppkey",
-                "s_name",
-                "s_nationkey"
-            ],
-            "filter": "{\"schemaName\":\"tpch\",\"tableName\":\"supplier\",\"columnFilters\":{}}",
-            "inputSplits": [
-                {
-                    "inputInfos": [
-                        {
-                            "path": "pixels-tpch/supplier/v-0-compact/20230416155327_0_compact.pxl",
-                            "rgLength": 4,
-                            "rgStart": 0
-                        }
-                    ]
-                }
-            ],
-            "keyColumnIds": [
-                2
-            ],
-            "storageInfo": {
-                "scheme": "s3"
-            },
-            "tableName": "supplier"
-        }
-    ],
     "joinInfo": {
-        "hashValues": [
-            16
-        ],
         "joinType": "EQUI_INNER",
         "largeColumnAlias": [
-            "l_suppkey",
-            "l_extendedprice",
-            "l_discount"
+            "o_orderkey",
+            "o_orderdate",
+            "o_totalprice"
         ],
         "largeProjection": [
-            false,
+            true,
             true,
             true,
             true
         ],
-        "numPartition": 40,
-        "postPartition": false,
+        "postPartition": true,
+        "postPartitionInfo": {
+            "keyColumnIds": [
+                2
+            ],
+            "numPartition": 20
+        },
         "smallColumnAlias": [
-            "o_custkey",
-            "o_orderstatus",
-            "o_orderdate"
+            "c_name",
+            "c_custkey"
         ],
         "smallProjection": [
-            false,
-            true,
             true,
             true
         ]
     },
     "largeTable": {
+        "base": true,
+        "columnsToRead": [
+            "o_orderkey",
+            "o_orderdate",
+            "o_totalprice",
+            "o_custkey"
+        ],
+        "filter": "{\"schemaName\":\"tpch\",\"tableName\":\"orders\",\"columnFilters\":{}}",
+        "inputSplits": [
+            {
+                "inputInfos": [
+                    {
+                        "path": "jingrong-test/tpch/orders/v-0-order/20230425100657_1.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            }
+        ],
+        "keyColumnIds": [
+            3
+        ],
+        "storageInfo": {
+            "scheme": "s3"
+        },
+        "tableName": "orders"
+    },
+    "partialAggregationPresent": false,
+    "partitionlargeTable": {
         "base": false,
         "columnsToRead": [
             "l_orderkey",
-            "l_suppkey",
-            "l_extendedprice",
-            "l_discount"
+            "l_quantity"
         ],
         "inputFiles": [
-            "pixels-lambda-test/unit_tests/lineitem_part_0",
-            "pixels-lambda-test/unit_tests/lineitem_part_1"
+            "jingrong-test/tpch/lineitem/v-0-order/20230425092344_47.pxl",
+            "jingrong-test/tpch/lineitem/v-0-order/20230425092347_48.pxl"
         ],
         "keyColumnIds": [
             0
@@ -221,44 +76,58 @@
         },
         "tableName": "lineitem"
     },
-    "output": {
-        "encoding": true,
-        "fileNames": [
-            "partitioned_chain_join_0"
+    "scanPipelineInfo": {
+        "objectList": [
+            "lineitem",
+            {
+                "projectFidlds": [
+                    "l_orderkey",
+                    "l_orderkey"
+                ],
+                "projectFieldIds": [
+                    0,
+                    4
+                ]
+            },
+            {
+                "aggregateColumnIds": [
+                    1
+                ],
+                "aggregationName": "SUM",
+                "aggregationType": "DECIMAL",
+                "distinct": false,
+                "groupKeyColumnIds": [
+                    0
+                ]
+            }
         ],
-        "path": "pixels-lambda-test/unit_tests/",
-        "randomFileName": false,
-        "storageInfo": {
-            "scheme": "s3"
-        }
+        "root": "lineitem"
     },
-    "partialAggregationPresent": false,
     "smallTable": {
-        "base": false,
+        "base": true,
         "columnsToRead": [
-            "o_orderkey",
-            "o_custkey",
-            "o_orderstatus",
-            "o_orderdate"
+            "c_name",
+            "c_custkey"
         ],
-        "inputFiles": [
-            "pixels-lambda-test/unit_tests/orders_part_0",
-            "pixels-lambda-test/unit_tests/orders_part_1",
-            "pixels-lambda-test/unit_tests/orders_part_2",
-            "pixels-lambda-test/unit_tests/orders_part_3",
-            "pixels-lambda-test/unit_tests/orders_part_4",
-            "pixels-lambda-test/unit_tests/orders_part_5",
-            "pixels-lambda-test/unit_tests/orders_part_6",
-            "pixels-lambda-test/unit_tests/orders_part_7"
+        "filter": "{\"schemaName\":\"tpch\",\"tableName\":\"customer\",\"columnFilters\":{}}",
+        "inputSplits": [
+            {
+                "inputInfos": [
+                    {
+                        "path": "jingrong-test/tpch/customer/v-0-order/20230425092143_0.pxl",
+                        "rgLength": -1,
+                        "rgStart": 0
+                    }
+                ]
+            }
         ],
         "keyColumnIds": [
-            0
+            1
         ],
-        "parallelism": 8,
         "storageInfo": {
             "scheme": "s3"
         },
-        "tableName": "orders"
+        "tableName": "customer"
     },
-    "transId": 123456
+    "transId": -1
 }

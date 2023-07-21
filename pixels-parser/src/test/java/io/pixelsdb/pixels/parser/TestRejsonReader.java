@@ -90,8 +90,8 @@ import io.pixelsdb.pixels.worker.common.BasePartitionWorker;
 ///for local invoking
 import io.pixelsdb.pixels.worker.common.BaseThreadScanWorker;
 import io.pixelsdb.pixels.worker.common.WorkerContext;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import io.pixelsdb.pixels.worker.common.WorkerMetrics;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -555,7 +555,7 @@ public class TestRejsonReader {
                         //set aggregationInfo
                         AggregatedTableInfo aggregatedTableInfo = new AggregatedTableInfo();
                         aggregatedTableInfo.setParallelism(1);
-                        aggregatedTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+                        aggregatedTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null,null, null, null));
                         aggregatedTableInfo.setInputFiles(storage.listPaths(scaninput.getOutput().getPath().get(i)));
 
                         String [] colToRead = new String[temPartialAggregationInfo.getGroupKeyColumnAlias().length + temPartialAggregationInfo.getResultColumnAlias().length];
@@ -587,8 +587,8 @@ public class TestRejsonReader {
                         aggregationInfo.setFunctionTypes(temPartialAggregationInfo.getFunctionTypes());
                         aggregationInput.setAggregationInfo(aggregationInfo);
                         String outputPath = finalDirPath + scaninput.getTransId() + "_aggregation_" + i + "_output";
-                        aggregationInput.setOutput(new OutputInfo(outputPath, false,
-                            new StorageInfo(Storage.Scheme.s3, null, null, null), true));
+                        aggregationInput.setOutput(new OutputInfo(outputPath,
+                            new StorageInfo(Storage.Scheme.s3, null, null, null, null), true));
 
                         
                         // AggregationOutput output = (AggregationOutput) InvokerFactory.Instance()
@@ -612,7 +612,7 @@ public class TestRejsonReader {
         public AggregationOutput invokeLocalAgg(AggregationInput aggregationInput) {
                 
             WorkerMetrics workerMetrics = new WorkerMetrics();
-            Logger logger = LoggerFactory.getLogger(TestRejsonReader.class);
+            Logger logger = LogManager.getLogger(TestRejsonReader.class);
             WorkerContext workerContext = new WorkerContext(logger, workerMetrics, "123456");
             BaseAggregationWorker baseWorker = new BaseAggregationWorker(workerContext);
             return baseWorker.process(aggregationInput);
@@ -694,7 +694,7 @@ public class TestRejsonReader {
                 if(checkHasOperation(subGraph, "LogicalTableScan") && !checkHasOperation(subGraph, "LogicalJoin")){
                     scaninput.setTransId(UUID.randomUUID().getMostSignificantBits() & Integer.MAX_VALUE);
                     ThreadScanTableInfo tableInfo = new ThreadScanTableInfo();
-                    tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+                    tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null,null, null));
                     Integer filterId = 1;
                     Integer projectId = 0;
                     Set<String> columnstoread = new HashSet<String>();
@@ -879,7 +879,7 @@ public class TestRejsonReader {
                         }
 
                     ThreadOutputInfo Threadoutput = new ThreadOutputInfo(OutputList, false,
-                        new StorageInfo(Storage.Scheme.s3, null, null, null), true);                    
+                        new StorageInfo(Storage.Scheme.s3, null,null, null, null), true);                    
                     scaninput.setOutput(Threadoutput);
 
                     for (int i=0; i<1; i++){
@@ -1048,7 +1048,7 @@ public class TestRejsonReader {
                         }
 
                         tableInfo.setBase(true);
-                        tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+                        tableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null,null, null, null));
                         PartitionInfo partitionInfo = new PartitionInfo();
                         partitionInfo.setNumPartition(numPartition);
 
@@ -1075,7 +1075,7 @@ public class TestRejsonReader {
                                 String tableName = relIdToNode.get(v).path("table").get(1).asText();
                                 PartitionedTableInfo partitionedTableInfo = new PartitionedTableInfo();
                                 partitionedTableInfo.setTableName(tableName);
-                                partitionedTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+                                partitionedTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null,null, null, null));
                                 partitionedTableInfos.add(partitionedTableInfo);
                             });
                         }catch (Exception e) {
@@ -1203,7 +1203,7 @@ public class TestRejsonReader {
                 leftTableInfo.setTableName(leftTableKey);
                 leftTableInfo.setColumnsToRead(columsToReadMap.get(tableKeyId.get(leftTableKey)).toArray(new String[columsToReadMap.get(tableKeyId.get(leftTableKey)).size()]));
                 leftTableInfo.setKeyColumnIds(partitionInputs.get(tableKeyId.get(leftTableKey)).getPartitionInfo().getKeyColumnIds());
-                leftTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+                leftTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null,null, null, null));
                 leftTableInfo.setBase(false);
                 
                 //TODO: smart parallelism setting   
@@ -1215,7 +1215,7 @@ public class TestRejsonReader {
                 rightTableInfo.setTableName(rightTableKey);
                 rightTableInfo.setColumnsToRead(columsToReadMap.get(tableKeyId.get(rightTableKey)).toArray(new String[columsToReadMap.get(tableKeyId.get(rightTableKey)).size()]));
                 rightTableInfo.setKeyColumnIds(partitionInputs.get(tableKeyId.get(rightTableKey)).getPartitionInfo().getKeyColumnIds());
-                rightTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null, null, null));
+                rightTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3,null, null, null, null));
                 rightTableInfo.setBase(false);
 
                 //TODO: smart parallelism setting
@@ -1269,7 +1269,7 @@ public class TestRejsonReader {
                 // set PartitionedTableInfo
                 joinInput.setJoinInfo(joinInfo);
                 joinInput.setOutput(new MultiOutputInfo("s3://jingrong-lambda-test/unit_tests/final_results/",
-                                new StorageInfo(Storage.Scheme.s3, null, null, null),
+                                new StorageInfo(Storage.Scheme.s3,null, null, null, null),
                                 true, Arrays.asList("partitioned_join_"+leftTableKey+"_"+rightTableKey+"_result"))); // force one file currently
                 
                 // First we need to slice the input splits into Partition parts
@@ -1292,8 +1292,8 @@ public class TestRejsonReader {
                     List<InputSplit> leftInputSplit = tableToInputSplits.get(leftTableKey);
                     List <InputSplit> leftPartitionInputList = leftInputSplit.subList(i*numFilesInEachPartition, (i+1)*numFilesInEachPartition > leftInputSplit.size()? leftInputSplit.size():(i+1)*numFilesInEachPartition);
                     leftPartitionInput.getTableInfo().setInputSplits(leftPartitionInputList);
-                    leftPartitionInput.setOutput(new OutputInfo(intermediateDirPath+leftTableKey+"_part_" + i, false,
-                                            new StorageInfo(Storage.Scheme.s3, null, null, null), true));
+                    leftPartitionInput.setOutput(new OutputInfo(intermediateDirPath+leftTableKey+"_part_" + i,
+                                            new StorageInfo(Storage.Scheme.s3, null,null, null, null), true));
                     leftOutputList.add(intermediateDirPath+leftTableKey+"_part_" + i);
                     
                     // local invoke partition test
@@ -1311,8 +1311,8 @@ public class TestRejsonReader {
                     List <InputSplit> rightPartitionInputList = rightInputSplit.subList(j*numFilesInEachPartition, (j+1)*numFilesInEachPartition > rightInputSplit.size()?rightInputSplit.size():(j+1)*numFilesInEachPartition);
                     rightPartitionInput.getTableInfo().setInputSplits(rightPartitionInputList);
                     rightPartitionInput.setOutput(null);
-                    rightPartitionInput.setOutput(new OutputInfo(intermediateDirPath+rightTableKey+"_part_" + j, false,
-                                            new StorageInfo(Storage.Scheme.s3, null, null, null), true));
+                    rightPartitionInput.setOutput(new OutputInfo(intermediateDirPath+rightTableKey+"_part_" + j,
+                                            new StorageInfo(Storage.Scheme.s3,null, null, null, null), true));
                     rightOutputList.add(intermediateDirPath+rightTableKey+"_part_" + j);
 
                     // local invoke partition test
@@ -1421,7 +1421,7 @@ public class TestRejsonReader {
 
             public CompletableFuture<Output> invokeLocalPartitionJoin(PartitionedJoinInput joinInput) {
                 WorkerMetrics workerMetrics = new WorkerMetrics();
-                Logger logger = LoggerFactory.getLogger(TestRejsonReader.class);
+                Logger logger = LogManager.getLogger(TestRejsonReader.class);
                 WorkerContext workerContext = new WorkerContext(logger, workerMetrics, "123456");
                 BasePartitionedJoinWorker baseWorker = new BasePartitionedJoinWorker(workerContext);
                 return CompletableFuture.supplyAsync(() -> {
@@ -1436,7 +1436,7 @@ public class TestRejsonReader {
 
             public CompletableFuture<Output> invokeLocalPartition(PartitionInput partitionInput) {
                 WorkerMetrics workerMetrics = new WorkerMetrics();
-                Logger logger = LoggerFactory.getLogger(TestRejsonReader.class);
+                Logger logger = LogManager.getLogger(TestRejsonReader.class);
                 WorkerContext workerContext = new WorkerContext(logger, workerMetrics, "123456");
                 BasePartitionWorker baseWorker = new BasePartitionWorker(workerContext);
                 return CompletableFuture.supplyAsync(() -> {
@@ -1451,7 +1451,7 @@ public class TestRejsonReader {
 
             public CompletableFuture<ScanOutput> invokeLocalLambda(ThreadScanInput scaninput) {
                 WorkerMetrics workerMetrics = new WorkerMetrics();
-                Logger logger = LoggerFactory.getLogger(TestRejsonReader.class);
+                Logger logger = LogManager.getLogger(TestRejsonReader.class);
                 WorkerContext workerContext = new WorkerContext(logger, workerMetrics, "123456");
                 BaseThreadScanWorker baseWorker = new BaseThreadScanWorker(workerContext);
                 return CompletableFuture.supplyAsync(() -> {
