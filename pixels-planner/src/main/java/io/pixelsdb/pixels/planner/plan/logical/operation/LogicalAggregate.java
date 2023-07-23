@@ -2,6 +2,8 @@ package io.pixelsdb.pixels.planner.plan.logical.operation;
 
 import java.util.Arrays;
 
+import io.pixelsdb.pixels.executor.aggregation.FunctionType;
+
 /**
  * 
  * logical aggreate operation
@@ -16,11 +18,28 @@ public class LogicalAggregate {
 
     private int[] groupKeyColumnIds;
 
+    private String[] groupKeyColumnNames;
+
+    private String[] groupKeyColumnAlias;
+
     private boolean distinct;
 
     private int[] aggregateColumnIds;
 
     private String[] aggregateColumnNames;
+
+    private String[] resultColumnAlias;
+
+    private boolean isPartitioned;
+
+    private int numPartitions;
+
+    private FunctionType[] functionTypes;
+
+    private String[] resultColumnTypes;
+
+
+    // private String[] 
 
     public LogicalAggregate(String aggregationName, String aggregationType, int[] groupKeyColumnIds,  int[] aggregateColumnIds, boolean distinct, String[] aggregateColumnNames) {
         this.aggregationName = aggregationName;
@@ -46,7 +65,62 @@ public class LogicalAggregate {
         this.aggregateColumnNames = null;
         this.distinct = false;
     }
+    
+    public String [] getResultColumnTypes() {
+        return resultColumnTypes;
+    }
 
+    public void setResultColumnTypes(String [] resultColumnTypes) {
+        this.resultColumnTypes = resultColumnTypes;
+    }
+
+    public FunctionType[] getFunctionTypes() {
+        return functionTypes;
+    }
+
+    public void setFunctionTypes(FunctionType[] functionTypes) {
+        this.functionTypes = functionTypes;
+    }
+
+    public int getNumPartition() {
+        return numPartitions;
+    }
+
+    public void setNumPartition(int numPartitions) {
+        this.numPartitions = numPartitions;
+    }
+
+    public boolean isPartition() {
+        return isPartitioned;
+    }
+
+    public void setPartition(boolean isPartitioned) {
+        this.isPartitioned = isPartitioned;
+    }
+
+    public String [] getResultColumnAlias() {
+        return resultColumnAlias;
+    }
+
+    public void setResultColumnAlias(String [] resultColumnAlias) {
+        this.resultColumnAlias = resultColumnAlias;
+    }
+
+    public String[] getGroupKeyColumnNames() {
+        return groupKeyColumnNames;
+    }
+
+    public void setGroupKeyColumnNames(String[] groupKeyColumnNames) {
+        this.groupKeyColumnNames = groupKeyColumnNames;
+    }
+
+    public String[] getGroupKeyColumnAlias() {
+        return groupKeyColumnAlias;
+    }
+
+    public void setGroupKeyColumnAlias(String[] groupKeyColumnAlias) {
+        this.groupKeyColumnAlias = groupKeyColumnAlias;
+    }
 
     public String getAggregationName() {
         return aggregationName;

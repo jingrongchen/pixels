@@ -22,7 +22,7 @@ package io.pixelsdb.pixels.planner.plan.physical.output;
 import io.pixelsdb.pixels.common.turbo.Output;
 
 import java.util.Set;
-
+import java.util.HashSet;
 /**
  * The output format of the hash partitioning.
  * @author hank
@@ -43,6 +43,15 @@ public class PartitionOutput extends Output
     /**
      * Default constructor for Jackson.
      */
+
+    public void setHashValuesWithNumber(int number){
+        this.hashValues = new HashSet<>(number);
+        for(int i = 0; i < number; i++){
+            hashValues.add(i);
+        }
+    }
+
+
     public PartitionOutput() { }
 
     public PartitionOutput(String path, Set<Integer> hashValues)

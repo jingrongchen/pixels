@@ -11,9 +11,12 @@ public class LogicalProject {
     
     private String[] projectFidlds;
 
-    private Integer[] ProjectFieldIds;
+    private int[] ProjectFieldIds;
     
-    public LogicalProject(String[] projectFidlds, Integer[] ProjectFieldIds) {
+    public LogicalProject() {
+    }
+
+    public LogicalProject(String[] projectFidlds, int[] ProjectFieldIds) {
         this.projectFidlds = projectFidlds;
         this.ProjectFieldIds = ProjectFieldIds;
     }
@@ -26,11 +29,28 @@ public class LogicalProject {
         this.projectFidlds = projectFidlds;
     }
 
-    public Integer[] getProjectFieldIds() {
-        return ProjectFieldIds;
+    public boolean[] getProjectFieldIds(String [] tablescanColtoRead) {
+        int[] projectFieldIds = new int[projectFidlds.length];
+        boolean[] tablescanColtoReadFlag = new boolean[tablescanColtoRead.length];
+
+        for (int i = 0; i < projectFidlds.length; i++) {
+            for (int j = 0; j < tablescanColtoRead.length; j++) {
+                if (projectFidlds[i].equals(tablescanColtoRead[j])) {
+                    projectFieldIds[i] = j;
+                    break;
+                }
+            }
+        }
+
+        for (int i = 0; i < projectFieldIds.length; i++) {
+            tablescanColtoReadFlag[projectFieldIds[i]] = true;
+        }
+        
+        return tablescanColtoReadFlag;
     }
 
-    public void setProjectFieldIds(Integer[] ProjectFieldIds) {
+
+    public void setProjectFieldIds(int[] ProjectFieldIds) {
         this.ProjectFieldIds = ProjectFieldIds;
     }
 

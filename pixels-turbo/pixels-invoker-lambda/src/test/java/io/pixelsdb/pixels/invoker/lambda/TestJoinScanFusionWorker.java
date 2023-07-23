@@ -115,12 +115,12 @@ public class TestJoinScanFusionWorker {
         rightTableInfo.setParallelism(2);
         rightTableInfo.setBase(false);
         rightTableInfo.setStorageInfo(new StorageInfo(Storage.Scheme.s3, null,null, null, null));
-        joinScanInput.setPartitionlargeTable(rightTableInfo);
+        // joinScanInput.setPartitionlargeTable(rightTableInfo);
 
         ScanPipeInfo scanPipeInfo = new ScanPipeInfo();
-        scanPipeInfo.setRoot("lineitem");
+        scanPipeInfo.setRootTableName("lineitem");
         // 1.project
-        LogicalProject logicalProject = new LogicalProject(new String[]{"l_orderkey","l_orderkey"}, new Integer[]{0,4});
+        LogicalProject logicalProject = new LogicalProject(new String[]{"l_orderkey","l_orderkey"}, new int[]{0,4});
         scanPipeInfo.addOperation(logicalProject);
         // 2.aggregate
         LogicalAggregate logicalAggregate = new LogicalAggregate("SUM", "DECIMAL", new int[]{0}, new int[]{1});
@@ -244,7 +244,7 @@ public class TestJoinScanFusionWorker {
 
         ScanPipeInfo scanPipeInfo = new ScanPipeInfo();
         //1.project
-        LogicalProject logicalProject = new LogicalProject(new String[]{"l_orderkey","l_orderkey"}, new Integer[]{0,4});
+        LogicalProject logicalProject = new LogicalProject(new String[]{"l_orderkey","l_orderkey"}, new int[]{0,4});
         scanPipeInfo.addOperation(logicalProject);
         //2.aggregate
         LogicalAggregate logicalAggregate = new LogicalAggregate("SUM", "DECIMAL", new int[]{0}, new int[]{1});
@@ -254,7 +254,7 @@ public class TestJoinScanFusionWorker {
         logicalFilter.addOperation(new int[]{1}, ">", "GREATER_THAN", 314, "INTEGER");
         scanPipeInfo.addOperation(logicalFilter);
         //4.project
-        LogicalProject logicalProject2 = new LogicalProject(new String[]{"l_orderkey"}, new Integer[]{0});
+        LogicalProject logicalProject2 = new LogicalProject(new String[]{"l_orderkey"}, new int[]{0});
         scanPipeInfo.addOperation(logicalProject2);
         //5.aggregate
 

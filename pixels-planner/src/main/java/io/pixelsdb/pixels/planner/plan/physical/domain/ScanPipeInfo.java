@@ -41,17 +41,20 @@ public class ScanPipeInfo {
      */
     private LinkedList<Object> objectList;
 
+    private String[] includeCols;
+
     public ScanPipeInfo() {
         this.objectList = new LinkedList<>();
     }
 
-    public ScanPipeInfo(String root, LinkedList<Object> objectList) {
+    public ScanPipeInfo(String root, LinkedList<Object> objectList, String[] includeCols) {
         this.root = root;
         this.objectList = objectList;
+        this.includeCols = includeCols;
         objectList.add(root);
     }
 
-    public String getRoot() {
+    public String getRootTableName() {
         return root;
     }
 
@@ -59,7 +62,7 @@ public class ScanPipeInfo {
         return objectList;
     }
 
-    public void setRoot(String root) {
+    public void setRootTableName(String root) {
         this.root = root;
         objectList.add(root);
     }
@@ -72,4 +75,11 @@ public class ScanPipeInfo {
         this.objectList.add(operation);
     }
 
+    public String[] getIncludeCols() {
+        return includeCols;
+    }
+
+    public void setIncludeCols(String[] includeCols) {
+        this.includeCols = includeCols;
+    }
 }

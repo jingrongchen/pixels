@@ -134,6 +134,11 @@ public class LogicalFilter {
         this.operands.add(operand);
     }
 
+    //TODO: add support for filter
+    public String getFilterString(){
+        return "to be implemented";
+    }
+
     @Override
     public String toString() {
         return "LogicalFilter {filterOpKind=" + filterOpKind + ", filterOpName=" + filterOpName + ", operands="

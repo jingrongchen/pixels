@@ -145,7 +145,7 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
             // GlobalVariable globalVariable=new GlobalVariable();
 
             for(int i=0;i<producerPoolSize;i++){
-                producerPool.submit(new ThreadScanProducer2(queryId,includeCols,blockingQueue,inputInfoQueue,outputschema,schemaLatch));
+                producerPool.submit(new ThreadScanProducer2(queryId,includeCols,blockingQueue,inputInfoQueue,outputschema));
             }
             /*start preparing batches */
 
@@ -707,16 +707,23 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
         private LinkedBlockingQueue<VectorizedRowBatch> blockingQueue;
         private LinkedBlockingQueue<InputInfo> inputInfoQueue;
         private Storage.Scheme inputScheme;
-        private CountDownLatch schemaLatch;
     
-        public ThreadScanProducer2(long queryId,String[] includeCols,LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue, Storage.Scheme inputScheme,CountDownLatch schemaLatch){
+        public ThreadScanProducer2(long queryId,String[] includeCols,LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue, Storage.Scheme inputScheme){
             this.queryId=queryId;
             this.includeCols=includeCols;
             this.blockingQueue=blockingque;
             this.inputInfoQueue=inputInfoQueue;
             this.inputScheme=inputScheme;
-            this.schemaLatch=schemaLatch;
         }
+
+        public ThreadScanProducer2(long queryId,String[] includeCols,LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue){
+            this.queryId=queryId;
+            this.includeCols=includeCols;
+            this.blockingQueue=blockingque;
+            this.inputInfoQueue=inputInfoQueue;
+            this.inputScheme=Storage.Scheme.s3;
+        }
+
     
         @Override
         public Object call() throws IOException{
@@ -737,13 +744,6 @@ public class BaseThreadScanWorker extends Worker<ThreadScanInput, ScanOutput>{
                     }
                     PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, includeCols, inputInfo);
                     PixelsRecordReader recordReader = pixelsReader.read(option);
-                    
-
-                    // if(rowBatchSchema==null){
-                    //     rowBatchSchema = recordReader.getResultSchema();
-                    //     schemaLatch.countDown();
-                    // }
-                    // rowBatchSchema = recordReader.getResultSchema();
 
                     VectorizedRowBatch rowBatch=null;
                     // TODO: issue, if "rgStart": is not start from 0;

@@ -15,7 +15,7 @@ public class JoinScanFusionInput extends BroadcastJoinInput{
     /**
      * The information of the large partitioned table.
      */
-    private PartitionedTableInfo PartitionlargeTable;
+    private PartitionInput PartitionlargeTable;
 
     /**
      * The information of the scan pipline.
@@ -42,17 +42,17 @@ public class JoinScanFusionInput extends BroadcastJoinInput{
     
     public JoinScanFusionInput(long transId, BroadcastTableInfo smallTable, BroadcastTableInfo largeTable,
         JoinInfo joinInfo, boolean partialAggregationPresent,
-        PartialAggregationInfo partialAggregationInfo, MultiOutputInfo output, PartitionedTableInfo PartitionlargeTable, ScanPipeInfo scanPipelineInfo){
+        PartialAggregationInfo partialAggregationInfo, MultiOutputInfo output, PartitionInput PartitionlargeTable, ScanPipeInfo scanPipelineInfo){
             super(transId, smallTable, largeTable, joinInfo, partialAggregationPresent, partialAggregationInfo, output);
             this.PartitionlargeTable = PartitionlargeTable;
             this.scanPipelineInfo = scanPipelineInfo;
     }
 
-    public PartitionedTableInfo getPartitionlargeTable() {
+    public PartitionInput getPartitionlargeTable() {
         return PartitionlargeTable;
     }
 
-    public void setPartitionlargeTable(PartitionedTableInfo partitionlargeTable) {
+    public void setPartitionlargeTable(PartitionInput partitionlargeTable) {
         PartitionlargeTable = partitionlargeTable;
     }
 
