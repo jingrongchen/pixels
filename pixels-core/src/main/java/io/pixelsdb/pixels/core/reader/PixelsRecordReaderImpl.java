@@ -114,7 +114,7 @@ public class PixelsRecordReaderImpl implements PixelsRecordReader
     // buffers of each chunk in this file, arranged by chunk's row group id and column id
     private ByteBuffer[] chunkBuffers;
     private ColumnReader[] readers;      // column readers for each target columns
-    private final boolean enableEncodedVector;
+    private boolean enableEncodedVector;
 
     private long diskReadBytes = 0L;
     private long cacheReadBytes = 0L;
@@ -623,13 +623,13 @@ public class PixelsRecordReaderImpl implements PixelsRecordReader
             }
             // read cached chunks
 //            long cacheReadStartNano = System.nanoTime();
-            for (ColumnChunkId columnChunkId : cacheChunks)
+            for (ColumnChunkId columnletId : cacheChunks)
             {
-                short rgId = columnChunkId.rowGroupId;
-                short colId = columnChunkId.columnId;
+                short rgId = columnletId.rowGroupId;
+                short colId = columnletId.columnId;
 //                long getBegin = System.nanoTime();
-                ByteBuffer columnlet = cacheReader.get(blockId, rgId, colId, columnChunkId.direct);
-                memoryUsage += columnChunkId.direct ? 0 : columnlet.capacity();
+                ByteBuffer columnlet = cacheReader.get(blockId, rgId, colId, columnletId.direct);
+                memoryUsage += columnletId.direct ? 0 : columnlet.capacity();
 //                long getEnd = System.nanoTime();
 //                logger.debug("[cache get]: " + columnlet.length + "," + (getEnd - getBegin));
                 chunkBuffers[(rgId - RGStart) * includedColumns.length + colId] = columnlet;

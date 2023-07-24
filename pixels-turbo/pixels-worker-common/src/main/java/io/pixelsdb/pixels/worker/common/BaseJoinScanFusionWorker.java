@@ -108,16 +108,16 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
             ExecutorService threadPool = Executors.newFixedThreadPool(2);
             CompletableFuture<FusionOutput> future = PartitionAndScan(event,fusionOutput,threadPool);
 
-            ExecutorService brocastJointhreadPool = Executors.newFixedThreadPool(2);
-            CompletableFuture<FusionOutput> future2 = broacastJoinAndPartition(event,fusionOutput,brocastJointhreadPool);
+            // ExecutorService brocastJointhreadPool = Executors.newFixedThreadPool(2);
+            // CompletableFuture<FusionOutput> future2 = broacastJoinAndPartition(event,fusionOutput,brocastJointhreadPool);
 
             future.get();
             System.out.println("success get future 1");
-            future2.get(); 
-            System.out.println("success get future 2");
+            // future2.get(); 
+            // System.out.println("success get future 2");
             threadPool.shutdown();
-            System.out.println("success shutdown threadpool");
-            brocastJointhreadPool.shutdown();
+            // System.out.println("success shutdown threadpool");
+            // brocastJointhreadPool.shutdown();
 
             System.out.println("success execute all");
             return fusionOutput;
@@ -160,8 +160,8 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
     public CompletableFuture<FusionOutput> PartitionAndScan(JoinScanFusionInput event, FusionOutput fusionOutput,ExecutorService threadPool){
         PartitionInput rightpartitionInput = event.getPartitionlargeTable();
         StorageInfo rightInputStorageInfo = requireNonNull(rightpartitionInput.getTableInfo().getStorageInfo(), "rightStorageInfo is null");
-        int numPartition = event.getJoinInfo().getPostPartitionInfo().getNumPartition();
-
+        int numPartition = event.getPartitionlargeTable().getPartitionInfo().getNumPartition();
+        
         // System.out.println("number of partitions: "+numPartition);
 
         List<InputSplit> inputSplits = rightpartitionInput.getTableInfo().getInputSplits();
@@ -381,12 +381,14 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                 }
 
                 System.out.println("success partition");
+                
+                
+                
+                // Thread.sleep(5000);
+                PartitionsWriter.close();
+                TableScanWriter.close();
                 producerPool.shutdown();
                 System.out.println("success shutdown");
-                
-                Thread.sleep(5000);
-                // PartitionsWriter.close();
-                // TableScanWriter.close();
                 
                 System.out.println("success before close");
                 fusionOutput.addSecondPartitionOutput(new PartitionOutput(partitionOutputPath, hashValues));
