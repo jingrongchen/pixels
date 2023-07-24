@@ -317,7 +317,7 @@ public class StringColumnReader
         {
             // read offsets
             inputBuffer.markReaderIndex();
-            inputBuffer.skipBytes(inputLength - 3 * Integer.BYTES);
+            inputBuffer.skipBytes(inputLength - 2 * Integer.BYTES);
             originsOffset = inputBuffer.readInt();
             startsOffset = inputBuffer.readInt();
             int ordersOffset = inputBuffer.readInt();
