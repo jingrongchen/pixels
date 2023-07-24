@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -86,6 +87,7 @@ import io.pixelsdb.pixels.common.turbo.Output;
 import java.util.Collections;
 
 import io.pixelsdb.pixels.worker.common.BaseAggregationWorker;
+import io.pixelsdb.pixels.worker.common.BaseJoinScanFusionWorker;
 import io.pixelsdb.pixels.worker.common.BasePartitionWorker;
 ///for local invoking
 import io.pixelsdb.pixels.worker.common.BaseThreadScanWorker;
@@ -94,16 +96,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import io.pixelsdb.pixels.worker.common.WorkerMetrics;
 import java.util.concurrent.LinkedBlockingQueue;
-
+import java.util.Iterator;
 
 //for aggregation
 import io.pixelsdb.pixels.planner.plan.physical.input.AggregationInput;
+import io.pixelsdb.pixels.planner.plan.physical.input.JoinScanFusionInput;
 import io.pixelsdb.pixels.planner.plan.physical.input.ScanInput;
 import io.pixelsdb.pixels.planner.plan.physical.domain.AggregatedTableInfo;
 import io.pixelsdb.pixels.planner.plan.physical.domain.OutputInfo;
 import io.pixelsdb.pixels.planner.plan.physical.output.AggregationOutput;
-
-
+import io.pixelsdb.pixels.planner.plan.physical.output.FusionOutput;
 //For join
 import io.pixelsdb.pixels.planner.plan.physical.input.PartitionInput;
 import io.pixelsdb.pixels.planner.plan.physical.output.PartitionOutput;
@@ -119,7 +121,6 @@ public class TestRejsonReader {
     
     @Test
     public void testRejsonReader() throws Exception {
-
         LambdaPlanner lambdaPlanner = new LambdaPlanner(Paths.get("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/logicalplan/TPCHQ18.json"));
         String hostaddr="ec2-18-218-128-203.us-east-2.compute.amazonaws.com";
         String schemaPath = "s3://jingrong-test/";
@@ -131,7 +132,7 @@ public class TestRejsonReader {
         lambdaPlanner.generateDAG();
         lambdaPlanner.optDAG();
         lambdaPlanner.genSubGraphs();
-        // lambdaPlanner.invokeLambda();
+        // lambdaPlanner.invokeLamvscode-file://vscode-app/Users/johnchen/Desktop/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/code/electron-sandbox/workbench/workbench.htmlbda();
 
     }
 
@@ -367,9 +368,9 @@ public class TestRejsonReader {
             Set<Integer> vertexSet = new HashSet<Integer>(OptDag.vertexSet());
             System.out.println("node: "+vertexSet);
             List<HashSet<Integer>> graphList = new ArrayList<HashSet<Integer>>();
-            brekerNode.forEach(
-                node -> {
-                    if (OptDag.inDegreeOf(node) == 0 && OptDag.outDegreeOf(node)!=0) {
+            
+            for(Integer node: brekerNode){
+                if (OptDag.inDegreeOf(node) == 0 && OptDag.outDegreeOf(node)!=0) {
                         Set<Integer> descSet = OptDag.getDescendants(node);
                         descSet.add(node);
                         graphList.add(new HashSet<Integer>(descSet));
@@ -380,19 +381,23 @@ public class TestRejsonReader {
                         ancSet.add(node);
 
                     //  System.out.println("in the middle if condition ancSet: "+ancSet);
-
                         Integer rootNodeId = ancSet.iterator().next();
-                    //  System.out.println("rootNodeId: "+rootNodeId);
-
+                        System.out.println("rootNodeId: "+rootNodeId);
                         if (graphList.size()!=0){
-                            graphList.forEach(graph -> {
+                            ListIterator<HashSet<Integer>> iterator = graphList.listIterator();
+                            while (iterator.hasNext()) {
+                                HashSet<Integer> graph = iterator.next();
                                 if (graph.contains(rootNodeId)){
-                                    graph.addAll(ancSet);
+                                    System.out.println("local graph: "+graph);
+                                    HashSet<Integer> newgraph = new HashSet<Integer>(graph);
+                                    newgraph.addAll(ancSet);
+                                    iterator.remove();
+                                    iterator.add(newgraph);
                                 } else {
-                                    graphList.add(new HashSet<Integer>(ancSet));
+                                    iterator.add(new HashSet<Integer>(ancSet));
                                 }
                                 vertexSet.removeAll(ancSet);
-                            });
+                            }
                         } else {
                             graphList.add(new HashSet<Integer>(ancSet));
                             vertexSet.removeAll(ancSet);
@@ -408,8 +413,7 @@ public class TestRejsonReader {
                         graphList.add(new HashSet<Integer>(nodeset));
                         vertexSet.remove(node);
                     }
-                }
-            );
+            }
 
 
             if (vertexSet.size()!=0){
@@ -418,14 +422,17 @@ public class TestRejsonReader {
             }
 
             // Build subgraphs
-            
+
             graphList.forEach(graph -> {
                 subGraphs.add(new AsSubgraph<>(OptDag, graph));
             });
 
+
+            System.out.println("cut herer");
             subGraphs.forEach(subGraph -> {
                 System.out.println("subGraph vertexSet: " + subGraph.vertexSet() + " edgeSet: " + subGraph.edgeSet());
             });
+            System.out.println("cut herer");
             
             // System.out.println(relIdToNode.get(8).path("outputPath").asText());
 
@@ -1427,6 +1434,21 @@ public class TestRejsonReader {
                 return CompletableFuture.supplyAsync(() -> {
                     try {
                         return baseWorker.process(joinInput);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    return null;
+                });                
+            }
+
+            public CompletableFuture<FusionOutput> invokeLocalFusionJoinScan(JoinScanFusionInput joinScanInput){
+                WorkerMetrics workerMetrics = new WorkerMetrics();
+                Logger logger = LogManager.getLogger(TestRejsonReader.class);
+                WorkerContext workerContext = new WorkerContext(logger, workerMetrics, "123456");
+                BaseJoinScanFusionWorker baseWorker = new BaseJoinScanFusionWorker(workerContext);
+                return CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return baseWorker.process(joinScanInput);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

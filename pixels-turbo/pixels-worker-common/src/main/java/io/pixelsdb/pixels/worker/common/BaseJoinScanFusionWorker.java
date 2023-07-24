@@ -112,9 +112,14 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
             CompletableFuture<FusionOutput> future2 = broacastJoinAndPartition(event,fusionOutput,brocastJointhreadPool);
 
             future.get();
+            System.out.println("success get future 1");
             future2.get(); 
+            System.out.println("success get future 2");
+            threadPool.shutdown();
+            System.out.println("success shutdown threadpool");
+            brocastJointhreadPool.shutdown();
 
-            System.out.println("successsssss execute all");
+            System.out.println("success execute all");
             return fusionOutput;
         } catch (Exception e)
         {
@@ -127,7 +132,7 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
 
     }
 
-    public void batchFactory(LinkedBlockingQueue<InputInfo> inputInfoQueue,List<InputSplit> inputSplits, long queryId, String[] includeCols,LinkedBlockingQueue<VectorizedRowBatch> blockingQueue,List<BatchToQueue> batchToQueueList){
+    public void batchFactory(LinkedBlockingQueue<InputInfo> inputInfoQueue,List<InputSplit> inputSplits, long queryId, String[] includeCols,LinkedBlockingQueue<VectorizedRowBatch> blockingQueue,List<BatchToQueue> batchToQueueList,ExecutorService producerPool){
         if(inputInfoQueue==null){
             inputInfoQueue=new LinkedBlockingQueue<>();
         }
@@ -144,7 +149,7 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
         }
 
         System.out.println("batchToQueueList size: "+batchToQueueList.size());
-        ExecutorService producerPool = Executors.newFixedThreadPool(batchToQueueList.size());
+        // ExecutorService producerPool = Executors.newFixedThreadPool(batchToQueueList.size());
         for(int i=0;i<batchToQueueList.size();i++){
             producerPool.submit(batchToQueueList.get(i));
         }
@@ -188,7 +193,8 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
         List<BatchToQueue> batchToQueueList = new ArrayList<>();
         batchToQueueList.add(new BatchToQueue(event.getTransId(), includeColumns, blockingQueue,inputInfoQueue,schemalatch,true));
         // batchToQueueList.add(new BatchToQueue(event.getTransId(), includeColumns, blockingQueue,inputInfoQueue,schemalatch,false));
-        batchFactory(inputInfoQueue,inputSplits,event.getTransId(), includeColumns,blockingQueue,batchToQueueList);
+        ExecutorService producerPool = Executors.newFixedThreadPool(2);
+        batchFactory(inputInfoQueue,inputSplits,event.getTransId(), includeColumns,blockingQueue,batchToQueueList,producerPool);
 
         System.out.println("thread keep running");
         try
@@ -358,7 +364,7 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                     }
                 }
                 
-                System.out.println("success partition");
+                
                 
                 // initial the table scan writer
                 if(TablbScanpartialAggregate){
@@ -374,13 +380,18 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                     aggregator.writeAggrOutput(TableScanWriter);
                 }
 
-                // Thread.sleep(1000);
-                PartitionsWriter.close();
-                TableScanWriter.close();
+                System.out.println("success partition");
+                producerPool.shutdown();
+                System.out.println("success shutdown");
                 
-                System.out.println("success close");
+                Thread.sleep(5000);
+                // PartitionsWriter.close();
+                // TableScanWriter.close();
+                
+                System.out.println("success before close");
                 fusionOutput.addSecondPartitionOutput(new PartitionOutput(partitionOutputPath, hashValues));
                 fusionOutput.setOutputs(new ArrayList<String> (Arrays.asList(tablescanOutput)));
+                System.out.println("success close");
                 return fusionOutput;
             } catch (Exception e)
             {
@@ -390,24 +401,6 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
         }, threadPool);
 
         return future;
-        // try
-        // {
-        //     future.get();
-        // } catch (Exception e)
-        // {
-        //     logger.error(String.format("error during scan and partition: %s", e));
-        //     throw new WorkerException("error during scan and partition", e);
-        // }
-
-
-        // future.get();
-        // future.thenAccept(result -> {
-        //     System.out.println("CompletableFuture result: " + result);
-        // });
-
-
-        // threadPool.shutdown();
-        // return true;
     }
 
     public CompletableFuture<FusionOutput>  broacastJoinAndPartition(JoinScanFusionInput event, FusionOutput fusionOutput,ExecutorService brocastJointhreadPool){
