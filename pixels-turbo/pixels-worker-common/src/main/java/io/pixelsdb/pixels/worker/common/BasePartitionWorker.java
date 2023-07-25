@@ -132,7 +132,7 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
                 while (!threadPool.awaitTermination(60, TimeUnit.SECONDS));
             } catch (InterruptedException e)
             {
-                logger.error(String.format("interrupted while waiting for the termination of partitioning: %s", e));
+                logger.error(String.format("interrupted while waiting for the termination of partitioning: %s",e));
                 throw new WorkerException("interrupted while waiting for the termination of partitioning", e);
             }
 
@@ -267,8 +267,10 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
                 readBytes += recordReader.getCompletedBytes();
                 numReadRequests += recordReader.getNumReadRequests();
             } catch (Exception e)
-            {
-                logger.error(String.format("failed to scan the file '%s' and output the partitioning result: %s"));
+            {   
+
+                logger.error(String.format("failed to scan the file '%s' and output the partitioning result: %s",
+                        inputInfo.getPath(), e));
                 throw new WorkerException("failed to scan the file '" +
                         inputInfo.getPath() + "' and output the partitioning result", e);
             }
@@ -284,7 +286,6 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
                 }
             }
         }
-        System.out.println("iam here");
         workerMetrics.addReadBytes(readBytes);
         workerMetrics.addNumReadRequests(numReadRequests);
         workerMetrics.addInputCostNs(readCostTimer.getElapsedNs());

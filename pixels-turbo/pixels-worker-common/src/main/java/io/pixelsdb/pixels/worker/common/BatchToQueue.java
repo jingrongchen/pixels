@@ -24,25 +24,28 @@ class BatchToQueue implements Callable{
         private LinkedBlockingQueue<InputInfo> inputInfoQueue;
         private Storage.Scheme inputScheme;
         private TypeDescription rowBatchSchema;
-        private boolean isLatch;
+        private boolean isLatch=false;
         private CountDownLatch schemalatch;
+        private CountDownLatch producerlatch;
         // private List<InputSplit> inputSplits;
     
-        public BatchToQueue(long queryId, String[] includeCols, LinkedBlockingQueue<VectorizedRowBatch> blockingque,CountDownLatch latch){
+        public BatchToQueue(long queryId, String[] includeCols, LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue,CountDownLatch producerlatch){
             this.queryId=queryId;
             this.includeCols=includeCols;
             this.blockingQueue=blockingque;
-            this.schemalatch=latch;
-            // this.inputInfoQueue=inputInfoQueue;
+            // this.schemalatch=latch;
+            this.producerlatch=producerlatch;
+            this.inputInfoQueue=inputInfoQueue;
             this.inputScheme=Storage.Scheme.s3;
         }
 
-        public BatchToQueue(long queryId, String[] includeCols, LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue,CountDownLatch latch,boolean isLatch){
+        public BatchToQueue(long queryId, String[] includeCols, LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue,CountDownLatch producerlatch,CountDownLatch latch,boolean isLatch){
             this.queryId=queryId;
             this.includeCols=includeCols;
             this.blockingQueue=blockingque;
             this.inputInfoQueue=inputInfoQueue;
             this.schemalatch=latch;
+            this.producerlatch=producerlatch;
             this.isLatch=isLatch;
             this.inputScheme=Storage.Scheme.s3;
         }
@@ -50,8 +53,10 @@ class BatchToQueue implements Callable{
         @Override
         public Object call() throws IOException{
             while(true){
+                
                 try{
                     if(inputInfoQueue.isEmpty()){
+                        producerlatch.countDown();
                         return true;
                     }
                     // WorkerCommon.initStorage(
@@ -60,6 +65,7 @@ class BatchToQueue implements Callable{
                     PixelsReader pixelsReader = WorkerCommon.getReader(inputInfo.getPath(), WorkerCommon.getStorage(inputScheme));
                     if (inputInfo.getRgStart() >= pixelsReader.getRowGroupNum())
                     {
+                        producerlatch.countDown();
                         return true;
                     }
                     if (inputInfo.getRgStart() + inputInfo.getRgLength() >= pixelsReader.getRowGroupNum())

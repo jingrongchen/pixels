@@ -191,9 +191,13 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
         // BatchToQueue batchToQueue = new BatchToQueue(event.getTransId(), includeColumns, blockingQueue,schemalatch);
         LinkedBlockingQueue<InputInfo> inputInfoQueue = new LinkedBlockingQueue<>();
         List<BatchToQueue> batchToQueueList = new ArrayList<>();
-        batchToQueueList.add(new BatchToQueue(event.getTransId(), includeColumns, blockingQueue,inputInfoQueue,schemalatch,true));
-        // batchToQueueList.add(new BatchToQueue(event.getTransId(), includeColumns, blockingQueue,inputInfoQueue,schemalatch,false));
+
+        CountDownLatch producerlatch = new CountDownLatch(2);
+        batchToQueueList.add(new BatchToQueue(event.getTransId(), includeColumns, blockingQueue,inputInfoQueue,producerlatch,schemalatch,true));
+        batchToQueueList.add(new BatchToQueue(event.getTransId(), includeColumns, blockingQueue,inputInfoQueue,producerlatch));
+        
         ExecutorService producerPool = Executors.newFixedThreadPool(2);
+
         batchFactory(inputInfoQueue,inputSplits,event.getTransId(), includeColumns,blockingQueue,batchToQueueList,producerPool);
 
         System.out.println("thread keep running");
@@ -383,13 +387,14 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                 System.out.println("success partition");
                 
                 
-                
+                producerlatch.await();
+                producerPool.shutdown();
                 // Thread.sleep(5000);
                 PartitionsWriter.close();
                 TableScanWriter.close();
-                producerPool.shutdown();
-                System.out.println("success shutdown");
                 
+                
+                System.out.println("success shutdown");
                 System.out.println("success before close");
                 fusionOutput.addSecondPartitionOutput(new PartitionOutput(partitionOutputPath, hashValues));
                 fusionOutput.setOutputs(new ArrayList<String> (Arrays.asList(tablescanOutput)));

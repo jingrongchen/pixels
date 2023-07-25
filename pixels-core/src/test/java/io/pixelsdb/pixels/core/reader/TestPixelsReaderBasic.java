@@ -54,11 +54,11 @@ public class TestPixelsReaderBasic
     @Test
     public void testMetadata()
     {
-        String path = "file:///home/hank/Downloads/pixels/20220306043329_1.pxl";
+        String path = "s3://jingrong-lambda-test/tpch/customer/v-0-ordered/20230724225757_2.pxl";
         PixelsReader reader;
         try
         {
-            Storage storage = StorageFactory.Instance().getStorage("file");
+            Storage storage = StorageFactory.Instance().getStorage("s3");
             reader = PixelsReaderImpl.newBuilder()
                     .setStorage(storage)
                     .setPath(path)
