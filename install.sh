@@ -14,12 +14,12 @@ else
   echo "PIXELS_HOME is '$PIXELS_HOME'"
 fi
 
-mkdir -p $PIXELS_HOME/bin
-mkdir -p $PIXELS_HOME/lib
-mkdir -p $PIXELS_HOME/listener
-mkdir -p $PIXELS_HOME/logs
-mkdir -p $PIXELS_HOME/sbin
-mkdir -p $PIXELS_HOME/var
+# mkdir -p $PIXELS_HOME/bin
+# mkdir -p $PIXELS_HOME/lib
+# mkdir -p $PIXELS_HOME/listener
+# mkdir -p $PIXELS_HOME/logs
+# mkdir -p $PIXELS_HOME/sbin
+# mkdir -p $PIXELS_HOME/var
 
 echo "Installing scripts..."
 
@@ -67,20 +67,20 @@ if [ -z "$(ls -A $PIXELS_HOME/lib)" ]; then
   )Make sure to put the jdbc connector of MySQL into '$PIXELS_HOME/lib'!$(tput sgr 0)"
 fi
 
-echo "Installing config file..."
-if [ -z "$(find $PIXELS_HOME -name "pixels.properties")" ]; then
-  cp -v ./pixels-common/src/main/resources/pixels.properties $PIXELS_HOME
-  echo "$(
-    tput setaf 1
-    tput setab 7
-  )Make sure to modify '$PIXELS_HOME/pixels.properties'!$(tput sgr 0)"
-else
-  read -p "'$PIXELS_HOME/pixels.properties' exists, override?[y/n]" -n 1 -r
-  echo # move to a new line
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    cp -v ./pixels-common/src/main/resources/pixels.properties $PIXELS_HOME
-  fi
-fi
+# echo "Installing config file..."
+# if [ -z "$(find $PIXELS_HOME -name "pixels.properties")" ]; then
+#   cp -v ./pixels-common/src/main/resources/pixels.properties $PIXELS_HOME
+#   echo "$(
+#     tput setaf 1
+#     tput setab 7
+#   )Make sure to modify '$PIXELS_HOME/pixels.properties'!$(tput sgr 0)"
+# else
+#   read -p "'$PIXELS_HOME/pixels.properties' exists, override?[y/n]" -n 1 -r
+#   echo # move to a new line
+#   if [[ $REPLY =~ ^[Yy]$ ]]; then
+#     cp -v ./pixels-common/src/main/resources/pixels.properties $PIXELS_HOME
+#   fi
+# fi
 
 echo "$(
   tput setaf 1

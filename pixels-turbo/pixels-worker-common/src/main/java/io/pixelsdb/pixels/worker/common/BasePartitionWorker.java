@@ -228,11 +228,11 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
                 VectorizedRowBatch rowBatch;
 
                 if (scanner == null)
-                {
+                {   
                     scanner = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, columnsToRead, projection, filter);
                 }
                 if (partitioner == null)
-                {
+                {   
                     partitioner = new Partitioner(partitionResult.size(), WorkerCommon.rowBatchSize,
                             scanner.getOutputSchema(), keyColumnIds);
                 }
@@ -241,12 +241,15 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
                     writerSchema.weakCompareAndSet(null, scanner.getOutputSchema());
                 }
 
+
                 computeCostTimer.start();
                 do
-                {
+                {   
                     rowBatch = scanner.filterAndProject(recordReader.readBatch(WorkerCommon.rowBatchSize));
+                    // System.out.println("iam here");
                     if (rowBatch.size > 0)
-                    {
+                    {   
+                        // System.out.println("iam here");
                         Map<Integer, VectorizedRowBatch> result = partitioner.partition(rowBatch);
                         if (!result.isEmpty())
                         {
@@ -257,6 +260,7 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
                         }
                     }
                 } while (!rowBatch.endOfFile);
+                // System.out.println("iam here");
                 computeCostTimer.stop();
                 computeCostTimer.minus(recordReader.getReadTimeNanos());
                 readCostTimer.add(recordReader.getReadTimeNanos());
@@ -280,6 +284,7 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
                 }
             }
         }
+        System.out.println("iam here");
         workerMetrics.addReadBytes(readBytes);
         workerMetrics.addNumReadRequests(numReadRequests);
         workerMetrics.addInputCostNs(readCostTimer.getElapsedNs());
