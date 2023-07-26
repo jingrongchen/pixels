@@ -261,6 +261,7 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                         TablbScanpartialAggregate = true;
                         LogicalAggregate partialAggregationInfo = (LogicalAggregate) o;
                         boolean[] groupKeyProjection = new boolean[partialAggregationInfo.getGroupKeyColumnAlias().length];
+                        Arrays.fill(groupKeyProjection, true);
                         // numpartitions
                         aggregator = new Aggregator(WorkerCommon.rowBatchSize, rowBatchSchema,
                         partialAggregationInfo.getGroupKeyColumnAlias(),

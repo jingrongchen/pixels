@@ -305,6 +305,7 @@ public class LongColumnVector extends ColumnVector
         this.vector = null;
     }
 
+
     public long[] getVector()
     {
         return vector;
