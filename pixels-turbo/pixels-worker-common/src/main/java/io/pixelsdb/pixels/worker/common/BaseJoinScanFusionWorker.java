@@ -35,9 +35,11 @@ import io.pixelsdb.pixels.executor.join.Partitioner;
 import io.pixelsdb.pixels.executor.predicate.TableScanFilter;
 import io.pixelsdb.pixels.worker.common.BaseBroadcastJoinWorker;
 import io.pixelsdb.pixels.worker.common.BaseThreadScanWorker.ThreadScanProducer2;
+import io.pixelsdb.pixels.planner.plan.logical.operation.ListNode;
 import io.pixelsdb.pixels.planner.plan.logical.operation.LogicalAggregate;
 import io.pixelsdb.pixels.planner.plan.logical.operation.LogicalFilter;
 import io.pixelsdb.pixels.planner.plan.logical.operation.LogicalProject;
+import io.pixelsdb.pixels.planner.plan.logical.operation.ScanpipeInfo;
 import io.pixelsdb.pixels.planner.plan.physical.domain.BroadcastTableInfo;
 import io.pixelsdb.pixels.planner.plan.physical.domain.InputSplit;
 import io.pixelsdb.pixels.planner.plan.physical.domain.MultiOutputInfo;
@@ -70,7 +72,8 @@ import io.pixelsdb.pixels.planner.plan.physical.input.PartitionInput;
 import io.pixelsdb.pixels.planner.plan.physical.domain.InputInfo;
 import io.pixelsdb.pixels.planner.plan.physical.output.PartitionOutput;
 import io.pixelsdb.pixels.executor.scan.Scanner;
-/**
+import io.pixelsdb.pixels.planner.plan.physical.domain.PartialAggregationInfo;
+/** 
  * BaseJoinScanFusion is the combination of a set of partition joins and scan pipline(including scan project aggregate filter).
  * It contains a set of chain partitions joins combined with scan pipline.
  * The scan pipline happen in parallel with join pipline.
@@ -166,7 +169,8 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
 
         List<InputSplit> inputSplits = rightpartitionInput.getTableInfo().getInputSplits();
         // List<ConcurrentLinkedQueue<VectorizedRowBatch>> partitioned = new ArrayList<>(numPartition);
-        ScanPipeInfo scanPipeInfo = event.getScanPipelineInfo();
+        ScanpipeInfo scanPipeInfo =requireNonNull(event.getScanPipelineInfo(), "scanPipelineInfo is null");
+
         //do i need this?
         WorkerCommon.initStorage(rightInputStorageInfo);
         // for (int i = 0; i < numPartition; ++i)
@@ -200,9 +204,12 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
 
         batchFactory(inputInfoQueue,inputSplits,event.getTransId(), includeColumns,blockingQueue,batchToQueueList,producerPool);
 
+        System.out.println("i dont' need to compile again");
+
         System.out.println("thread keep running");
         try
-        {
+        {   
+            System.out.println("waiting for the latch");
             schemalatch.await();
         } catch (Exception e)
         {
@@ -212,11 +219,7 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
 
         TypeDescription rowBatchSchema = batchToQueueList.get(0).getRowBatchSchema();
         System.out.println("rowBatchSchema: "+rowBatchSchema.toString());
-        // System.out.println("i am here");
-        
-        //scan and partition    
-        
-        //run the partition
+
         String[] columnsToRead = event.getPartitionlargeTable().getTableInfo().getColumnsToRead();
         boolean[] projection = event.getPartitionlargeTable().getProjection();
         TableScanFilter filter = JSON.parseObject(event.getPartitionlargeTable().getTableInfo().getFilter(), TableScanFilter.class);
@@ -239,27 +242,20 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
             try
             {   
                 //initiating 
-                boolean[] tablescanProjection = null;
+                boolean[] tablescanProjection = new boolean[columnsToRead.length];
                         // For tablescan Scanner 
                 TableScanFilter tableScanFilter = TableScanFilter.empty("tpch", "lineitem");
-                boolean TablbScanpartialAggregate = false;
+                
                 Aggregator aggregator = null;
                 // PixelsWriter TableScanWriter = null;
                 String [] tablescanColtoRead = scanPipeInfo.getIncludeCols();
+                System.out.println("tablescanColtoRead: "+Arrays.toString(tablescanColtoRead));
+                tablescanProjection = scanPipeInfo.getProjectFieldIds(tablescanColtoRead);
+                boolean ispartialAggregate = scanPipeInfo.isPartialAggregation();
+                
 
-                //assemble scan pipeline
-                for(Object o:scanPipeInfo.getObjectList()){
-                    if(o instanceof LogicalFilter){
-                        // tableScanFilter = TableScanFilter.empty("tpch", "lineitem");
-                        //TODO: add support for filter
-                        // TableScanFilter = JSON.parseObject(((LogicalFilter) o).getFilterOpName(), TableScanFilter.class);
-                    }
-                    else if(o instanceof LogicalProject){
-                        tablescanProjection = ((LogicalProject) o).getProjectFieldIds(tablescanColtoRead);
-                    }
-                    else if(o instanceof LogicalAggregate){
-                        TablbScanpartialAggregate = true;
-                        LogicalAggregate partialAggregationInfo = (LogicalAggregate) o;
+                if(ispartialAggregate){
+                        PartialAggregationInfo partialAggregationInfo = scanPipeInfo.getPartialAggregationInfo();
                         boolean[] groupKeyProjection = new boolean[partialAggregationInfo.getGroupKeyColumnAlias().length];
                         Arrays.fill(groupKeyProjection, true);
                         // numpartitions
@@ -273,16 +269,12 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                         partialAggregationInfo.isPartition(),
                         partialAggregationInfo.getNumPartition());
                     }
-                }
-
-                //For table scan scanner
-                // System.out.println(TableScanFilter.toString());
-
+        
                 String tablescanOutput = outputPath + event.getFusionOutput().getFileNames().get(2);
                 Scanner TableScanScanner = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, tablescanColtoRead, tablescanProjection, tableScanFilter);
                 Scanner scanner = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, columnsToRead, projection, filter);
                 PixelsWriter TableScanWriter = null;
-                if(TablbScanpartialAggregate){
+                if(ispartialAggregate){
                     TableScanWriter = WorkerCommon.getWriter(TableScanScanner.getOutputSchema(), WorkerCommon.getStorage(outputStorageInfo.getScheme()),
                                 tablescanOutput, encoding, false, null);
                 }
@@ -303,7 +295,7 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                     scanRowBatch = TableScanScanner.filterAndProject(scanRowBatch);
                     if (rowBatch.size > 0)
                     {
-                        if (TablbScanpartialAggregate)
+                        if (ispartialAggregate)
                         {
                             aggregator.aggregate(scanRowBatch);
                         } else
@@ -372,7 +364,7 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                 
                 
                 // initial the table scan writer
-                if(TablbScanpartialAggregate){
+                if(ispartialAggregate){
                     TableScanWriter = WorkerCommon.getWriter(aggregator.getOutputSchema(),
                                 WorkerCommon.getStorage(outputStorageInfo.getScheme()), tablescanOutput, encoding,
                                 aggregator.isPartition(), aggregator.getGroupKeyColumnIdsInResult());
@@ -381,7 +373,7 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                                 tablescanOutput, encoding, false, null);
                 }
                 //write the table scan output
-                if (TablbScanpartialAggregate){
+                if (ispartialAggregate){
                     aggregator.writeAggrOutput(TableScanWriter);
                 }
 

@@ -125,7 +125,7 @@ public class TestJoinScanFusionWorker {
         // 2.aggregate
         LogicalAggregate logicalAggregate = new LogicalAggregate("SUM", "DECIMAL", new int[]{0}, new int[]{1});
         scanPipeInfo.addOperation(logicalAggregate);
-        joinScanInput.setScanPipelineInfo(scanPipeInfo);
+        // joinScanInput.setScanPipelineInfo(scanPipeInfo);
 
         //set fusionOutput 
         MultiOutputInfo fusionOutput = new MultiOutputInfo();

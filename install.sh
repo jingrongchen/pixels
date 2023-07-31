@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-mvn clean install
+# mvn clean install
 
 # if [ $? -ne 0 ]; then
 #   echo "ERROR: Maven package failed. Stop installing Pixels."

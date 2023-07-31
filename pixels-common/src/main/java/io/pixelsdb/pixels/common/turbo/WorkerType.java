@@ -33,6 +33,7 @@ public enum WorkerType
     BROADCAST_CHAIN_JOIN,
     PARTITIONED_JOIN,
     PARTITIONED_CHAIN_JOIN,
+    JOINSCANFUSION,
     AGGREGATION;
 
     public static WorkerType from(String value)

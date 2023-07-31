@@ -10,7 +10,7 @@ import io.pixelsdb.pixels.executor.aggregation.FunctionType;
  * @author Jingrong
  * @date 2023-07-19
  */
-public class LogicalAggregate {
+public class LogicalAggregate extends ListNode{
     
     private String aggregationName;
 

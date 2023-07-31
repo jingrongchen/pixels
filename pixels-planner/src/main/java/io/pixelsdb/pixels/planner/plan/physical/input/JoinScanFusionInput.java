@@ -1,7 +1,6 @@
 package io.pixelsdb.pixels.planner.plan.physical.input;
 
-
-
+import io.pixelsdb.pixels.planner.plan.logical.operation.ScanpipeInfo;
 import io.pixelsdb.pixels.planner.plan.physical.domain.BroadcastTableInfo;
 import io.pixelsdb.pixels.planner.plan.physical.domain.JoinInfo;
 import io.pixelsdb.pixels.planner.plan.physical.domain.MultiOutputInfo;
@@ -21,7 +20,7 @@ public class JoinScanFusionInput extends BroadcastJoinInput{
      * The information of the scan pipline.
     */
     
-    private ScanPipeInfo scanPipelineInfo;
+    private ScanpipeInfo scanPipelineInfo;
     
     /**
      * The output of the fusion.
@@ -42,7 +41,7 @@ public class JoinScanFusionInput extends BroadcastJoinInput{
     
     public JoinScanFusionInput(long transId, BroadcastTableInfo smallTable, BroadcastTableInfo largeTable,
         JoinInfo joinInfo, boolean partialAggregationPresent,
-        PartialAggregationInfo partialAggregationInfo, MultiOutputInfo output, PartitionInput PartitionlargeTable, ScanPipeInfo scanPipelineInfo){
+        PartialAggregationInfo partialAggregationInfo, MultiOutputInfo output, PartitionInput PartitionlargeTable, ScanpipeInfo scanPipelineInfo){
             super(transId, smallTable, largeTable, joinInfo, partialAggregationPresent, partialAggregationInfo, output);
             this.PartitionlargeTable = PartitionlargeTable;
             this.scanPipelineInfo = scanPipelineInfo;
@@ -56,11 +55,11 @@ public class JoinScanFusionInput extends BroadcastJoinInput{
         PartitionlargeTable = partitionlargeTable;
     }
 
-    public ScanPipeInfo getScanPipelineInfo() {
+    public ScanpipeInfo getScanPipelineInfo() {
         return scanPipelineInfo;
     }
 
-    public void setScanPipelineInfo(ScanPipeInfo scanPipelineInfo) {
+    public void setScanPipelineInfo(ScanpipeInfo scanPipelineInfo) {
         this.scanPipelineInfo = scanPipelineInfo;
     }
 

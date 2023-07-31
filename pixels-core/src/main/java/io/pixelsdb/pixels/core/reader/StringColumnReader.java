@@ -383,6 +383,12 @@ public class StringColumnReader
             inputBuffer.markReaderIndex();
             inputBuffer.skipBytes(inputLength - Integer.BYTES);
             int lensOffset = inputBuffer.readInt();
+            
+            // int testvalue = inputLength-Integer.BYTES;
+            // if(lensOffset>inputLength-Integer.BYTES) {
+            //     lensOffset = inputLength-Integer.BYTES;
+            // }
+
             inputBuffer.resetReaderIndex();
             // read strings
             if (this.inputBuffer.isDirect())
@@ -392,7 +398,11 @@ public class StringColumnReader
                 contentBuf = Unpooled.wrappedBuffer(bytes);
             }
             else
-            {
+            {   
+                // if(lensOffset>inputLength-Integer.BYTES) {
+                //     lensOffset = inputLength-Integer.BYTES;
+                // }
+
                 contentBuf = inputBuffer.slice(0, lensOffset);
             }
             // read lens field

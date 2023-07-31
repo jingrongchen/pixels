@@ -56,20 +56,25 @@ class BatchToQueue implements Callable{
                 
                 try{
                     if(inputInfoQueue.isEmpty()){
+                        System.out.println("inputInfoQueue is empty");
                         producerlatch.countDown();
                         return true;
                     }
                     // WorkerCommon.initStorage(
+                    
                     InputInfo inputInfo=inputInfoQueue.take();
                     System.out.println(Thread.currentThread().getName()+":::"+inputInfo.getPath());
                     PixelsReader pixelsReader = WorkerCommon.getReader(inputInfo.getPath(), WorkerCommon.getStorage(inputScheme));
+                    
                     if (inputInfo.getRgStart() >= pixelsReader.getRowGroupNum())
-                    {
+                    {   
+                        
                         producerlatch.countDown();
                         return true;
                     }
                     if (inputInfo.getRgStart() + inputInfo.getRgLength() >= pixelsReader.getRowGroupNum())
                     {
+                        
                         inputInfo.setRgLength(pixelsReader.getRowGroupNum() - inputInfo.getRgStart());
                     }
                  
@@ -77,8 +82,11 @@ class BatchToQueue implements Callable{
                     PixelsReaderOption option = WorkerCommon.getReaderOption(queryId, includeCols, inputInfo);
                     PixelsRecordReader recordReader = pixelsReader.read(option);
                     this.rowBatchSchema = recordReader.getResultSchema();
+                    System.out.println("before enter the latch");
                     if(isLatch){
+                        System.out.println("latch is true");
                         if(schemalatch.getCount()>0){
+                            System.out.println("latch coundt down");
                             schemalatch.countDown();
                         }
                     }

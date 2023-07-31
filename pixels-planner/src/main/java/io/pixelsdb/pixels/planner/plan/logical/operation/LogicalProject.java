@@ -7,7 +7,7 @@ import java.util.Arrays;
  * @author Jingrong
  * @date 2023-07-19
  */
-public class LogicalProject {
+public class LogicalProject extends ListNode{
     
     private String[] projectFidlds;
 

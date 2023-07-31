@@ -9,7 +9,7 @@ import java.util.Arrays;
  * @author Jingrong
  * @date 2023-07-19
  */
-public class LogicalFilter {
+public class LogicalFilter extends ListNode{
 
     private String filterOpName;
 
