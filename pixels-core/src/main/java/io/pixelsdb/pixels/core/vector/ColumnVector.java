@@ -429,5 +429,4 @@ public abstract class ColumnVector implements AutoCloseable
     }
 
     public abstract ColumnVector clone();
-
 }

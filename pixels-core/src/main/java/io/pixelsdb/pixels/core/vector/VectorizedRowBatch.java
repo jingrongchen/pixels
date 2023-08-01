@@ -336,5 +336,5 @@ public class VectorizedRowBatch implements AutoCloseable
         }
         return clone;
 
-    }
+    } 
 }

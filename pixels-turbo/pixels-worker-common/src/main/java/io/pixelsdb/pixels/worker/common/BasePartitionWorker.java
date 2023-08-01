@@ -80,8 +80,9 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
             int cores = Runtime.getRuntime().availableProcessors();
             logger.info("Number of cores available: " + cores);
             WorkerThreadExceptionHandler exceptionHandler = new WorkerThreadExceptionHandler(logger);
-            ExecutorService threadPool = Executors.newFixedThreadPool(cores * 2,
-                    new WorkerThreadFactory(exceptionHandler));
+            // ExecutorService threadPool = Executors.newFixedThreadPool(cores * 2,
+            //         new WorkerThreadFactory(exceptionHandler));
+            ExecutorService threadPool = Executors.newFixedThreadPool(1);
 
             long transId = event.getTransId();
             requireNonNull(event.getTableInfo(), "event.tableInfo is null");
@@ -157,9 +158,10 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
             {
                 ConcurrentLinkedQueue<VectorizedRowBatch> batches = partitioned.get(hash);
                 if (!batches.isEmpty())
-                {
+                {   
+                    
                     for (VectorizedRowBatch batch : batches)
-                    {
+                    {                           
                         pixelsWriter.addRowBatch(batch, hash);
                     }
                     hashValues.add(hash);
@@ -233,11 +235,11 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
                 VectorizedRowBatch rowBatch;
 
                 if (scanner == null)
-                {   
+                {
                     scanner = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, columnsToRead, projection, filter);
                 }
                 if (partitioner == null)
-                {   
+                {
                     partitioner = new Partitioner(partitionResult.size(), WorkerCommon.rowBatchSize,
                             scanner.getOutputSchema(), keyColumnIds);
                 }
@@ -246,15 +248,12 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
                     writerSchema.weakCompareAndSet(null, scanner.getOutputSchema());
                 }
 
-
                 computeCostTimer.start();
                 do
-                {   
+                {
                     rowBatch = scanner.filterAndProject(recordReader.readBatch(WorkerCommon.rowBatchSize));
-                    // System.out.println("iam here");
                     if (rowBatch.size > 0)
-                    {   
-                        // System.out.println("iam here");
+                    {
                         Map<Integer, VectorizedRowBatch> result = partitioner.partition(rowBatch);
                         if (!result.isEmpty())
                         {
@@ -265,7 +264,6 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
                         }
                     }
                 } while (!rowBatch.endOfFile);
-                // System.out.println("iam here");
                 computeCostTimer.stop();
                 computeCostTimer.minus(recordReader.getReadTimeNanos());
                 readCostTimer.add(recordReader.getReadTimeNanos());

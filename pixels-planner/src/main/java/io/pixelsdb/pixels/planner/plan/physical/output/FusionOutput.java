@@ -35,5 +35,13 @@ public class FusionOutput extends NonPartitionOutput {
         this.partitionOutputs.put(1, partitionOutput);
     }
 
+    public PartitionOutput getFirstPartitionOutput() {
+        return this.partitionOutputs.get(0);
+    }
+
+    public PartitionOutput getSecondPartitionOutput() {
+        return this.partitionOutputs.get(1);
+    }
+
 
 }

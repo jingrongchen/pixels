@@ -412,8 +412,9 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
 
                         do
                         {   
-                            System.out.printf("reading hash value %d\n", hashValue);
+                            // System.out.printf("reading hash value %d\n", hashValue);
                             rowBatch = recordReader.readBatch(WorkerCommon.rowBatchSize);
+                            
                             if (rowBatch.size > 0)
                             {
                                 joiner.populateLeftTable(rowBatch);
