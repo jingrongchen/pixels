@@ -166,6 +166,7 @@ public class BaseAggregationWorker extends Worker<AggregationInput, AggregationO
                 {
                     files.add(inputFiles.get(i));
                 }
+                System.out.println("deal with what file"+files);
 
                 threadPool.execute(() -> {
                     try
@@ -178,6 +179,8 @@ public class BaseAggregationWorker extends Worker<AggregationInput, AggregationO
                         throw new WorkerException("error during scan", e);
                     }
                 });
+
+
             }
             threadPool.shutdown();
             try
@@ -281,6 +284,7 @@ public class BaseAggregationWorker extends Worker<AggregationInput, AggregationO
                             if (rowBatch.size > 0)
                             {
                                 numRows += rowBatch.size;
+                                // System.out.println("numRows :"+numRows);
                                 aggregator.aggregate(rowBatch);
                             }
                         } while (!rowBatch.endOfFile);

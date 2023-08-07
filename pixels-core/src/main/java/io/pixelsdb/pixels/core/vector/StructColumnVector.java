@@ -255,7 +255,20 @@ public class StructColumnVector extends ColumnVector
     @Override
     public StructColumnVector clone()
     {
-        return null;
+        StructColumnVector newVector = new StructColumnVector(this.length, new ColumnVector[fields.length]);
+        newVector.noNulls = this.noNulls;
+        newVector.isRepeating = this.isRepeating;
+        newVector.writeIndex = this.writeIndex;
+
+        // Deep copy the fields array
+        for (int i = 0; i < fields.length; i++) {
+            newVector.fields[i] = this.fields[i].clone();
+        }
+
+        // Copy other relevant fields
+        // ...
+
+        return newVector;
     }
 
 }

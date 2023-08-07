@@ -468,7 +468,15 @@ public class DateColumnVector extends ColumnVector
     //TODO： Object clone() 
     @Override
     public DateColumnVector clone(){
-        return null;
+        DateColumnVector newVector = new DateColumnVector(this.length);
+        newVector.dates = this.dates.clone();
+        newVector.isNull = this.isNull.clone();
+        // Copy other relevant fields
+        newVector.writeIndex = this.writeIndex;
+        newVector.noNulls = this.noNulls;
+        newVector.isRepeating = this.isRepeating;
+        newVector.memoryUsage = this.memoryUsage;
+        return newVector;
     }
 
 }

@@ -315,6 +315,17 @@ public class DoubleColumnVector extends ColumnVector
     //TODO： Object clone() 
     @Override
     public DoubleColumnVector clone(){
-        return null;
+        DoubleColumnVector newVector = new DoubleColumnVector(this.length);
+        newVector.noNulls = this.noNulls;
+        newVector.isRepeating = this.isRepeating;
+        newVector.writeIndex = this.writeIndex;
+
+        // Deep copy the vector array
+        newVector.vector = this.vector.clone();
+
+        // Copy other relevant fields
+        // ...
+
+        return newVector;
     }
 }

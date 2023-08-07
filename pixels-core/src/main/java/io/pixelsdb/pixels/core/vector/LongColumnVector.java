@@ -305,25 +305,21 @@ public class LongColumnVector extends ColumnVector
         this.vector = null;
     }
 
-
-    public long[] getVector()
-    {
-        return vector;
-    }
-
-    public LongColumnVector(long[] vector){
-        super(vector.length);
-        this.vector = vector;
-    }
-
     @Override
-    public LongColumnVector clone()
-    {
-        // LongColumnVector result = new LongColumnVector(this.length);
-        long[] Copyvector = vector.clone();
-        return new LongColumnVector(Copyvector);
+    //TODO: columnvector clone
+    public LongColumnVector clone(){
+        LongColumnVector newVector = new LongColumnVector(this.length);
+        newVector.noNulls = this.noNulls;
+        newVector.isRepeating = this.isRepeating;
+        newVector.writeIndex = this.writeIndex;
 
+        // Deep copy the vector array
+        newVector.vector = this.vector.clone();
+
+        // Copy other relevant fields
+        // ...
+
+        return newVector;
     }
-
 
 }

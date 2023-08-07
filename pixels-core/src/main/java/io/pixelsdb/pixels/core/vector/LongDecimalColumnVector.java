@@ -447,6 +447,17 @@ public class LongDecimalColumnVector extends ColumnVector
     @Override
     public LongDecimalColumnVector clone()
     {
-        return null;
+        LongDecimalColumnVector newVector = new LongDecimalColumnVector(this.length, this.precision, this.scale);
+        newVector.noNulls = this.noNulls;
+        newVector.isRepeating = this.isRepeating;
+        newVector.writeIndex = this.writeIndex;
+
+        // Deep copy the vector array
+        newVector.vector = this.vector.clone();
+
+        // Copy other relevant fields
+        // ...
+
+        return newVector;
     }
 }

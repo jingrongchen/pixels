@@ -50,6 +50,12 @@
             <artifactId>pixels-storage-redis</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>io.pixelsdb</groupId>
+            <artifactId>pixels-storage-localfs</artifactId>
+            <optional>true</optional>
+        </dependency>
+
 
         <!-- TODO: remove netty-buffer dependency from pixels-core -->
         <dependency>

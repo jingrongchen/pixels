@@ -546,6 +546,17 @@ public class TimeColumnVector extends ColumnVector
     @Override
     public TimeColumnVector clone()
     {
-        return null;
+        TimeColumnVector newVector = new TimeColumnVector(this.length);
+        newVector.noNulls = this.noNulls;
+        newVector.isRepeating = this.isRepeating;
+        newVector.writeIndex = this.writeIndex;
+
+        // Deep copy the times array
+        System.arraycopy(this.times, 0, newVector.times, 0, this.times.length);
+
+        // Copy other relevant fields
+        // ...
+
+        return newVector;
     }
 }

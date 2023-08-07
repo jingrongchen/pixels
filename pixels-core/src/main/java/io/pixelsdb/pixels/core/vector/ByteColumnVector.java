@@ -283,6 +283,17 @@ public class ByteColumnVector extends ColumnVector
     //TODO： Object clone() 
     @Override
     public ByteColumnVector clone(){
-        return null;
+        ByteColumnVector newVector = new ByteColumnVector(length);
+        // Clone the vector array to avoid potential side effects
+        newVector.vector = this.vector.clone();
+        // Copy other fields
+        newVector.writeIndex = this.writeIndex;
+        newVector.noNulls = this.noNulls;
+        newVector.isRepeating = this.isRepeating;
+        newVector.memoryUsage = this.memoryUsage;
+        // Clone the isNull array to avoid potential side effects
+        newVector.isNull = this.isNull.clone();
+        return newVector;
+
     }
 }

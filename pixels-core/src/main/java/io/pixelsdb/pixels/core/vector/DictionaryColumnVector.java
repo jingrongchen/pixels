@@ -378,6 +378,23 @@ public class DictionaryColumnVector extends ColumnVector
     //TODO： Object clone() 
     @Override
     public DictionaryColumnVector clone(){
-        return null;
+        DictionaryColumnVector newVector = new DictionaryColumnVector(this.length);
+        newVector.noNulls = this.noNulls;
+        newVector.isRepeating = this.isRepeating;
+        newVector.writeIndex = this.writeIndex;
+
+        // Deep copy the ids array
+        newVector.ids = this.ids.clone();
+
+        // Deep copy the dictionary array and offsets
+        if (this.dictArray != null) {
+            newVector.dictArray = this.dictArray.clone();
+            newVector.dictOffsets = this.dictOffsets.clone();
+        }
+
+        // Copy other relevant fields
+        // ...
+
+        return newVector;
     }
 }

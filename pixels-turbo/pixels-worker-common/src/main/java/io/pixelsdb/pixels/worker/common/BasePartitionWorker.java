@@ -80,9 +80,9 @@ public class BasePartitionWorker extends Worker<PartitionInput, PartitionOutput>
             int cores = Runtime.getRuntime().availableProcessors();
             logger.info("Number of cores available: " + cores);
             WorkerThreadExceptionHandler exceptionHandler = new WorkerThreadExceptionHandler(logger);
-            // ExecutorService threadPool = Executors.newFixedThreadPool(cores * 2,
-            //         new WorkerThreadFactory(exceptionHandler));
-            ExecutorService threadPool = Executors.newFixedThreadPool(1);
+            ExecutorService threadPool = Executors.newFixedThreadPool(cores * 2,
+                    new WorkerThreadFactory(exceptionHandler));
+            // ExecutorService threadPool = Executors.newFixedThreadPool(1);
 
             long transId = event.getTransId();
             requireNonNull(event.getTableInfo(), "event.tableInfo is null");

@@ -546,8 +546,20 @@ public class TimestampColumnVector extends ColumnVector
     }
 
     @Override
-    public TimeColumnVector clone()
+    public TimestampColumnVector clone()
     {
-        return null;
+        TimestampColumnVector cloneVector = new TimestampColumnVector(this.length, this.precision);
+        cloneVector.precision = this.precision;
+        cloneVector.writeIndex = this.writeIndex;
+        cloneVector.noNulls = this.noNulls;
+        cloneVector.isRepeating = this.isRepeating;
+
+        // Clone the isNull array
+        System.arraycopy(this.isNull, 0, cloneVector.isNull, 0, this.length);
+
+        // Clone the times array
+        System.arraycopy(this.times, 0, cloneVector.times, 0, this.length);
+
+        return cloneVector;
     }
 }
