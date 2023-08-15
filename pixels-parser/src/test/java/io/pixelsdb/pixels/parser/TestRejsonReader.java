@@ -15,6 +15,13 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
 import java.util.HashMap;
+import org.jgrapht.Graph;
+import org.jgrapht.Graphs;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleGraph;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Stack;
 
 // import DAG
 // import com.fasterxml.jackson.databind.util.TokenBuffer;
@@ -246,9 +253,6 @@ public class TestRejsonReader {
         }
 
         public void optDAG() {
-            System.out.println("Print DAG");
-            System.out.println("subGraph vertexSet: " + OptDag.vertexSet() + " edgeSet: " + OptDag.edgeSet());
-
             System.out.println("Start optDAG");
             //Check if we can reuse the table scan, find out same table scan
             HashMap<String,List<Integer>> tableScanMap = new HashMap<String,List<Integer>>();
@@ -308,18 +312,20 @@ public class TestRejsonReader {
                 relIdToNode.get(joinUnionID).put("inputs", newJoinInputs.toString());
                 relIdToNode.get(joinUnionID).put("inputPath", joinInputPath.toString());
 
-                System.out.println(relIdToNode.get(joinUnionID).path("inputPath"));
+                // System.out.println(relIdToNode.get(joinUnionID).path("inputPath"));
             });
 
 
-            System.out.println("optDAG vertexSet: " + OptDag.vertexSet() + " optDAGedgeSet: " + OptDag.edgeSet());
+            // System.out.println("optDAG vertexSet: " + OptDag.vertexSet() + " optDAGedgeSet: " + OptDag.edgeSet());
             System.out.println("finish optDAG");
             // set input output path for pipeline breakers
+            System.out.println("Graph vertexSet: " + OptDag.vertexSet() + " edgeSet: " + OptDag.edgeSet());
 
 
         }
 
-        public void genSubGraphs(){
+
+        public List<Integer> findbreakerNode(){
             // Traverse the graph and find the breaker node and delete the edges
             BreadthFirstIterator<Integer, DefaultEdge> bfi = new BreadthFirstIterator<>(OptDag);
             HashSet<DefaultEdge> edgesToRemove = new HashSet<>();
@@ -339,12 +345,12 @@ public class TestRejsonReader {
                     Boolean isBreaker = true;
                     // Get parent of the currentvertex
 
-                    Set<DefaultEdge> incomEdges = OptDag.incomingEdgesOf(currentVertex);
-                    Integer parentVertex = OptDag.getEdgeSource(incomEdges.iterator().next());
+                    // Set<DefaultEdge> incomEdges = OptDag.incomingEdgesOf(currentVertex);
+                    // Integer parentVertex = OptDag.getEdgeSource(incomEdges.iterator().next());
                     
-                    if (relIdToNode.get(parentVertex).path("relOp").asText().equals("LogicalTableScan")){
-                        isBreaker = false;
-                    }
+                    // if (relIdToNode.get(parentVertex).path("relOp").asText().equals("LogicalTableScan")){
+                    //     isBreaker = false;
+                    // }
                     
                     if (isBreaker){
                         brekerNode.add(currentVertex);
@@ -356,87 +362,112 @@ public class TestRejsonReader {
                 }
                 // System.out.println(currentVertex);
             }
-            
-            // delete edges
-            System.out.println("breaker node"+ brekerNode);
-            System.out.println("edges to delete" + edgesToRemove);               
-            for (DefaultEdge edge : edgesToRemove) {
-                OptDag.removeEdge(edge);
-            }
-            
-            // Seperate the graph vertex into graphlist
-            Set<Integer> vertexSet = new HashSet<Integer>(OptDag.vertexSet());
-            System.out.println("node: "+vertexSet);
-            List<HashSet<Integer>> graphList = new ArrayList<HashSet<Integer>>();
-            
-            for(Integer node: brekerNode){
-                if (OptDag.inDegreeOf(node) == 0 && OptDag.outDegreeOf(node)!=0) {
-                        Set<Integer> descSet = OptDag.getDescendants(node);
-                        descSet.add(node);
-                        graphList.add(new HashSet<Integer>(descSet));
-                        vertexSet.removeAll(descSet);
+            return brekerNode;
 
-                    } else if (OptDag.outDegreeOf(node) == 0 && OptDag.inDegreeOf(node)!=0) {
-                        Set<Integer> ancSet = OptDag.getAncestors(node);
-                        ancSet.add(node);
-
-                    //  System.out.println("in the middle if condition ancSet: "+ancSet);
-                        Integer rootNodeId = ancSet.iterator().next();
-                        System.out.println("rootNodeId: "+rootNodeId);
-                        if (graphList.size()!=0){
-                            ListIterator<HashSet<Integer>> iterator = graphList.listIterator();
-                            while (iterator.hasNext()) {
-                                HashSet<Integer> graph = iterator.next();
-                                if (graph.contains(rootNodeId)){
-                                    System.out.println("local graph: "+graph);
-                                    HashSet<Integer> newgraph = new HashSet<Integer>(graph);
-                                    newgraph.addAll(ancSet);
-                                    iterator.remove();
-                                    iterator.add(newgraph);
-                                } else {
-                                    iterator.add(new HashSet<Integer>(ancSet));
-                                }
-                                vertexSet.removeAll(ancSet);
-                            }
-                        } else {
-                            graphList.add(new HashSet<Integer>(ancSet));
-                            vertexSet.removeAll(ancSet);
-                            ancSet.forEach(anc -> {
-                                vertexSet.remove(anc);
-                            });
-
-                        //  System.out.println("deleted");
-                        }
-                    } else {
-                        Set<Integer> nodeset= new HashSet<Integer>();
-                        nodeset.add(node);
-                        graphList.add(new HashSet<Integer>(nodeset));
-                        vertexSet.remove(node);
-                    }
-            }
-
-
-            if (vertexSet.size()!=0){
-                System.out.println("add vertexSet to graphlist" + vertexSet);
-                graphList.add(new HashSet<Integer>(vertexSet));
-            }
-
-            // Build subgraphs
-
-            graphList.forEach(graph -> {
-                subGraphs.add(new AsSubgraph<>(OptDag, graph));
-            });
-
-
-            System.out.println("cut herer");
-            subGraphs.forEach(subGraph -> {
-                System.out.println("subGraph vertexSet: " + subGraph.vertexSet() + " edgeSet: " + subGraph.edgeSet());
-            });
-            System.out.println("cut herer");
-            
-            // System.out.println(relIdToNode.get(8).path("outputPath").asText());
 
         }
+
+        public void dfsStopAtNode(Graph<Integer, DefaultEdge> graph, Integer startNode, Integer targetNode) {
+            Stack<Integer> stack = new Stack<>();
+            stack.push(startNode);
+    
+            while (!stack.isEmpty()) {
+                Integer current = stack.pop();
+                System.out.println("Visiting node: " + current);
+    
+                if (current.equals(targetNode)) {
+                    System.out.println("Reached target node: " + targetNode);
+                    break; // 停止遍历
+                }
+    
+                for (DefaultEdge edge : graph.edgesOf(current)) {
+                    Integer neighbor = Graphs.getOppositeVertex(graph, edge, current);
+                    if (!neighbor.equals(startNode)) { // 避免回到起始节点
+                        stack.push(neighbor);
+                    }
+                }
+            }
+        }
+        
+        public Set<Integer> bfsTraversal(Graph<Integer, DefaultEdge> graph, int startNode, int stopNode) {
+            Queue<Integer> queue = new LinkedList<>();
+            Set<Integer> visited = new HashSet<>();
+            Map<Integer, Set<Integer>> parentMap = new HashMap<>();
+    
+            queue.add(startNode);
+    
+            while (!queue.isEmpty()) {
+                int current = queue.poll();
+                System.out.println("Visiting node: " + current);
+                visited.add(current);
+                
+                if (current != stopNode) {
+                    for (DefaultEdge edge : graph.outgoingEdgesOf(current)) {
+                        int neighbor = Graphs.getOppositeVertex(graph, edge, current);
+                        if (!visited.contains(neighbor)) {
+                            queue.add(neighbor);
+                            visited.add(neighbor);
+                            parentMap.computeIfAbsent(current, k -> new HashSet<>()).add(neighbor);
+                        }
+                    }
+                }
+
+                if(current != startNode){
+                    for (DefaultEdge edge : graph.incomingEdgesOf(current)){
+                        int neighbor = Graphs.getOppositeVertex(graph, edge, current);
+                        
+                        if (!visited.contains(neighbor)) {
+                            System.out.print("test neighbor: " + neighbor);
+                            // queue.add(neighbor);
+                            visited.add(neighbor);
+                            parentMap.computeIfAbsent(neighbor, k -> new HashSet<>()).add(current);
+                        }
+
+                    }
+                }
+
+
+                if (current == stopNode) {
+                    System.out.println("Reached stop node: " + stopNode);
+                    break; // 到达终止节点，停止搜索
+                }
+            }
+    
+            // 输出终止节点的父节点
+            for (Map.Entry<Integer, Set<Integer>> entry : parentMap.entrySet()) {
+                System.out.println("Node: " + entry.getKey() + " - Parents: " + entry.getValue());
+            }
+            return visited;
+
+        }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+        public void genSubGraphs(){
+
+            List<Graph<String, DefaultEdge>> graphList = new ArrayList<>();
+            List<Integer> breakerNode = findbreakerNode();
+            
+            System.out.println("breakerNode: " + breakerNode);
+
+            for (int i=0;i<breakerNode.size();i++){
+                Set<Integer> subGraphNodes = null; 
+                if((i+1<breakerNode.size()) && (breakerNode.get(i) < breakerNode.get(i+1))){
+                    subGraphNodes=bfsTraversal(OptDag,breakerNode.get(i), breakerNode.get(i+1));
+                }
+            }
+
+
+        }
+
 
         public void nodeContentEqualCheckAndChange(DirectedAcyclicGraph<Integer,DefaultEdge> OptDag ,List<Integer> nodesId, String condition) {
             List<ObjectNode> nodes = new ArrayList<ObjectNode>();
@@ -1490,5 +1521,125 @@ public class TestRejsonReader {
     }
 
 }   
+
+
+// public void genSubGraphs(){
+//     // Traverse the graph and find the breaker node and delete the edges
+//     BreadthFirstIterator<Integer, DefaultEdge> bfi = new BreadthFirstIterator<>(OptDag);
+//     HashSet<DefaultEdge> edgesToRemove = new HashSet<>();
+//     List<Integer> brekerNode = new ArrayList<Integer>();
+//     // find the breaker node and edges to remove
+//     while (bfi.hasNext()) {
+//         Integer currentVertex = bfi.next();
+//         if (relIdToNode.get(currentVertex).path("relOp").asText().equals("LogicalAggregate")) {
+//             // System.out.println("find the Logical filter operator");
+//             brekerNode.add(currentVertex);
+//             Set<DefaultEdge> outgoingEdges = OptDag.outgoingEdgesOf(currentVertex);
+//             edgesToRemove.addAll(outgoingEdges);
+//         } else if (relIdToNode.get(currentVertex).path("relOp").asText().equals("LogicalUnion") 
+//         || relIdToNode.get(currentVertex).path("relOp").asText().equals("LogicalJoin")){
+//             // System.out.println("find the Logical Union operator");
+            
+//             Boolean isBreaker = true;
+//             // Get parent of the currentvertex
+
+//             // Set<DefaultEdge> incomEdges = OptDag.incomingEdgesOf(currentVertex);
+//             // Integer parentVertex = OptDag.getEdgeSource(incomEdges.iterator().next());
+            
+//             // if (relIdToNode.get(parentVertex).path("relOp").asText().equals("LogicalTableScan")){
+//             //     isBreaker = false;
+//             // }
+            
+//             if (isBreaker){
+//                 brekerNode.add(currentVertex);
+//                 Set<DefaultEdge> incomingEdges = OptDag.incomingEdgesOf(currentVertex);
+//                 edgesToRemove.addAll(incomingEdges);
+//             }
+//         } else {
+//             continue;
+//         }
+//         // System.out.println(currentVertex);
+//     }
+    
+//     // delete edges
+//     System.out.println("breaker node"+ brekerNode);
+//     System.out.println("edges to delete" + edgesToRemove);               
+//     for (DefaultEdge edge : edgesToRemove) {
+//         OptDag.removeEdge(edge);
+//     }
+    
+//     // Seperate the graph vertex into graphlist
+//     Set<Integer> vertexSet = new HashSet<Integer>(OptDag.vertexSet());
+//     System.out.println("node: "+vertexSet);
+//     List<HashSet<Integer>> graphList = new ArrayList<HashSet<Integer>>();
+    
+//     for(Integer node: brekerNode){
+//         if (OptDag.inDegreeOf(node) == 0 && OptDag.outDegreeOf(node)!=0) {
+//                 Set<Integer> descSet = OptDag.getDescendants(node);
+//                 descSet.add(node);
+//                 graphList.add(new HashSet<Integer>(descSet));
+//                 vertexSet.removeAll(descSet);
+
+//             } else if (OptDag.outDegreeOf(node) == 0 && OptDag.inDegreeOf(node)!=0) {
+//                 Set<Integer> ancSet = OptDag.getAncestors(node);
+//                 ancSet.add(node);
+
+//             //  System.out.println("in the middle if condition ancSet: "+ancSet);
+//                 Integer rootNodeId = ancSet.iterator().next();
+//                 System.out.println("rootNodeId: "+rootNodeId);
+//                 if (graphList.size()!=0){
+//                     ListIterator<HashSet<Integer>> iterator = graphList.listIterator();
+//                     while (iterator.hasNext()) {
+//                         HashSet<Integer> graph = iterator.next();
+//                         if (graph.contains(rootNodeId)){
+//                             System.out.println("local graph: "+graph);
+//                             HashSet<Integer> newgraph = new HashSet<Integer>(graph);
+//                             newgraph.addAll(ancSet);
+//                             iterator.remove();
+//                             iterator.add(newgraph);
+//                         } else {
+//                             iterator.add(new HashSet<Integer>(ancSet));
+//                         }
+//                         vertexSet.removeAll(ancSet);
+//                     }
+//                 } else {
+//                     graphList.add(new HashSet<Integer>(ancSet));
+//                     vertexSet.removeAll(ancSet);
+//                     ancSet.forEach(anc -> {
+//                         vertexSet.remove(anc);
+//                     });
+
+//                 //  System.out.println("deleted");
+//                 }
+//             } else {
+//                 Set<Integer> nodeset= new HashSet<Integer>();
+//                 nodeset.add(node);
+//                 graphList.add(new HashSet<Integer>(nodeset));
+//                 vertexSet.remove(node);
+//             }
+//     }
+
+
+//     if (vertexSet.size()!=0){
+//         System.out.println("add vertexSet to graphlist" + vertexSet);
+//         graphList.add(new HashSet<Integer>(vertexSet));
+//     }
+
+//     // Build subgraphs
+
+//     graphList.forEach(graph -> {
+//         subGraphs.add(new AsSubgraph<>(OptDag, graph));
+//     });
+
+
+//     System.out.println("cut herer");
+//     subGraphs.forEach(subGraph -> {
+//         System.out.println("subGraph vertexSet: " + subGraph.vertexSet() + " edgeSet: " + subGraph.edgeSet());
+//     });
+//     System.out.println("cut herer");
+    
+//     // System.out.println(relIdToNode.get(8).path("outputPath").asText());
+
+// }
 
                        

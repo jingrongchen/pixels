@@ -164,6 +164,11 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
             // build the hash table for the left table.
             List<Future> leftFutures = new ArrayList<>(leftPartitioned.size());
             int leftSplitSize = leftPartitioned.size() / leftParallelism;
+            
+            long heapSizebefore = Runtime.getRuntime().totalMemory()/(1024 * 1024);
+            System.out.println("heapSize before hash: " + heapSizebefore);
+
+
             if (leftPartitioned.size() % leftParallelism > 0)
             {
                 leftSplitSize++;
@@ -196,6 +201,17 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
 
             System.out.println("pass buid hash table");
 
+            // Get current size of heap in bytes
+            long heapSize = Runtime.getRuntime().totalMemory()/(1024 * 1024);
+            System.out.println("heapSize: " + heapSize);
+            // Get maximum size of heap in bytes. The heap cannot grow beyond this size.// Any attempt will result in an OutOfMemoryException.
+            long heapMaxSize = Runtime.getRuntime().maxMemory()/(1024 * 1024);
+            System.out.println("heapMaxSize: " + heapMaxSize);
+            // Get amount of free memory within the heap in bytes. This size will increase // after garbage collection and decrease as new objects are created.
+            long heapFreeSize = Runtime.getRuntime().freeMemory()/(1024 * 1024); 
+            System.out.println("heapFreeSize: " + heapFreeSize);
+
+
             List<ConcurrentLinkedQueue<VectorizedRowBatch>> result = new ArrayList<>();
             if (partitionOutput)
             {
@@ -208,6 +224,9 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
             {
                 result.add(new ConcurrentLinkedQueue<>());
             }
+            
+
+            System.out.println("heapFreeSize: " + Runtime.getRuntime().freeMemory()/(1024 * 1024));
 
             // scan the right table and do the join.
             if (joiner.getSmallTableSize() > 0)
