@@ -89,7 +89,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
-
+import java.util.stream.Collectors;
 import io.pixelsdb.pixels.common.turbo.Output;
 import java.util.Collections;
 
@@ -139,6 +139,8 @@ public class TestRejsonReader {
         lambdaPlanner.generateDAG();
         lambdaPlanner.optDAG();
         lambdaPlanner.genSubGraphs();
+        lambdaPlanner.genStages();
+        lambdaPlanner.invoke();
         // lambdaPlanner.invokeLamvscode-file://vscode-app/Users/johnchen/Desktop/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/code/electron-sandbox/workbench/workbench.htmlbda();
 
     }
@@ -170,6 +172,10 @@ public class TestRejsonReader {
         //For subgraphs
         private List<Graph<Integer,DefaultEdge>> subGraphs = new ArrayList<Graph<Integer,DefaultEdge>>();
 
+        private Map<Integer,Set<Integer>> subgraphList = new HashMap<Integer,Set<Integer>>();
+
+        // for stages
+        private Map<Integer,List<List<Integer>>> stages = new HashMap<Integer,List<List<Integer>>>();
 
         // TODO:For configs, expecially for numFilesInEachPartition
         private int numCloudFunction = 10;
@@ -398,7 +404,7 @@ public class TestRejsonReader {
     
             while (!queue.isEmpty()) {
                 int current = queue.poll();
-                System.out.println("Visiting node: " + current);
+                // System.out.println("Visiting node: " + current);
                 visited.add(current);
                 
                 if (current != stopNode) {
@@ -417,7 +423,7 @@ public class TestRejsonReader {
                         int neighbor = Graphs.getOppositeVertex(graph, edge, current);
                         
                         if (!visited.contains(neighbor)) {
-                            System.out.print("test neighbor: " + neighbor);
+                            // System.out.print("test neighbor: " + neighbor);
                             // queue.add(neighbor);
                             visited.add(neighbor);
                             parentMap.computeIfAbsent(neighbor, k -> new HashSet<>()).add(current);
@@ -428,15 +434,15 @@ public class TestRejsonReader {
 
 
                 if (current == stopNode) {
-                    System.out.println("Reached stop node: " + stopNode);
+                    // System.out.println("Reached stop node: " + stopNode);
                     break; // 到达终止节点，停止搜索
                 }
             }
     
             // 输出终止节点的父节点
-            for (Map.Entry<Integer, Set<Integer>> entry : parentMap.entrySet()) {
-                System.out.println("Node: " + entry.getKey() + " - Parents: " + entry.getValue());
-            }
+            // for (Map.Entry<Integer, Set<Integer>> entry : parentMap.entrySet()) {
+            //     System.out.println("Node: " + entry.getKey() + " - Parents: " + entry.getValue());
+            // }
             return visited;
 
         }
@@ -455,17 +461,164 @@ public class TestRejsonReader {
 
             List<Graph<String, DefaultEdge>> graphList = new ArrayList<>();
             List<Integer> breakerNode = findbreakerNode();
-            
             System.out.println("breakerNode: " + breakerNode);
+            // Map<Integer,Set<Integer>> subgraphList = new HashMap<Integer,Set<Integer>>();
+            // add head and tail of the vertex to the breakernode list
+            // should add the end node near the closest node
+            breakerNode.add(0,OptDag.vertexSet().stream().findFirst().get());
+            // find closest bigest node and insert
 
-            for (int i=0;i<breakerNode.size();i++){
-                Set<Integer> subGraphNodes = null; 
+            System.out.println("after adding head :" + breakerNode);
+
+            for (int i=0;i<breakerNode.size();i++){ 
                 if((i+1<breakerNode.size()) && (breakerNode.get(i) < breakerNode.get(i+1))){
-                    subGraphNodes=bfsTraversal(OptDag,breakerNode.get(i), breakerNode.get(i+1));
+                    Set<Integer> subGraphNodes = bfsTraversal(OptDag,breakerNode.get(i), breakerNode.get(i+1));
+                    System.out.println("subGraphNodes: " + subGraphNodes);
+                    subgraphList.put(breakerNode.get(i),subGraphNodes);
+                }
+            }
+            // put the rest of the node into one subgraph, beacause sometime they are not in breaker node;
+
+            Set<Integer> restNodes = new HashSet<Integer>();
+            // System.out.println(flattenNestedMapOfSets(subgraphList));
+            for (Integer node : OptDag.vertexSet()){
+                if (!flattenNestedMapOfSets(subgraphList).contains(node)){
+                    restNodes.add(node);
+                }
+            }
+            System.out.println(restNodes);
+
+            for (Integer node : restNodes){
+                
+                if (OptDag.incomingEdgesOf(node).size() == 1 && OptDag.outgoingEdgesOf(node).size() ==1 ){
+                    // Set<Integer> subGraphNodes = 
+                    Integer startnode = OptDag.getEdgeSource(OptDag.incomingEdgesOf(node).iterator().next());
+                    Integer endnode = OptDag.getEdgeTarget(OptDag.outgoingEdgesOf(node).iterator().next());
+                    Set<Integer> subGraphNodes = new HashSet<Integer>();
+                    subGraphNodes.add(startnode);
+                    subGraphNodes.add(node);
+                    subGraphNodes.add(endnode);
+                    subgraphList.put(startnode,subGraphNodes);
+                }else if(OptDag.inDegreeOf(node)!=0 && OptDag.outDegreeOf(node)==0){
+                    Integer startnode = OptDag.getEdgeSource(OptDag.incomingEdgesOf(node).iterator().next());
+                    Set<Integer> subGraphNodes = new HashSet<Integer>();
+                    subGraphNodes.add(startnode);
+                    subGraphNodes.add(node);
+                    subgraphList.put(startnode,subGraphNodes);
+
                 }
             }
 
+            System.out.println("subgraphList: " + subgraphList);
 
+        }
+
+        public void genStages(){
+
+            // for(Map.Entry<Integer, Set<Integer>> entry : subgraphList.entrySet()){
+            //     Graph<Integer, DefaultEdge> subGraph = new SimpleGraph<>(DefaultEdge.class);
+            //     entry.getValue().forEach(node -> {
+            //         subGraph.addVertex(node);
+            //     });
+            //     for (DefaultEdge edge : OptDag.edgeSet()) {
+            //         Integer source = OptDag.getEdgeSource(edge);
+            //         Integer target = OptDag.getEdgeTarget(edge);
+            //         if (entry.getValue().contains(source) && entry.getValue().contains(target)) {
+            //             subGraph.addEdge(source, target);
+            //         }
+            //     }
+            //     subGraphs.add(subGraph);
+            // }
+            
+
+            //put subgraphs into stages
+            // Map<Integer,List<List<Integer>>> stages = new HashMap<Integer,List<List<Integer>>>();
+            int stageNum = 0;
+            Map<Integer,Integer> tailTostage = new HashMap<Integer,Integer>();
+            Map<List<Integer>,Integer> middlesToStage = new HashMap<List<Integer>,Integer>();
+            for (Map.Entry<Integer, Set<Integer>> entry : subgraphList.entrySet()){
+                List<Integer> temp = entry.getValue().stream().collect(Collectors.toList());
+                temp.remove(Collections.max(entry.getValue()));
+                temp.remove(Collections.min(entry.getValue()));
+
+                if (!stages.containsKey(stageNum)){
+                    stages.put(stageNum, Arrays.asList(new ArrayList<>(entry.getValue())));
+                    tailTostage.put(Collections.max(entry.getValue()), stageNum);
+                    middlesToStage.put(temp, stageNum);
+                    continue;
+                } else{
+                    boolean isStage = false; 
+                    boolean isInMiddleOfStage = false;
+                    
+
+                    //get head of the subgraph
+                    Integer head = Collections.min(entry.getValue());
+
+                    if (tailTostage.containsKey(head)){
+                        stageNum = tailTostage.get(head);
+                        isStage = true;
+                    }
+
+                    for (List<Integer> middles: middlesToStage.keySet()){
+                        if (middles.contains(head)){
+                            stageNum = middlesToStage.get(middles);
+                            isInMiddleOfStage = true;
+                        }
+                    }
+
+                    if (isInMiddleOfStage){
+                        List<List<Integer>> tempStage = new ArrayList<>(stages.get(stageNum));
+                        tempStage.add(new ArrayList<>(entry.getValue()));
+                        stages.put(stageNum, tempStage);
+                        System.out.println("in middle of stage");
+                        tailTostage.put(Collections.max(entry.getValue()), stageNum);
+                    }
+
+                    if (isStage){
+                        stageNum++;
+                        stages.put(stageNum, Arrays.asList(new ArrayList<>(entry.getValue())));
+                        tailTostage.put(Collections.max(entry.getValue()), stageNum);
+                        middlesToStage.put(temp, stageNum);
+                    }
+                }
+            }
+            System.out.println("stages with nodes only: " + stages);
+        }
+            
+
+        public void invoke(){
+            for (Map.Entry<Integer, List<List<Integer>>> entry : stages.entrySet()){
+                Integer stageNum = entry.getKey();
+                System.out.println("Start stageNum: " + stageNum);
+
+                
+
+
+
+
+
+
+                List<List<Integer>> stageValues = entry.getValue();
+                System.out.println("stage: " + stageValues);
+            }
+
+        }
+
+
+
+
+
+        
+
+
+        public Set<Integer> flattenNestedMapOfSets(Map<Integer, Set<Integer>> nestedMap) {
+            Set<Integer> flattenedSet = new HashSet<>();
+    
+            for (Set<Integer> subset : nestedMap.values()) {
+                flattenedSet.addAll(subset);
+            }
+    
+            return flattenedSet;
         }
 
 
