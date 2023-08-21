@@ -63,7 +63,8 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
         this.logger = context.getLogger();
         this.workerMetrics = context.getWorkerMetrics();
     }
-     @Override
+    
+    @Override
     public JoinOutput process(CombinedPartitionInput event){
         JoinOutput joinOutput = new JoinOutput();
         long startTime = System.currentTimeMillis();
@@ -74,7 +75,12 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
 
         try{   
             // the combined partition process configuration
-            List<Integer> localHashedPartitionIds = event.getLocalHashedPartitionIds();
+            List<Integer> JoinhashValues = event.getJoinInfo().getHashValues();
+            if (JoinhashValues.size() >= 2)
+            {
+                throw new WorkerException("CombinedPartitionWorker only support one hash value");
+            }
+            // List<Integer> localHashedPartitionIds = event.getLocalHashedPartitionIds();
             // String localTablename = event.getLocalTableName();
             String intermediatePath = event.getIntermideatePath();
             String bigTableName = event.getBigTableName();
@@ -160,11 +166,19 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                     true, Arrays.stream(keyColumnIds).boxed().collect(Collectors.toList()));
             Set<Integer> hashValues = new HashSet<>(numPartition);
             
+            List<String> localFiles = new ArrayList<String>();
 
             //the writer writes to the tmp file
-            String tmpFilePath = "/tmp"+"/Part_"+localHashedPartitionIds.iterator().next();
+            String tmpFilePath = "/tmp"+"/Part_"+JoinhashValues.iterator().next();
             String toRemove = tmpFilePath.split("/")[2];
+            // System.out.println("toRemove:"+toRemove);
+            localFiles.add(toRemove);
             
+            // String folderPath = "/tmp";
+            // File folder = new File(folderPath);
+            // long freeSpace = folder.getFreeSpace();
+            // System.out.println("freespace:"+freeSpace/(1024*1024)+"MB");
+
             ConfigFactory configFactory = ConfigFactory.Instance();
             Storage storage = StorageFactory.Instance().getStorage(Storage.Scheme.file);
             // Storage storage = 
@@ -180,7 +194,6 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
             builder.setPartKeyColumnIds(Arrays.stream(keyColumnIds).boxed().collect(Collectors.toList()));
             PixelsWriter tmpWriter = builder.build();
 
-            
             for (int hash = 0; hash < numPartition; ++hash)
             {
                 ConcurrentLinkedQueue<VectorizedRowBatch> batches = partitioned.get(hash);
@@ -194,7 +207,7 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                     hashValues.add(hash);
                 }
 
-                if (localHashedPartitionIds.contains(hash))
+                if (JoinhashValues.contains(hash))
                 {   
                     if (!batches.isEmpty())
                     {    
@@ -221,18 +234,73 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
             // second stage: join!!! need to wait until it's ready 
             // createria:loop check both small and big table should be ready
 
-            String smallTablePath = intermediatePath + bigTableName + "_partition/";
-            String bigTablePath = intermediatePath + smallTableName + "_partition/";
+            String smallTablePath = intermediatePath + smallTableName + "_partition/";
+            String bigTablePath = intermediatePath + bigTableName + "_partition/";
             StorageFactory storageFactory = StorageFactory.Instance();
             Storage storage1 = storageFactory.getStorage(smallTablePath);
             Storage storage2 = storageFactory.getStorage(bigTablePath);
 
+            // List<String> notLocal = new ArrayList<String>();
             while(storage1.listPaths(smallTablePath).size()!= smallTablePartitionCount || storage2.listPaths(bigTablePath).size()!= bigTablePartitionCount)
-            {
-                Thread.sleep(1000);
-            }
-            System.out.println("All partitions are ready, start join!");
+            {   
+                System.out.println("in waiting loop");
+                List<String> toLoad = storage2.listPaths(bigTablePath);
+                System.out.println("local files :"+localFiles);
 
+                for (String file:localFiles){
+                    toLoad.remove(bigTablePath+file);
+                }
+                System.out.println("toLoad:"+toLoad);
+
+                if (toLoad.size() != 0 && (new File("/").getFreeSpace()/(1024*1024)) > 100)
+                {
+                    String filetoPull = toLoad.get(0);
+                    
+                    int index = filetoPull.lastIndexOf('/');
+                    String fileName = filetoPull.substring(index +1);
+                    System.out.println("fileName:"+fileName);
+
+                    String filetoWrite = "/tmp/"+fileName;
+                    System.out.println("filetoPull:"+filetoPull);
+                    
+                    //Initiate the writer for the pull partitioned file
+                    PixelsWriterImpl.Builder pullbuilder = PixelsWriterImpl.newBuilder()
+                        .setSchema(writerSchema.get())
+                        .setPixelStride(Integer.parseInt(configFactory.getProperty("pixel.stride")))
+                        .setRowGroupSize(Integer.parseInt(configFactory.getProperty("row.group.size")))
+                        .setStorage(storage)
+                        .setPath(filetoWrite)
+                        .setOverwrite(true) // set overwrite to true to avoid existence checking.
+                        .setEncoding(encoding)
+                        .setPartitioned(true);
+                    pullbuilder.setPartKeyColumnIds(Arrays.stream(keyColumnIds).boxed().collect(Collectors.toList()));
+                    PixelsWriter pullWriter = pullbuilder.build();
+                    VectorizedRowBatch pullRowBatch;
+
+
+                    for (int hashValue:JoinhashValues){
+                        // InputInfo inputInfo = new InputInfo(bigTablePath + filetoPull, 0, -1);
+                        //initiate the reader for the push partitioned file
+                        PixelsReader pixelsReader = WorkerCommon.getReader(bigTablePath + filetoPull, WorkerCommon.getStorage(Storage.Scheme.s3));
+                        PixelsReaderOption option = WorkerCommon.getReaderOption(transId, event.getLargeTable().getColumnsToRead(), pixelsReader,
+                        hashValue, numPartition);
+                        PixelsRecordReader recordReader = pixelsReader.read(option);
+                        // TypeDescription rowBatchSchema = recordReader.getResultSchema();
+                        pullRowBatch = recordReader.readBatch(WorkerCommon.rowBatchSize);
+                        System.out.println("pullRowBatch size: "+pullRowBatch.size);
+                        pullWriter.addRowBatch(pullRowBatch, hashValue);
+                    }
+
+                    pullWriter.close();
+                    System.out.println("pullWriter completed");
+                    localFiles.add(fileName);
+                }else{
+                    System.out.println("no file to pull, going to sleep");
+                    Thread.sleep(1000);
+                }
+            }
+            
+            System.out.println("All partitions are ready, start join!");
             // read cached partitioned and other files
             ExecutorService joinPool = Executors.newFixedThreadPool(cores * 2,
                     new WorkerThreadFactory(exceptionHandler));
@@ -263,7 +331,7 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
             boolean[] rightProjection = event.getJoinInfo().getLargeProjection();
             JoinType joinType = event.getJoinInfo().getJoinType();
             
-            List<Integer> JoinhashValues = event.getJoinInfo().getHashValues();
+            // List<Integer> JoinhashValues = event.getJoinInfo().getHashValues();
             int JoinnumPartition = event.getJoinInfo().getNumPartition();
             logger.info("small table: " + event.getSmallTable().getTableName() +
                     ", large table: " + event.getLargeTable().getTableName() +
@@ -388,10 +456,10 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                             joinWithRightTableAndPartition(
                                             transId, joiner, parts, rightColumnsToRead,
                                             rightInputStorageInfo.getScheme(), JoinhashValues,
-                                            JoinnumPartition, outputPartitionInfo, result, workerMetrics) :
+                                            JoinnumPartition, outputPartitionInfo, result, workerMetrics, localFiles) :
                             joinWithRightTable(transId, joiner, parts, rightColumnsToRead,
                                             rightInputStorageInfo.getScheme(), JoinhashValues, JoinnumPartition,
-                                            result.get(0), workerMetrics,toRemove);
+                                            result.get(0), workerMetrics, localFiles);
                         } catch (Throwable e)
                         {
                             throw new WorkerException("error during hash join", e);
@@ -637,7 +705,7 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
     public int joinWithRightTable(
             long transId, Joiner joiner, List<String> rightParts, String[] rightCols, Storage.Scheme rightScheme,
             List<Integer> hashValues, int numPartition, ConcurrentLinkedQueue<VectorizedRowBatch> joinResult,
-            WorkerMetrics workerMetrics, String tmpFileName)
+            WorkerMetrics workerMetrics, List<String> localFiles)
     {
         int joinedRows = 0;
         WorkerMetrics.Timer readCostTimer = new WorkerMetrics.Timer();
@@ -645,58 +713,53 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
         long readBytes = 0L;
         int numReadRequests = 0;
 
-        // File f = new File("/tmp/"+tmpFileName);
-        // if(f.exists() && !f.isDirectory()) { 
-        //     System.out.println("file exisits");
-        //     System.out.println(f.length());
-        // }
-
-
         // read one part of the rightpart from the tmp file
         try{
-            Storage storage = StorageFactory.Instance().getStorage("file");
-            PixelsFooterCache footerCache = new PixelsFooterCache();
-            PixelsReaderImpl.Builder builder = PixelsReaderImpl.newBuilder()
-                            .setStorage(storage)
-                            .setPath("/tmp/"+tmpFileName)
-                            .setEnableCache(false)
-                            .setCacheOrder(ImmutableList.of())
-                            .setPixelsCacheReader(null)
-                            .setPixelsFooterCache(footerCache);
-            PixelsReader tmppixelsReader = builder.build();
-            PixelsReaderOption option = WorkerCommon.getReaderOption(transId, rightCols, tmppixelsReader,
-            Integer.parseInt(tmpFileName.split("_")[1]), numPartition);
-            PixelsRecordReader tmprecordReader = tmppixelsReader.read(option);
-            VectorizedRowBatch tmprowBatch;
-            // do the join
-            do
-            {
-                tmprowBatch = tmprecordReader.readBatch(WorkerCommon.rowBatchSize);
-                if (tmprowBatch.size > 0)
+
+            for(String tmpFileName:localFiles){
+                Storage storage = StorageFactory.Instance().getStorage("file");
+                PixelsFooterCache footerCache = new PixelsFooterCache();
+                PixelsReaderImpl.Builder builder = PixelsReaderImpl.newBuilder()
+                                .setStorage(storage)
+                                .setPath("/tmp/"+tmpFileName)
+                                .setEnableCache(false)
+                                .setCacheOrder(ImmutableList.of())
+                                .setPixelsCacheReader(null)
+                                .setPixelsFooterCache(footerCache);
+                PixelsReader tmppixelsReader = builder.build();
+                PixelsReaderOption option = WorkerCommon.getReaderOption(transId, rightCols, tmppixelsReader,
+                Integer.parseInt(tmpFileName.split("_")[1]), numPartition);
+                PixelsRecordReader tmprecordReader = tmppixelsReader.read(option);
+                VectorizedRowBatch tmprowBatch;
+                // do the join
+                do
                 {
-                    List<VectorizedRowBatch> joinedBatches = joiner.join(tmprowBatch);
-                    for (VectorizedRowBatch joined : joinedBatches)
+                    tmprowBatch = tmprecordReader.readBatch(WorkerCommon.rowBatchSize);
+                    if (tmprowBatch.size > 0)
                     {
-                        if (!joined.isEmpty())
+                        List<VectorizedRowBatch> joinedBatches = joiner.join(tmprowBatch);
+                        for (VectorizedRowBatch joined : joinedBatches)
                         {
-                            joinResult.add(joined);
-                            joinedRows += joined.size;
+                            if (!joined.isEmpty())
+                            {
+                                joinResult.add(joined);
+                                joinedRows += joined.size;
+                            }
                         }
                     }
-                }
-            } while (!tmprowBatch.endOfFile);
-            tmprecordReader.close();
-            tmppixelsReader.close();
+                } while (!tmprowBatch.endOfFile);
+                tmprecordReader.close();
+                tmppixelsReader.close();
+                rightParts.removeIf(str -> str.contains(tmpFileName));
+            }
 
         } catch (Throwable e)
         {
             throw new WorkerException("failed to scan the file '" +
-                    tmpFileName + "' and output the partitioning result", e);
+                    localFiles + "' and output the partitioning result", e);
         }
 
-
-        // exclude it from the rightParts
-        rightParts.removeIf(str -> str.contains(tmpFileName));
+        // exclude it from the rightParts        
         while (!rightParts.isEmpty())
         {
             for (Iterator<String> it = rightParts.iterator(); it.hasNext(); )
@@ -795,7 +858,7 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
     public int joinWithRightTableAndPartition(
             long transId, Joiner joiner, List<String> rightParts, String[] rightCols, Storage.Scheme rightScheme,
             List<Integer> hashValues, int numPartition, PartitionInfo postPartitionInfo,
-            List<ConcurrentLinkedQueue<VectorizedRowBatch>> partitionResult, WorkerMetrics workerMetrics)
+            List<ConcurrentLinkedQueue<VectorizedRowBatch>> partitionResult, WorkerMetrics workerMetrics, List<String> localFiles)
     {
         requireNonNull(postPartitionInfo, "outputPartitionInfo is null");
         Partitioner partitioner = new Partitioner(postPartitionInfo.getNumPartition(),
@@ -805,6 +868,57 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
         WorkerMetrics.Timer computeCostTimer = new WorkerMetrics.Timer();
         long readBytes = 0L;
         int numReadRequests = 0;
+
+        try{
+            for(String tmpFileName:localFiles){
+                Storage storage = StorageFactory.Instance().getStorage("file");
+                PixelsFooterCache footerCache = new PixelsFooterCache();
+                PixelsReaderImpl.Builder builder = PixelsReaderImpl.newBuilder()
+                                .setStorage(storage)
+                                .setPath("/tmp/"+tmpFileName)
+                                .setEnableCache(false)
+                                .setCacheOrder(ImmutableList.of())
+                                .setPixelsCacheReader(null)
+                                .setPixelsFooterCache(footerCache);
+                PixelsReader tmppixelsReader = builder.build();
+                PixelsReaderOption option = WorkerCommon.getReaderOption(transId, rightCols, tmppixelsReader,
+                Integer.parseInt(tmpFileName.split("_")[1]), numPartition);
+                PixelsRecordReader tmprecordReader = tmppixelsReader.read(option);
+                VectorizedRowBatch tmprowBatch;
+                // do the join
+                do
+                {
+                    tmprowBatch = tmprecordReader.readBatch(WorkerCommon.rowBatchSize);
+                    if (tmprowBatch.size > 0)
+                    {
+                        List<VectorizedRowBatch> joinedBatches = joiner.join(tmprowBatch);
+                        for (VectorizedRowBatch joined : joinedBatches)
+                        {
+                            if (!joined.isEmpty())
+                            {
+                                Map<Integer, VectorizedRowBatch> parts = partitioner.partition(joined);
+                                for (Map.Entry<Integer, VectorizedRowBatch> entry : parts.entrySet())
+                                {
+                                    partitionResult.get(entry.getKey()).add(entry.getValue());
+                                }
+                                joinedRows += joined.size;
+                            }
+                        }
+                    }
+                } while (!tmprowBatch.endOfFile);
+                tmprecordReader.close();
+                tmppixelsReader.close();
+                rightParts.removeIf(str -> str.contains(tmpFileName));
+            }
+
+        } catch (Throwable e)
+        {
+            throw new WorkerException("failed to scan local file '" +
+                    localFiles + "' and output the partitioning result: ", e);
+        }
+
+        // exclude it from the rightParts
+        
         while (!rightParts.isEmpty())
         {
             for (Iterator<String> it = rightParts.iterator(); it.hasNext(); )
