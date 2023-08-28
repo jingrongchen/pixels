@@ -131,11 +131,11 @@ public class TestPixelsParser
     public void testPixelsParserTestExample() throws SqlParseException{
 
         try{
-            // String query = TestQuery.Q8;
-            // String queryname = "Q8test";
+            // String query = TestQuery.Q3;
+            // String queryname = "Q3test";
 
-            String query = TpchQuery.Q18;
-            String queryname = "TPCHQ18";
+            String query = TpchQuery.Q21;
+            String queryname = "TPCHQ21";
 
             SqlNode parsedNode = this.tpchPixelsParser.parseQuery(query);
 
@@ -172,13 +172,13 @@ public class TestPixelsParser
             System.out.println(writer.asString());
             // System.out.println("Logical plan: \n" + writer.asString());
 
-            // try {
-            //     BufferedWriter out = new BufferedWriter(new FileWriter("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/logicalplan/"+queryname+".json"));
-            //     out.write(writer.asString());
-            //     out.close();
-            //     System.out.println("to finle success！");
-            // } catch (IOException e) {
-            // }
+            try {
+                BufferedWriter out = new BufferedWriter(new FileWriter("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/logicalplan/"+queryname+".json"));
+                out.write(writer.asString());
+                out.close();
+                System.out.println("to finle success！");
+            } catch (IOException e) {
+            }
             
         }catch(Exception e){
             e.printStackTrace();

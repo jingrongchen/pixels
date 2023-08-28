@@ -76,18 +76,13 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
         try{   
             // the combined partition process configuration
             List<Integer> JoinhashValues = event.getJoinInfo().getHashValues();
-            if (JoinhashValues.size() >= 2)
-            {
-                throw new WorkerException("CombinedPartitionWorker only support one hash value");
-            }
-            // List<Integer> localHashedPartitionIds = event.getLocalHashedPartitionIds();
-            // String localTablename = event.getLocalTableName();
+            String localPartitionPath = event.getOutput().getPath();
             String intermediatePath = event.getIntermideatePath();
             String bigTableName = event.getBigTableName();
             String smallTableName = event.getSmallTableName();
             int bigTablePartitionCount = event.getBigTablePartitionCount();
             int smallTablePartitionCount = event.getSmallTablePartitionCount();
-
+            int lassversion= event.getLassversion();
             //the normal partition process
             int cores = Runtime.getRuntime().availableProcessors();
             logger.info("Number of cores available: " + cores);
@@ -169,15 +164,14 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
             List<String> localFiles = new ArrayList<String>();
 
             //the writer writes to the tmp file
-            String tmpFilePath = "/tmp"+"/Part_"+JoinhashValues.iterator().next();
+            String[] stringparts = localPartitionPath.split("/");
+            // lastElement
+            String lastElement = stringparts[stringparts.length - 1];
+            String tmpFilePath = "/tmp"+"/"+lastElement;
             String toRemove = tmpFilePath.split("/")[2];
-            // System.out.println("toRemove:"+toRemove);
+            System.out.println("local cached file:" + toRemove);
             localFiles.add(toRemove);
             
-            // String folderPath = "/tmp";
-            // File folder = new File(folderPath);
-            // long freeSpace = folder.getFreeSpace();
-            // System.out.println("freespace:"+freeSpace/(1024*1024)+"MB");
 
             ConfigFactory configFactory = ConfigFactory.Instance();
             Storage storage = StorageFactory.Instance().getStorage(Storage.Scheme.file);
@@ -241,68 +235,85 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
             Storage storage2 = storageFactory.getStorage(bigTablePath);
 
             // List<String> notLocal = new ArrayList<String>();
-            while(storage1.listPaths(smallTablePath).size()!= smallTablePartitionCount || storage2.listPaths(bigTablePath).size()!= bigTablePartitionCount)
+            File folder = new File("/tmp/");
+            System.out.println("lass version: "+lassversion);
+            while(storage1.listPaths(smallTablePath).size()!= smallTablePartitionCount && storage2.listPaths(bigTablePath).size()!= bigTablePartitionCount)
             {   
-                System.out.println("in waiting loop");
-                List<String> toLoad = storage2.listPaths(bigTablePath);
-                System.out.println("local files :"+localFiles);
+                if(lassversion==2){
+                    System.out.println("inside waiting loop");
+                    List<String> toLoad = storage2.listPaths(bigTablePath);
+                    System.out.println("local files :"+localFiles);
 
-                for (String file:localFiles){
-                    toLoad.remove(bigTablePath+file);
-                }
-                System.out.println("toLoad:"+toLoad);
+                    for (String file:localFiles){
+                        toLoad.remove(bigTablePath+file);
+                    }
+                    System.out.println("toLoad:"+toLoad);
 
-                if (toLoad.size() != 0 && (new File("/").getFreeSpace()/(1024*1024)) > 100)
-                {
-                    String filetoPull = toLoad.get(0);
-                    
-                    int index = filetoPull.lastIndexOf('/');
-                    String fileName = filetoPull.substring(index +1);
-                    System.out.println("fileName:"+fileName);
+                    if (toLoad.size() != 0 && (folder.getUsableSpace()/(1024*1024)) > 200)
+                    {
+                        String filetoPull = toLoad.get(0);
+                        
+                        int index = filetoPull.lastIndexOf('/');
+                        String fileName = filetoPull.substring(index +1);
+                        // System.out.println("fileName:"+fileName);
 
-                    String filetoWrite = "/tmp/"+fileName;
-                    System.out.println("filetoPull:"+filetoPull);
-                    
-                    //Initiate the writer for the pull partitioned file
-                    PixelsWriterImpl.Builder pullbuilder = PixelsWriterImpl.newBuilder()
-                        .setSchema(writerSchema.get())
-                        .setPixelStride(Integer.parseInt(configFactory.getProperty("pixel.stride")))
-                        .setRowGroupSize(Integer.parseInt(configFactory.getProperty("row.group.size")))
-                        .setStorage(storage)
-                        .setPath(filetoWrite)
-                        .setOverwrite(true) // set overwrite to true to avoid existence checking.
-                        .setEncoding(encoding)
-                        .setPartitioned(true);
-                    pullbuilder.setPartKeyColumnIds(Arrays.stream(keyColumnIds).boxed().collect(Collectors.toList()));
-                    PixelsWriter pullWriter = pullbuilder.build();
-                    VectorizedRowBatch pullRowBatch;
-
-
-                    for (int hashValue:JoinhashValues){
-                        // InputInfo inputInfo = new InputInfo(bigTablePath + filetoPull, 0, -1);
-                        //initiate the reader for the push partitioned file
+                        String filetoWrite = "/tmp/"+fileName;
+                        System.out.println("filetoPull:"+filetoPull);
+                        
+                        //Initiate the writer for the pull partitioned file
+                        PixelsWriterImpl.Builder pullbuilder = PixelsWriterImpl.newBuilder()
+                            .setSchema(writerSchema.get())
+                            .setPixelStride(Integer.parseInt(configFactory.getProperty("pixel.stride")))
+                            .setRowGroupSize(Integer.parseInt(configFactory.getProperty("row.group.size")))
+                            .setStorage(storage)
+                            .setPath(filetoWrite)
+                            .setOverwrite(true) // set overwrite to true to avoid existence checking.
+                            .setEncoding(encoding)
+                            .setPartitioned(true);
+                        pullbuilder.setPartKeyColumnIds(Arrays.stream(keyColumnIds).boxed().collect(Collectors.toList()));
+                        PixelsWriter pullWriter = pullbuilder.build();
+                        VectorizedRowBatch pullRowBatch;
+                        
                         PixelsReader pixelsReader = WorkerCommon.getReader(bigTablePath + filetoPull, WorkerCommon.getStorage(Storage.Scheme.s3));
-                        PixelsReaderOption option = WorkerCommon.getReaderOption(transId, event.getLargeTable().getColumnsToRead(), pixelsReader,
-                        hashValue, numPartition);
-                        PixelsRecordReader recordReader = pixelsReader.read(option);
-                        // TypeDescription rowBatchSchema = recordReader.getResultSchema();
-                        pullRowBatch = recordReader.readBatch(WorkerCommon.rowBatchSize);
-                        System.out.println("pullRowBatch size: "+pullRowBatch.size);
-                        pullWriter.addRowBatch(pullRowBatch, hashValue);
+                        for (int hashValue:JoinhashValues){
+                            PixelsReaderOption option = WorkerCommon.getReaderOption(transId, event.getLargeTable().getColumnsToRead(), pixelsReader,
+                            hashValue, numPartition);
+                            PixelsRecordReader recordReader = pixelsReader.read(option);
+
+                            do{
+                                pullRowBatch = recordReader.readBatch(WorkerCommon.rowBatchSize);
+                                if (pullRowBatch.isEmpty())
+                                {   
+                                    System.out.println("pullRowBatch is empty, break");
+                                    break;
+                                }
+                                pullWriter.addRowBatch(pullRowBatch, hashValue);
+                            }while(!pullRowBatch.isEmpty());
+
+                            workerMetrics.addReadBytes(recordReader.getCompletedBytes()); 
+                        }
+                        
+
+                        pullWriter.close();
+                        System.out.println("pullWriter completed");
+                        localFiles.add(fileName);
+                    }else{
+                        System.out.println("no file to pull or space is full, going to sleep");
+                        Thread.sleep(500);
                     }
 
-                    pullWriter.close();
-                    System.out.println("pullWriter completed");
-                    localFiles.add(fileName);
-                }else{
-                    System.out.println("no file to pull, going to sleep");
-                    Thread.sleep(1000);
+                } else if(lassversion==1){
+                    System.out.println("simply waiting for files to be ready");
+                    Thread.sleep(500);
+                } else{
+                    System.out.println("wrong lassversion");
                 }
+
             }
             
             System.out.println("All partitions are ready, start join!");
             // read cached partitioned and other files
-            ExecutorService joinPool = Executors.newFixedThreadPool(cores * 2,
+            ExecutorService joinPool = Executors.newFixedThreadPool(cores * 3,
                     new WorkerThreadFactory(exceptionHandler));
 
             requireNonNull(event.getSmallTable(), "event.smallTable is null");
@@ -367,6 +378,7 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
             WorkerCommon.initStorage(leftInputStorageInfo);
             WorkerCommon.initStorage(rightInputStorageInfo);
             WorkerCommon.initStorage(JoinoutputStorageInfo);
+
 
             // build the joiner.
             AtomicReference<TypeDescription> leftSchema = new AtomicReference<>();
@@ -571,6 +583,8 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                         "failed to finish writing and close the join result file '" + outputPath + "'", e);
             }
 
+            joinOutput.setDurationMs((int) (System.currentTimeMillis() - startTime));
+            WorkerCommon.setPerfMetrics(joinOutput, workerMetrics);
             // normal partition process
             return joinOutput;
         } catch(Throwable e)

@@ -165,8 +165,8 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
             List<Future> leftFutures = new ArrayList<>(leftPartitioned.size());
             int leftSplitSize = leftPartitioned.size() / leftParallelism;
             
-            long heapSizebefore = Runtime.getRuntime().totalMemory()/(1024 * 1024);
-            System.out.println("heapSize before hash: " + heapSizebefore);
+            // long heapSizebefore = Runtime.getRuntime().totalMemory()/(1024 * 1024);
+            // System.out.println("heapSize before hash: " + heapSizebefore);
 
 
             if (leftPartitioned.size() % leftParallelism > 0)
@@ -201,15 +201,15 @@ public class BasePartitionedJoinWorker extends Worker<PartitionedJoinInput, Join
 
             System.out.println("pass buid hash table");
 
-            // Get current size of heap in bytes
-            long heapSize = Runtime.getRuntime().totalMemory()/(1024 * 1024);
-            System.out.println("heapSize: " + heapSize);
-            // Get maximum size of heap in bytes. The heap cannot grow beyond this size.// Any attempt will result in an OutOfMemoryException.
-            long heapMaxSize = Runtime.getRuntime().maxMemory()/(1024 * 1024);
-            System.out.println("heapMaxSize: " + heapMaxSize);
-            // Get amount of free memory within the heap in bytes. This size will increase // after garbage collection and decrease as new objects are created.
-            long heapFreeSize = Runtime.getRuntime().freeMemory()/(1024 * 1024); 
-            System.out.println("heapFreeSize: " + heapFreeSize);
+            // // Get current size of heap in bytes
+            // long heapSize = Runtime.getRuntime().totalMemory()/(1024 * 1024);
+            // System.out.println("heapSize: " + heapSize);
+            // // Get maximum size of heap in bytes. The heap cannot grow beyond this size.// Any attempt will result in an OutOfMemoryException.
+            // long heapMaxSize = Runtime.getRuntime().maxMemory()/(1024 * 1024);
+            // System.out.println("heapMaxSize: " + heapMaxSize);
+            // // Get amount of free memory within the heap in bytes. This size will increase // after garbage collection and decrease as new objects are created.
+            // long heapFreeSize = Runtime.getRuntime().freeMemory()/(1024 * 1024); 
+            // System.out.println("heapFreeSize: " + heapFreeSize);
 
 
             List<ConcurrentLinkedQueue<VectorizedRowBatch>> result = new ArrayList<>();

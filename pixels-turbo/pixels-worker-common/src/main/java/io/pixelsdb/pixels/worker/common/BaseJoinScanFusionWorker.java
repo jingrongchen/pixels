@@ -123,6 +123,11 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
             // brocastJointhreadPool.shutdown();
 
             System.out.println("success execute all");
+
+
+
+            fusionOutput.setDurationMs((int) (System.currentTimeMillis() - startTime));
+            WorkerCommon.setPerfMetrics(fusionOutput, workerMetrics);
             return fusionOutput;
         } catch (Exception e)
         {
@@ -197,8 +202,8 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
         List<BatchToQueue> batchToQueueList = new ArrayList<>();
 
         CountDownLatch producerlatch = new CountDownLatch(2);
-        batchToQueueList.add(new BatchToQueue(event.getTransId(), includeColumns, blockingQueue,inputInfoQueue,producerlatch,schemalatch,true));
-        batchToQueueList.add(new BatchToQueue(event.getTransId(), includeColumns, blockingQueue,inputInfoQueue,producerlatch));
+        batchToQueueList.add(new BatchToQueue(event.getTransId(), includeColumns, blockingQueue,inputInfoQueue,producerlatch,schemalatch,true,workerMetrics));
+        batchToQueueList.add(new BatchToQueue(event.getTransId(), includeColumns, blockingQueue,inputInfoQueue,producerlatch,workerMetrics));
         
         ExecutorService producerPool = Executors.newFixedThreadPool(2);
 
@@ -242,6 +247,8 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
             try
             {   
                 //initiating 
+                WorkerMetrics.Timer computeCostTimer = new WorkerMetrics.Timer();
+
                 boolean[] tablescanProjection = new boolean[columnsToRead.length];
                         // For tablescan Scanner 
                 TableScanFilter tableScanFilter = TableScanFilter.empty("tpch", "lineitem");
@@ -274,6 +281,8 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                 Scanner TableScanScanner = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, tablescanColtoRead, tablescanProjection, tableScanFilter);
                 Scanner scanner = new Scanner(WorkerCommon.rowBatchSize, rowBatchSchema, columnsToRead, projection, filter);
                 PixelsWriter TableScanWriter = null;
+                
+
                 if(ispartialAggregate){
                     TableScanWriter = WorkerCommon.getWriter(TableScanScanner.getOutputSchema(), WorkerCommon.getStorage(outputStorageInfo.getScheme()),
                                 tablescanOutput, encoding, false, null);
@@ -289,6 +298,7 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                     writerSchema.weakCompareAndSet(null, scanner.getOutputSchema());
                 }
 
+                computeCostTimer.start();
                 while ((rowBatch = blockingQueue.poll(3000, TimeUnit.MILLISECONDS)) != null )
                 {   
                     scanRowBatch = rowBatch.clone();
@@ -330,6 +340,8 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                         // 
                     }
                 }
+                computeCostTimer.stop();
+                workerMetrics.addComputeCostNs(computeCostTimer.getElapsedNs());
                 
 
                 // initiate the writer schema
@@ -342,6 +354,8 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                 }
 
                 // write the partition output
+                WorkerMetrics.Timer writeCostTimer = new WorkerMetrics.Timer().start();
+
                 String partitionOutputPath = outputPath + event.getFusionOutput().getFileNames().get(1);
                 PixelsWriter PartitionsWriter = WorkerCommon.getWriter(writerSchema.get(),
                 WorkerCommon.getStorage(outputStorageInfo.getScheme()), partitionOutputPath, encoding,
@@ -385,8 +399,11 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
                 // Thread.sleep(5000);
                 PartitionsWriter.close();
                 TableScanWriter.close();
-                
-                
+                workerMetrics.addOutputCostNs(writeCostTimer.stop());
+                workerMetrics.addWriteBytes(PartitionsWriter.getCompletedBytes()+TableScanWriter.getCompletedBytes());
+                workerMetrics.addNumWriteRequests(PartitionsWriter.getNumWriteRequests()+TableScanWriter.getNumWriteRequests());
+                // fusionOutput.addOutput(outputPath, pixelsWriter.getNumRowGroup());
+
                 System.out.println("success shutdown");
                 System.out.println("success before close");
                 fusionOutput.addSecondPartitionOutput(new PartitionOutput(partitionOutputPath, hashValues));
@@ -403,7 +420,7 @@ public class BaseJoinScanFusionWorker extends Worker<JoinScanFusionInput, Fusion
         return future;
     }
 
-    public CompletableFuture<FusionOutput>  broacastJoinAndPartition(JoinScanFusionInput event, FusionOutput fusionOutput,ExecutorService brocastJointhreadPool){
+    public CompletableFuture<FusionOutput> broacastJoinAndPartition(JoinScanFusionInput event, FusionOutput fusionOutput,ExecutorService brocastJointhreadPool){
         CompletableFuture<FusionOutput> JoinAndPartitionfuture = CompletableFuture.supplyAsync(() ->{
         try{
             int cores = Runtime.getRuntime().availableProcessors();

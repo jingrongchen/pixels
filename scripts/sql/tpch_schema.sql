@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS customer (
   c_acctbal decimal(15,2),
   c_mktsegment char(10),
   c_comment varchar(117)
-) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch/customer/');
+) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch1000/customer/');
 
 CREATE TABLE IF NOT EXISTS lineitem (
   l_orderkey bigint,
@@ -32,14 +32,14 @@ CREATE TABLE IF NOT EXISTS lineitem (
   l_shipinstruct char(25),
   l_shipmode char(10),
   l_comment varchar(44)
-) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch/lineitem/');
+) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch1000/lineitem/');
 
 CREATE TABLE IF NOT EXISTS nation (
   n_nationkey bigint,
   n_name char(25),
   n_regionkey bigint,
   n_comment varchar(152)
-) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch/nation/');
+) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch1000/nation/');
 
 CREATE TABLE IF NOT EXISTS orders (
   o_orderkey bigint,
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS orders (
   o_clerk char(15),
   o_shippriority integer,
   o_comment varchar(79)
-) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch/orders/');
+) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch1000/orders/');
 
 CREATE TABLE IF NOT EXISTS part (
   p_partkey bigint,
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS part (
   p_container char(10),
   p_retailprice decimal(15,2),
   p_comment varchar(23)
-) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch/part/');
+) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch1000/part/');
 
 CREATE TABLE IF NOT EXISTS partsupp (
   ps_partkey bigint,
@@ -71,13 +71,13 @@ CREATE TABLE IF NOT EXISTS partsupp (
   ps_availqty integer,
   ps_supplycost decimal(15,2),
   ps_comment varchar(199)
-) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch/partsupp/');
+) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch1000/partsupp/');
 
 CREATE TABLE IF NOT EXISTS region (
   r_regionkey bigint,
   r_name char(25),
   r_comment varchar(152)
-) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch/region/');
+) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch1000/region/');
 
 CREATE TABLE IF NOT EXISTS supplier (
   s_suppkey bigint,
@@ -87,4 +87,4 @@ CREATE TABLE IF NOT EXISTS supplier (
   s_phone char(15),
   s_acctbal decimal(15,2),
   s_comment varchar(101)
-) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch/supplier/');
+) WITH (storage='s3', paths='s3://jingrong-lambda-test/tpch1000/supplier/');

@@ -2,7 +2,7 @@
   "rels": [
     {
       "id": "0",
-      "relOp": "LogicalTableScan",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableTableScan",
       "table": [
         "tpch",
         "supplier"
@@ -11,7 +11,136 @@
     },
     {
       "id": "1",
-      "relOp": "LogicalTableScan",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 1,
+          "name": "$t1",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        },
+        {
+          "input": 3,
+          "name": "$t3",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        }
+      ],
+      "condition": null,
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_suppkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_name"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_address"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_nationkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_phone"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "s_acctbal"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_suppkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_name"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_nationkey"
+          }
+        ],
+        "nullable": false
+      }
+    },
+    {
+      "id": "2",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableTableScan",
       "table": [
         "tpch",
         "lineitem"
@@ -19,24 +148,294 @@
       "inputs": []
     },
     {
-      "id": "2",
-      "relOp": "LogicalJoin",
+      "id": "3",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        },
+        {
+          "input": 7,
+          "name": "$7"
+        },
+        {
+          "input": 8,
+          "name": "$8"
+        },
+        {
+          "input": 9,
+          "name": "$9"
+        },
+        {
+          "input": 10,
+          "name": "$10"
+        },
+        {
+          "input": 11,
+          "name": "$11"
+        },
+        {
+          "input": 12,
+          "name": "$12"
+        },
+        {
+          "input": 13,
+          "name": "$13"
+        },
+        {
+          "input": 14,
+          "name": "$14"
+        },
+        {
+          "input": 15,
+          "name": "$15"
+        },
+        {
+          "op": {
+            "name": ">",
+            "kind": "GREATER_THAN",
+            "syntax": "BINARY"
+          },
+          "operands": [
+            {
+              "input": 12,
+              "name": "$t12",
+              "type": {
+                "type": "DATE",
+                "nullable": false
+              }
+            },
+            {
+              "input": 11,
+              "name": "$t11",
+              "type": {
+                "type": "DATE",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 2,
+          "name": "$t2",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 11,
+          "name": "$t11",
+          "type": {
+            "type": "DATE",
+            "nullable": false
+          }
+        },
+        {
+          "input": 12,
+          "name": "$t12",
+          "type": {
+            "type": "DATE",
+            "nullable": false
+          }
+        }
+      ],
       "condition": {
-        "literal": true,
+        "input": 16,
+        "name": "$t16",
         "type": {
           "type": "BOOLEAN",
           "nullable": false
         }
       },
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_partkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          },
+          {
+            "type": "INTEGER",
+            "nullable": false,
+            "name": "l_linenumber"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_quantity"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_extendedprice"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_discount"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_tax"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_returnflag"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_linestatus"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_shipdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_commitdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_receiptdate"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_shipinstruct"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_shipmode"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_commitdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_receiptdate"
+          }
+        ],
+        "nullable": false
+      }
+    },
+    {
+      "id": "4",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
+      "condition": {
+        "op": {
+          "name": "=",
+          "kind": "EQUALS",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "input": 0,
+            "name": "$0"
+          },
+          {
+            "input": 4,
+            "name": "$4"
+          }
+        ]
+      },
       "joinType": "inner",
       "inputs": [
-        "0",
-        "1"
+        "1",
+        "3"
       ]
     },
     {
-      "id": "3",
-      "relOp": "LogicalTableScan",
+      "id": "5",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableTableScan",
       "table": [
         "tpch",
         "orders"
@@ -44,24 +443,210 @@
       "inputs": []
     },
     {
-      "id": "4",
-      "relOp": "LogicalJoin",
+      "id": "6",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        },
+        {
+          "input": 7,
+          "name": "$7"
+        },
+        {
+          "input": 8,
+          "name": "$8"
+        },
+        {
+          "literal": "F                 ",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        },
+        {
+          "op": {
+            "name": "=",
+            "kind": "EQUALS",
+            "syntax": "BINARY"
+          },
+          "operands": [
+            {
+              "input": 2,
+              "name": "$t2",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            },
+            {
+              "input": 9,
+              "name": "$t9",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            }
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 2,
+          "name": "$t2",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        }
+      ],
       "condition": {
-        "literal": true,
+        "input": 10,
+        "name": "$t10",
         "type": {
           "type": "BOOLEAN",
           "nullable": false
         }
       },
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "o_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "o_custkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_orderstatus"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "o_totalprice"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "o_orderdate"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_orderpriority"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_clerk"
+          },
+          {
+            "type": "INTEGER",
+            "nullable": false,
+            "name": "o_shippriority"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "o_orderkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_orderstatus"
+          }
+        ],
+        "nullable": false
+      }
+    },
+    {
+      "id": "7",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
+      "condition": {
+        "op": {
+          "name": "=",
+          "kind": "EQUALS",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "input": 3,
+            "name": "$3"
+          },
+          {
+            "input": 7,
+            "name": "$7"
+          }
+        ]
+      },
       "joinType": "inner",
       "inputs": [
-        "2",
-        "3"
+        "4",
+        "6"
       ]
     },
     {
-      "id": "5",
-      "relOp": "LogicalTableScan",
+      "id": "8",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableTableScan",
       "table": [
         "tpch",
         "nation"
@@ -69,1115 +654,1142 @@
       "inputs": []
     },
     {
-      "id": "6",
-      "relOp": "LogicalJoin",
+      "id": "9",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "literal": "EGYPT             ",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        },
+        {
+          "op": {
+            "name": "=",
+            "kind": "EQUALS",
+            "syntax": "BINARY"
+          },
+          "operands": [
+            {
+              "input": 1,
+              "name": "$t1",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            },
+            {
+              "input": 4,
+              "name": "$t4",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            }
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 1,
+          "name": "$t1",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        }
+      ],
       "condition": {
-        "literal": true,
+        "input": 5,
+        "name": "$t5",
         "type": {
           "type": "BOOLEAN",
           "nullable": false
         }
       },
-      "joinType": "inner",
-      "inputs": [
-        "4",
-        "5"
-      ]
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "n_nationkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "n_name"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "n_regionkey"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "n_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "n_nationkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "n_name"
+          }
+        ],
+        "nullable": false
+      }
     },
     {
-      "id": "7",
-      "relOp": "LogicalTableScan",
-      "table": [
-        "tpch",
-        "lineitem"
-      ],
-      "inputs": []
-    },
-    {
-      "id": "8",
-      "relOp": "LogicalFilter",
+      "id": "10",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
       "condition": {
         "op": {
-          "name": "AND",
-          "kind": "AND",
+          "name": "=",
+          "kind": "EQUALS",
           "syntax": "BINARY"
         },
         "operands": [
           {
-            "op": {
-              "name": "=",
-              "kind": "EQUALS",
-              "syntax": "BINARY"
-            },
-            "operands": [
-              {
-                "input": 0,
-                "name": "$0"
-              },
-              {
-                "field": "l_orderkey",
-                "expr": {
-                  "correl": "$cor0",
-                  "type": {
-                    "fields": [
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "s_suppkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_name"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_address"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "s_nationkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_phone"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "s_acctbal"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_orderkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_partkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_suppkey"
-                      },
-                      {
-                        "type": "INTEGER",
-                        "nullable": false,
-                        "name": "l_linenumber"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_quantity"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_extendedprice"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_discount"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_tax"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_returnflag"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_linestatus"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_shipdate"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_commitdate"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_receiptdate"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_shipinstruct"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_shipmode"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "o_orderkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "o_custkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_orderstatus"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "o_totalprice"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "o_orderdate"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_orderpriority"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_clerk"
-                      },
-                      {
-                        "type": "INTEGER",
-                        "nullable": false,
-                        "name": "o_shippriority"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "n_nationkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "n_name"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "n_regionkey"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "n_comment"
-                      }
-                    ],
-                    "nullable": false
-                  }
-                }
-              }
-            ]
+            "input": 2,
+            "name": "$2"
           },
           {
-            "op": {
-              "name": "<>",
-              "kind": "NOT_EQUALS",
-              "syntax": "BINARY"
-            },
-            "operands": [
-              {
-                "input": 2,
-                "name": "$2"
-              },
-              {
-                "field": "l_suppkey",
-                "expr": {
-                  "correl": "$cor0",
-                  "type": {
-                    "fields": [
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "s_suppkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_name"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_address"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "s_nationkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_phone"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "s_acctbal"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_orderkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_partkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_suppkey"
-                      },
-                      {
-                        "type": "INTEGER",
-                        "nullable": false,
-                        "name": "l_linenumber"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_quantity"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_extendedprice"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_discount"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_tax"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_returnflag"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_linestatus"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_shipdate"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_commitdate"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_receiptdate"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_shipinstruct"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_shipmode"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "o_orderkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "o_custkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_orderstatus"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "o_totalprice"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "o_orderdate"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_orderpriority"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_clerk"
-                      },
-                      {
-                        "type": "INTEGER",
-                        "nullable": false,
-                        "name": "o_shippriority"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "n_nationkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "n_name"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "n_regionkey"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "n_comment"
-                      }
-                    ],
-                    "nullable": false
-                  }
-                }
-              }
-            ]
+            "input": 9,
+            "name": "$9"
           }
         ]
-      }
-    },
-    {
-      "id": "9",
-      "relOp": "LogicalProject",
-      "fields": [
-        "$f0"
-      ],
-      "exprs": [
-        {
-          "literal": true,
-          "type": {
-            "type": "BOOLEAN",
-            "nullable": false
-          }
-        }
-      ]
-    },
-    {
-      "id": "10",
-      "relOp": "LogicalAggregate",
-      "group": [],
-      "aggs": [
-        {
-          "agg": {
-            "name": "MIN",
-            "kind": "MIN",
-            "syntax": "FUNCTION"
-          },
-          "type": {
-            "type": "BOOLEAN",
-            "nullable": true
-          },
-          "distinct": false,
-          "operands": [
-            0
-          ],
-          "name": null
-        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "7",
+        "9"
       ]
     },
     {
       "id": "11",
-      "relOp": "LogicalCorrelate",
-      "correlation": 0,
-      "joinType": "left",
-      "requiredColumns": [
-        7,
-        9
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        },
+        {
+          "input": 7,
+          "name": "$7"
+        },
+        {
+          "input": 8,
+          "name": "$8"
+        },
+        {
+          "input": 9,
+          "name": "$9"
+        },
+        {
+          "input": 10,
+          "name": "$10"
+        },
+        {
+          "input": 11,
+          "name": "$11"
+        },
+        {
+          "input": 12,
+          "name": "$12"
+        },
+        {
+          "input": 13,
+          "name": "$13"
+        },
+        {
+          "input": 14,
+          "name": "$14"
+        },
+        {
+          "input": 15,
+          "name": "$15"
+        }
       ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 2,
+          "name": "$t2",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        }
+      ],
+      "condition": null,
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_partkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          },
+          {
+            "type": "INTEGER",
+            "nullable": false,
+            "name": "l_linenumber"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_quantity"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_extendedprice"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_discount"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_tax"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_returnflag"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_linestatus"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_shipdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_commitdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_receiptdate"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_shipinstruct"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_shipmode"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          }
+        ],
+        "nullable": false
+      },
       "inputs": [
-        "6",
-        "10"
+        "2"
       ]
     },
     {
       "id": "12",
-      "relOp": "LogicalTableScan",
-      "table": [
-        "tpch",
-        "lineitem"
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        }
       ],
-      "inputs": []
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 3,
+          "name": "$t3",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        }
+      ],
+      "condition": null,
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_suppkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_name"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_address"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_nationkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_phone"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "s_acctbal"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_suppkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_nationkey"
+          }
+        ],
+        "nullable": false
+      },
+      "inputs": [
+        "0"
+      ]
     },
     {
       "id": "13",
-      "relOp": "LogicalFilter",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        },
+        {
+          "input": 7,
+          "name": "$7"
+        },
+        {
+          "input": 8,
+          "name": "$8"
+        },
+        {
+          "input": 9,
+          "name": "$9"
+        },
+        {
+          "input": 10,
+          "name": "$10"
+        },
+        {
+          "input": 11,
+          "name": "$11"
+        },
+        {
+          "input": 12,
+          "name": "$12"
+        },
+        {
+          "input": 13,
+          "name": "$13"
+        },
+        {
+          "input": 14,
+          "name": "$14"
+        },
+        {
+          "input": 15,
+          "name": "$15"
+        },
+        {
+          "op": {
+            "name": ">",
+            "kind": "GREATER_THAN",
+            "syntax": "BINARY"
+          },
+          "operands": [
+            {
+              "input": 12,
+              "name": "$t12",
+              "type": {
+                "type": "DATE",
+                "nullable": false
+              }
+            },
+            {
+              "input": 11,
+              "name": "$t11",
+              "type": {
+                "type": "DATE",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 2,
+          "name": "$t2",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 11,
+          "name": "$t11",
+          "type": {
+            "type": "DATE",
+            "nullable": false
+          }
+        },
+        {
+          "input": 12,
+          "name": "$t12",
+          "type": {
+            "type": "DATE",
+            "nullable": false
+          }
+        }
+      ],
+      "condition": {
+        "input": 16,
+        "name": "$t16",
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_partkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          },
+          {
+            "type": "INTEGER",
+            "nullable": false,
+            "name": "l_linenumber"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_quantity"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_extendedprice"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_discount"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_tax"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_returnflag"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_linestatus"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_shipdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_commitdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_receiptdate"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_shipinstruct"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_shipmode"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_commitdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_receiptdate"
+          }
+        ],
+        "nullable": false
+      },
+      "inputs": [
+        "2"
+      ]
+    },
+    {
+      "id": "14",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
       "condition": {
         "op": {
-          "name": "AND",
-          "kind": "AND",
+          "name": "=",
+          "kind": "EQUALS",
           "syntax": "BINARY"
         },
         "operands": [
           {
-            "op": {
-              "name": "=",
-              "kind": "EQUALS",
-              "syntax": "BINARY"
-            },
-            "operands": [
-              {
-                "input": 0,
-                "name": "$0"
-              },
-              {
-                "field": "l_orderkey",
-                "expr": {
-                  "correl": "$cor2",
-                  "type": {
-                    "fields": [
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "s_suppkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_name"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_address"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "s_nationkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_phone"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "s_acctbal"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_orderkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_partkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_suppkey"
-                      },
-                      {
-                        "type": "INTEGER",
-                        "nullable": false,
-                        "name": "l_linenumber"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_quantity"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_extendedprice"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_discount"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_tax"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_returnflag"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_linestatus"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_shipdate"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_commitdate"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_receiptdate"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_shipinstruct"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_shipmode"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "o_orderkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "o_custkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_orderstatus"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "o_totalprice"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "o_orderdate"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_orderpriority"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_clerk"
-                      },
-                      {
-                        "type": "INTEGER",
-                        "nullable": false,
-                        "name": "o_shippriority"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "n_nationkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "n_name"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "n_regionkey"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "n_comment"
-                      }
-                    ],
-                    "nullable": false
-                  }
-                }
-              }
-            ]
+            "input": 0,
+            "name": "$0"
           },
           {
-            "op": {
-              "name": "<>",
-              "kind": "NOT_EQUALS",
-              "syntax": "BINARY"
-            },
-            "operands": [
-              {
-                "input": 2,
-                "name": "$2"
-              },
-              {
-                "field": "l_suppkey",
-                "expr": {
-                  "correl": "$cor2",
-                  "type": {
-                    "fields": [
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "s_suppkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_name"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_address"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "s_nationkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_phone"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "s_acctbal"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "s_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_orderkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_partkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "l_suppkey"
-                      },
-                      {
-                        "type": "INTEGER",
-                        "nullable": false,
-                        "name": "l_linenumber"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_quantity"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_extendedprice"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_discount"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "l_tax"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_returnflag"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_linestatus"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_shipdate"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_commitdate"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "l_receiptdate"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_shipinstruct"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_shipmode"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "l_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "o_orderkey"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "o_custkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_orderstatus"
-                      },
-                      {
-                        "type": "DECIMAL",
-                        "nullable": false,
-                        "precision": 15,
-                        "scale": 2,
-                        "name": "o_totalprice"
-                      },
-                      {
-                        "type": "DATE",
-                        "nullable": false,
-                        "name": "o_orderdate"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_orderpriority"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_clerk"
-                      },
-                      {
-                        "type": "INTEGER",
-                        "nullable": false,
-                        "name": "o_shippriority"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "o_comment"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "n_nationkey"
-                      },
-                      {
-                        "type": "CHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "n_name"
-                      },
-                      {
-                        "type": "BIGINT",
-                        "nullable": false,
-                        "name": "n_regionkey"
-                      },
-                      {
-                        "type": "VARCHAR",
-                        "nullable": false,
-                        "precision": 18,
-                        "name": "n_comment"
-                      }
-                    ],
-                    "nullable": false
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "op": {
-              "name": ">",
-              "kind": "GREATER_THAN",
-              "syntax": "BINARY"
-            },
-            "operands": [
-              {
-                "input": 12,
-                "name": "$12"
-              },
-              {
-                "input": 11,
-                "name": "$11"
-              }
-            ]
+            "input": 3,
+            "name": "$3"
           }
         ]
-      }
-    },
-    {
-      "id": "14",
-      "relOp": "LogicalProject",
-      "fields": [
-        "$f0"
-      ],
-      "exprs": [
-        {
-          "literal": true,
-          "type": {
-            "type": "BOOLEAN",
-            "nullable": false
-          }
-        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "12",
+        "13"
       ]
     },
     {
       "id": "15",
-      "relOp": "LogicalAggregate",
-      "group": [],
-      "aggs": [
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
         {
-          "agg": {
-            "name": "MIN",
-            "kind": "MIN",
-            "syntax": "FUNCTION"
-          },
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        },
+        {
+          "input": 7,
+          "name": "$7"
+        },
+        {
+          "input": 8,
+          "name": "$8"
+        },
+        {
+          "literal": "F                 ",
           "type": {
-            "type": "BOOLEAN",
-            "nullable": true
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        },
+        {
+          "op": {
+            "name": "=",
+            "kind": "EQUALS",
+            "syntax": "BINARY"
           },
-          "distinct": false,
           "operands": [
-            0
-          ],
-          "name": null
+            {
+              "input": 2,
+              "name": "$t2",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            },
+            {
+              "input": 9,
+              "name": "$t9",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            }
+          ]
         }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 2,
+          "name": "$t2",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        }
+      ],
+      "condition": {
+        "input": 10,
+        "name": "$t10",
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "o_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "o_custkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_orderstatus"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "o_totalprice"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "o_orderdate"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_orderpriority"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_clerk"
+          },
+          {
+            "type": "INTEGER",
+            "nullable": false,
+            "name": "o_shippriority"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "o_orderkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_orderstatus"
+          }
+        ],
+        "nullable": false
+      },
+      "inputs": [
+        "5"
       ]
     },
     {
       "id": "16",
-      "relOp": "LogicalCorrelate",
-      "correlation": 2,
-      "joinType": "left",
-      "requiredColumns": [
-        7,
-        9
-      ],
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
+      "condition": {
+        "op": {
+          "name": "=",
+          "kind": "EQUALS",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "input": 2,
+            "name": "$2"
+          },
+          {
+            "input": 6,
+            "name": "$6"
+          }
+        ]
+      },
+      "joinType": "inner",
       "inputs": [
-        "11",
+        "14",
         "15"
       ]
     },
     {
       "id": "17",
-      "relOp": "LogicalFilter",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "literal": "EGYPT             ",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        },
+        {
+          "op": {
+            "name": "=",
+            "kind": "EQUALS",
+            "syntax": "BINARY"
+          },
+          "operands": [
+            {
+              "input": 1,
+              "name": "$t1",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            },
+            {
+              "input": 4,
+              "name": "$t4",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            }
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 1,
+          "name": "$t1",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        }
+      ],
+      "condition": {
+        "input": 5,
+        "name": "$t5",
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "n_nationkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "n_name"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "n_regionkey"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "n_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "n_nationkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "n_name"
+          }
+        ],
+        "nullable": false
+      },
+      "inputs": [
+        "8"
+      ]
+    },
+    {
+      "id": "18",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
+      "condition": {
+        "op": {
+          "name": "=",
+          "kind": "EQUALS",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "input": 1,
+            "name": "$1"
+          },
+          {
+            "input": 8,
+            "name": "$8"
+          }
+        ]
+      },
+      "joinType": "inner",
+      "inputs": [
+        "16",
+        "17"
+      ]
+    },
+    {
+      "id": "19",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableAggregate",
+      "group": [
+        2,
+        3
+      ],
+      "aggs": []
+    },
+    {
+      "id": "20",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
       "condition": {
         "op": {
           "name": "AND",
@@ -1197,115 +1809,55 @@
                 "name": "$0"
               },
               {
-                "input": 9,
-                "name": "$9"
+                "input": 2,
+                "name": "$2"
               }
             ]
           },
           {
             "op": {
-              "name": "=",
-              "kind": "EQUALS",
+              "name": "<>",
+              "kind": "NOT_EQUALS",
               "syntax": "BINARY"
             },
             "operands": [
               {
-                "input": 23,
-                "name": "$23"
+                "input": 1,
+                "name": "$1"
               },
               {
-                "input": 7,
-                "name": "$7"
+                "input": 3,
+                "name": "$3"
               }
             ]
-          },
-          {
-            "op": {
-              "name": "=",
-              "kind": "EQUALS",
-              "syntax": "BINARY"
-            },
-            "operands": [
-              {
-                "input": 25,
-                "name": "$25"
-              },
-              {
-                "op": {
-                  "name": "CAST",
-                  "kind": "CAST",
-                  "syntax": "SPECIAL"
-                },
-                "operands": [
-                  {
-                    "literal": "F",
-                    "type": {
-                      "type": "CHAR",
-                      "nullable": false,
-                      "precision": 1
-                    }
-                  }
-                ],
-                "type": {
-                  "type": "CHAR",
-                  "nullable": false,
-                  "precision": 18
-                }
-              }
-            ]
-          },
-          {
-            "op": {
-              "name": ">",
-              "kind": "GREATER_THAN",
-              "syntax": "BINARY"
-            },
-            "operands": [
-              {
-                "input": 19,
-                "name": "$19"
-              },
-              {
-                "input": 18,
-                "name": "$18"
-              }
-            ]
-          },
-          {
-            "op": {
-              "name": "IS NOT NULL",
-              "kind": "IS_NOT_NULL",
-              "syntax": "POSTFIX"
-            },
-            "operands": [
-              {
-                "input": 36,
-                "name": "$36"
-              }
-            ]
-          },
-          {
-            "op": {
-              "name": "NOT",
-              "kind": "NOT",
-              "syntax": "PREFIX"
-            },
-            "operands": [
-              {
-                "op": {
-                  "name": "IS NOT NULL",
-                  "kind": "IS_NOT_NULL",
-                  "syntax": "POSTFIX"
-                },
-                "operands": [
-                  {
-                    "input": 37,
-                    "name": "$37"
-                  }
-                ]
-              }
-            ]
-          },
+          }
+        ]
+      },
+      "joinType": "inner",
+      "inputs": [
+        "11",
+        "19"
+      ]
+    },
+    {
+      "id": "21",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableAggregate",
+      "group": [
+        2,
+        3
+      ],
+      "aggs": []
+    },
+    {
+      "id": "22",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
+      "condition": {
+        "op": {
+          "name": "AND",
+          "kind": "AND",
+          "syntax": "BINARY"
+        },
+        "operands": [
           {
             "op": {
               "name": "=",
@@ -1318,8 +1870,8 @@
                 "name": "$3"
               },
               {
-                "input": 32,
-                "name": "$32"
+                "input": 11,
+                "name": "$11"
               }
             ]
           },
@@ -1331,54 +1883,1667 @@
             },
             "operands": [
               {
-                "input": 33,
-                "name": "$33"
+                "input": 4,
+                "name": "$4"
               },
               {
-                "op": {
-                  "name": "CAST",
-                  "kind": "CAST",
-                  "syntax": "SPECIAL"
-                },
-                "operands": [
-                  {
-                    "literal": "EGYPT",
-                    "type": {
-                      "type": "CHAR",
-                      "nullable": false,
-                      "precision": 5
-                    }
-                  }
-                ],
-                "type": {
-                  "type": "CHAR",
-                  "nullable": false,
-                  "precision": 18
-                }
+                "input": 12,
+                "name": "$12"
               }
             ]
           }
         ]
-      }
-    },
-    {
-      "id": "18",
-      "relOp": "LogicalProject",
-      "fields": [
-        "s_name"
-      ],
-      "exprs": [
-        {
-          "input": 1,
-          "name": "$1"
-        }
+      },
+      "joinType": "inner",
+      "inputs": [
+        "10",
+        "21"
       ]
     },
     {
-      "id": "19",
-      "relOp": "LogicalAggregate",
+      "id": "23",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        },
+        {
+          "input": 7,
+          "name": "$7"
+        },
+        {
+          "input": 8,
+          "name": "$8"
+        },
+        {
+          "input": 9,
+          "name": "$9"
+        },
+        {
+          "input": 10,
+          "name": "$10"
+        },
+        {
+          "input": 11,
+          "name": "$11"
+        },
+        {
+          "input": 12,
+          "name": "$12"
+        },
+        {
+          "input": 13,
+          "name": "$13"
+        },
+        {
+          "input": 14,
+          "name": "$14"
+        },
+        {
+          "input": 15,
+          "name": "$15"
+        },
+        {
+          "op": {
+            "name": ">",
+            "kind": "GREATER_THAN",
+            "syntax": "BINARY"
+          },
+          "operands": [
+            {
+              "input": 12,
+              "name": "$t12",
+              "type": {
+                "type": "DATE",
+                "nullable": false
+              }
+            },
+            {
+              "input": 11,
+              "name": "$t11",
+              "type": {
+                "type": "DATE",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 2,
+          "name": "$t2",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 11,
+          "name": "$t11",
+          "type": {
+            "type": "DATE",
+            "nullable": false
+          }
+        },
+        {
+          "input": 12,
+          "name": "$t12",
+          "type": {
+            "type": "DATE",
+            "nullable": false
+          }
+        }
+      ],
+      "condition": {
+        "input": 16,
+        "name": "$t16",
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_partkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          },
+          {
+            "type": "INTEGER",
+            "nullable": false,
+            "name": "l_linenumber"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_quantity"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_extendedprice"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_discount"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_tax"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_returnflag"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_linestatus"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_shipdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_commitdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_receiptdate"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_shipinstruct"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_shipmode"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_commitdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_receiptdate"
+          }
+        ],
+        "nullable": false
+      },
+      "inputs": [
+        "2"
+      ]
+    },
+    {
+      "id": "24",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 3,
+          "name": "$t3",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        }
+      ],
+      "condition": null,
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_suppkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_name"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_address"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_nationkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_phone"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "s_acctbal"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_suppkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_nationkey"
+          }
+        ],
+        "nullable": false
+      },
+      "inputs": [
+        "0"
+      ]
+    },
+    {
+      "id": "25",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        },
+        {
+          "input": 7,
+          "name": "$7"
+        },
+        {
+          "input": 8,
+          "name": "$8"
+        },
+        {
+          "input": 9,
+          "name": "$9"
+        },
+        {
+          "input": 10,
+          "name": "$10"
+        },
+        {
+          "input": 11,
+          "name": "$11"
+        },
+        {
+          "input": 12,
+          "name": "$12"
+        },
+        {
+          "input": 13,
+          "name": "$13"
+        },
+        {
+          "input": 14,
+          "name": "$14"
+        },
+        {
+          "input": 15,
+          "name": "$15"
+        },
+        {
+          "op": {
+            "name": ">",
+            "kind": "GREATER_THAN",
+            "syntax": "BINARY"
+          },
+          "operands": [
+            {
+              "input": 12,
+              "name": "$t12",
+              "type": {
+                "type": "DATE",
+                "nullable": false
+              }
+            },
+            {
+              "input": 11,
+              "name": "$t11",
+              "type": {
+                "type": "DATE",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 2,
+          "name": "$t2",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 11,
+          "name": "$t11",
+          "type": {
+            "type": "DATE",
+            "nullable": false
+          }
+        },
+        {
+          "input": 12,
+          "name": "$t12",
+          "type": {
+            "type": "DATE",
+            "nullable": false
+          }
+        }
+      ],
+      "condition": {
+        "input": 16,
+        "name": "$t16",
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_partkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          },
+          {
+            "type": "INTEGER",
+            "nullable": false,
+            "name": "l_linenumber"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_quantity"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_extendedprice"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_discount"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "l_tax"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_returnflag"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_linestatus"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_shipdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_commitdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_receiptdate"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_shipinstruct"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_shipmode"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "l_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_commitdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_receiptdate"
+          }
+        ],
+        "nullable": false
+      },
+      "inputs": [
+        "2"
+      ]
+    },
+    {
+      "id": "26",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
+      "condition": {
+        "op": {
+          "name": "=",
+          "kind": "EQUALS",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "input": 0,
+            "name": "$0"
+          },
+          {
+            "input": 3,
+            "name": "$3"
+          }
+        ]
+      },
+      "joinType": "inner",
+      "inputs": [
+        "24",
+        "25"
+      ]
+    },
+    {
+      "id": "27",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        },
+        {
+          "input": 7,
+          "name": "$7"
+        },
+        {
+          "input": 8,
+          "name": "$8"
+        },
+        {
+          "literal": "F                 ",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        },
+        {
+          "op": {
+            "name": "=",
+            "kind": "EQUALS",
+            "syntax": "BINARY"
+          },
+          "operands": [
+            {
+              "input": 2,
+              "name": "$t2",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            },
+            {
+              "input": 9,
+              "name": "$t9",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            }
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 2,
+          "name": "$t2",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        }
+      ],
+      "condition": {
+        "input": 10,
+        "name": "$t10",
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "o_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "o_custkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_orderstatus"
+          },
+          {
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 15,
+            "scale": 2,
+            "name": "o_totalprice"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "o_orderdate"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_orderpriority"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_clerk"
+          },
+          {
+            "type": "INTEGER",
+            "nullable": false,
+            "name": "o_shippriority"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "o_orderkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_orderstatus"
+          }
+        ],
+        "nullable": false
+      },
+      "inputs": [
+        "5"
+      ]
+    },
+    {
+      "id": "28",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
+      "condition": {
+        "op": {
+          "name": "=",
+          "kind": "EQUALS",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "input": 2,
+            "name": "$2"
+          },
+          {
+            "input": 6,
+            "name": "$6"
+          }
+        ]
+      },
+      "joinType": "inner",
+      "inputs": [
+        "26",
+        "27"
+      ]
+    },
+    {
+      "id": "29",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "literal": "EGYPT             ",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        },
+        {
+          "op": {
+            "name": "=",
+            "kind": "EQUALS",
+            "syntax": "BINARY"
+          },
+          "operands": [
+            {
+              "input": 1,
+              "name": "$t1",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            },
+            {
+              "input": 4,
+              "name": "$t4",
+              "type": {
+                "type": "CHAR",
+                "nullable": false,
+                "precision": 18
+              }
+            }
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 1,
+          "name": "$t1",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        }
+      ],
+      "condition": {
+        "input": 5,
+        "name": "$t5",
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "n_nationkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "n_name"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "n_regionkey"
+          },
+          {
+            "type": "VARCHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "n_comment"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "n_nationkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "n_name"
+          }
+        ],
+        "nullable": false
+      },
+      "inputs": [
+        "8"
+      ]
+    },
+    {
+      "id": "30",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
+      "condition": {
+        "op": {
+          "name": "=",
+          "kind": "EQUALS",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "input": 1,
+            "name": "$1"
+          },
+          {
+            "input": 8,
+            "name": "$8"
+          }
+        ]
+      },
+      "joinType": "inner",
+      "inputs": [
+        "28",
+        "29"
+      ]
+    },
+    {
+      "id": "31",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableAggregate",
       "group": [
-        0
+        2,
+        3
+      ],
+      "aggs": []
+    },
+    {
+      "id": "32",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
+      "condition": {
+        "op": {
+          "name": "AND",
+          "kind": "AND",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 0,
+                "name": "$0"
+              },
+              {
+                "input": 4,
+                "name": "$4"
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "<>",
+              "kind": "NOT_EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 1,
+                "name": "$1"
+              },
+              {
+                "input": 5,
+                "name": "$5"
+              }
+            ]
+          }
+        ]
+      },
+      "joinType": "inner",
+      "inputs": [
+        "23",
+        "31"
+      ]
+    },
+    {
+      "id": "33",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableAggregate",
+      "group": [
+        4,
+        5
+      ],
+      "aggs": []
+    },
+    {
+      "id": "34",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "literal": true,
+          "type": {
+            "type": "BOOLEAN",
+            "nullable": false
+          }
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 1,
+          "name": "$t1",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 2,
+          "name": "$t2",
+          "type": {
+            "type": "BOOLEAN",
+            "nullable": false
+          }
+        }
+      ],
+      "condition": null,
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey0"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey0"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey0"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey0"
+          },
+          {
+            "type": "BOOLEAN",
+            "nullable": false,
+            "name": "$f2"
+          }
+        ],
+        "nullable": false
+      }
+    },
+    {
+      "id": "35",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableHashJoin",
+      "condition": {
+        "op": {
+          "name": "AND",
+          "kind": "AND",
+          "syntax": "BINARY"
+        },
+        "operands": [
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 3,
+                "name": "$3"
+              },
+              {
+                "input": 13,
+                "name": "$13"
+              }
+            ]
+          },
+          {
+            "op": {
+              "name": "=",
+              "kind": "EQUALS",
+              "syntax": "BINARY"
+            },
+            "operands": [
+              {
+                "input": 4,
+                "name": "$4"
+              },
+              {
+                "input": 14,
+                "name": "$14"
+              }
+            ]
+          }
+        ]
+      },
+      "joinType": "left",
+      "inputs": [
+        "22",
+        "34"
+      ]
+    },
+    {
+      "id": "36",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableCalc",
+      "exprs": [
+        {
+          "input": 0,
+          "name": "$0"
+        },
+        {
+          "input": 1,
+          "name": "$1"
+        },
+        {
+          "input": 2,
+          "name": "$2"
+        },
+        {
+          "input": 3,
+          "name": "$3"
+        },
+        {
+          "input": 4,
+          "name": "$4"
+        },
+        {
+          "input": 5,
+          "name": "$5"
+        },
+        {
+          "input": 6,
+          "name": "$6"
+        },
+        {
+          "input": 7,
+          "name": "$7"
+        },
+        {
+          "input": 8,
+          "name": "$8"
+        },
+        {
+          "input": 9,
+          "name": "$9"
+        },
+        {
+          "input": 10,
+          "name": "$10"
+        },
+        {
+          "input": 11,
+          "name": "$11"
+        },
+        {
+          "input": 12,
+          "name": "$12"
+        },
+        {
+          "input": 13,
+          "name": "$13"
+        },
+        {
+          "input": 14,
+          "name": "$14"
+        },
+        {
+          "input": 15,
+          "name": "$15"
+        },
+        {
+          "op": {
+            "name": "IS NULL",
+            "kind": "IS_NULL",
+            "syntax": "POSTFIX"
+          },
+          "operands": [
+            {
+              "input": 15,
+              "name": "$t15",
+              "type": {
+                "type": "BOOLEAN",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "input": 0,
+          "name": "$t0",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 1,
+          "name": "$t1",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        },
+        {
+          "input": 2,
+          "name": "$t2",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 3,
+          "name": "$t3",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 4,
+          "name": "$t4",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 5,
+          "name": "$t5",
+          "type": {
+            "type": "DATE",
+            "nullable": false
+          }
+        },
+        {
+          "input": 6,
+          "name": "$t6",
+          "type": {
+            "type": "DATE",
+            "nullable": false
+          }
+        },
+        {
+          "input": 7,
+          "name": "$t7",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 8,
+          "name": "$t8",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        },
+        {
+          "input": 9,
+          "name": "$t9",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 10,
+          "name": "$t10",
+          "type": {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18
+          }
+        },
+        {
+          "input": 11,
+          "name": "$t11",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 12,
+          "name": "$t12",
+          "type": {
+            "type": "BIGINT",
+            "nullable": false
+          }
+        },
+        {
+          "input": 13,
+          "name": "$t13",
+          "type": {
+            "type": "BIGINT",
+            "nullable": true
+          }
+        },
+        {
+          "input": 14,
+          "name": "$t14",
+          "type": {
+            "type": "BIGINT",
+            "nullable": true
+          }
+        },
+        {
+          "input": 15,
+          "name": "$t15",
+          "type": {
+            "type": "BOOLEAN",
+            "nullable": true
+          }
+        }
+      ],
+      "condition": {
+        "input": 16,
+        "name": "$t16",
+        "type": {
+          "type": "BOOLEAN",
+          "nullable": false
+        }
+      },
+      "inputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_suppkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_name"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_nationkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_commitdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_receiptdate"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "o_orderkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_orderstatus"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "n_nationkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "n_name"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey0"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey0"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": true,
+            "name": "l_orderkey00"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": true,
+            "name": "l_suppkey00"
+          },
+          {
+            "type": "BOOLEAN",
+            "nullable": true,
+            "name": "$f2"
+          }
+        ],
+        "nullable": false
+      },
+      "outputRowType": {
+        "fields": [
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_suppkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "s_name"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "s_nationkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_commitdate"
+          },
+          {
+            "type": "DATE",
+            "nullable": false,
+            "name": "l_receiptdate"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "o_orderkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "o_orderstatus"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "n_nationkey"
+          },
+          {
+            "type": "CHAR",
+            "nullable": false,
+            "precision": 18,
+            "name": "n_name"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_orderkey0"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": false,
+            "name": "l_suppkey0"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": true,
+            "name": "l_orderkey00"
+          },
+          {
+            "type": "BIGINT",
+            "nullable": true,
+            "name": "l_suppkey00"
+          },
+          {
+            "type": "BOOLEAN",
+            "nullable": true,
+            "name": "$f2"
+          }
+        ],
+        "nullable": false
+      }
+    },
+    {
+      "id": "37",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableAggregate",
+      "group": [
+        1
       ],
       "aggs": [
         {
@@ -1398,8 +3563,8 @@
       ]
     },
     {
-      "id": "20",
-      "relOp": "LogicalSort",
+      "id": "38",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableSort",
       "collation": [
         {
           "field": 1,
@@ -1411,7 +3576,11 @@
           "direction": "ASCENDING",
           "nulls": "LAST"
         }
-      ],
+      ]
+    },
+    {
+      "id": "39",
+      "relOp": "org.apache.calcite.adapter.enumerable.EnumerableLimit",
       "fetch": {
         "literal": 100,
         "type": {

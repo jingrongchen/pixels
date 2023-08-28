@@ -872,6 +872,8 @@ public class PixelsPlanner
             PartitionedJoinOperator joinOperator;
             int numPartition = PlanOptimizer.Instance().getJoinNumPartition(
                     this.transId, leftTable, rightTable, join.getJoinEndian());
+
+            System.out.println("numPartition: "+numPartition);
             if (childOperator != null)
             {
                 // left side is post partitioned, thus we only partition the right table.
@@ -1377,7 +1379,7 @@ public class PixelsPlanner
         }
     }
 
-    private List<InputSplit> getInputSplits(BaseTable table) throws MetadataException, IOException
+    public List<InputSplit> getInputSplits(BaseTable table) throws MetadataException, IOException
     {
         requireNonNull(table, "table is null");
         checkArgument(table.getTableType() == Table.TableType.BASE, "this is not a base table");
@@ -1425,7 +1427,8 @@ public class PixelsPlanner
                 SplitPattern bestSplitPattern = splitsIndex.search(columnSet);
                 splitSize = bestSplitPattern.getSplitSize();
                 logger.debug("split size for table '" + table.getTableName() + "': " + splitSize + " from splits index");
-                double selectivity = PlanOptimizer.Instance().getTableSelectivity(this.transId, table);
+                // double selectivity = PlanOptimizer.Instance().getTableSelectivity(this.transId, table);
+                double selectivity=0.4;
                 if (selectivity >= 0)
                 {
                     // Increasing split size according to the selectivity.

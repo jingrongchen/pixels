@@ -24,6 +24,8 @@ public class CombinedPartitionInput extends PartitionInput{
 
     private String localTableName;
 
+    private int lassversion;
+
     /**
      * The information of the small partitioned table.
      */
@@ -187,6 +189,15 @@ public class CombinedPartitionInput extends PartitionInput{
 
     public void setLocalHashedPartitionIds(List<Integer> localHashedPartitionIds) {
         this.localHashedPartitionIds = localHashedPartitionIds;
+    }
+
+
+    public int getLassversion() {
+        return lassversion;
+    }
+
+    public void setLassversion(int lassversion) {
+        this.lassversion = lassversion;
     }
 
     

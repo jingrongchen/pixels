@@ -27,9 +27,12 @@ class BatchToQueue implements Callable{
         private boolean isLatch=false;
         private CountDownLatch schemalatch;
         private CountDownLatch producerlatch;
+        private WorkerMetrics workerMetrics;
+        private long readBytes = 0L;
+        private int numReadRequests = 0;
         // private List<InputSplit> inputSplits;
     
-        public BatchToQueue(long queryId, String[] includeCols, LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue,CountDownLatch producerlatch){
+        public BatchToQueue(long queryId, String[] includeCols, LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue,CountDownLatch producerlatch,WorkerMetrics workerMetrics){
             this.queryId=queryId;
             this.includeCols=includeCols;
             this.blockingQueue=blockingque;
@@ -37,9 +40,10 @@ class BatchToQueue implements Callable{
             this.producerlatch=producerlatch;
             this.inputInfoQueue=inputInfoQueue;
             this.inputScheme=Storage.Scheme.s3;
+            this.workerMetrics=workerMetrics;
         }
 
-        public BatchToQueue(long queryId, String[] includeCols, LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue,CountDownLatch producerlatch,CountDownLatch latch,boolean isLatch){
+        public BatchToQueue(long queryId, String[] includeCols, LinkedBlockingQueue<VectorizedRowBatch> blockingque,LinkedBlockingQueue<InputInfo> inputInfoQueue,CountDownLatch producerlatch,CountDownLatch latch,boolean isLatch,WorkerMetrics workerMetrics){
             this.queryId=queryId;
             this.includeCols=includeCols;
             this.blockingQueue=blockingque;
@@ -48,16 +52,21 @@ class BatchToQueue implements Callable{
             this.producerlatch=producerlatch;
             this.isLatch=isLatch;
             this.inputScheme=Storage.Scheme.s3;
+            this.workerMetrics=workerMetrics;
         }
     
         @Override
         public Object call() throws IOException{
+            WorkerMetrics.Timer readCostTimer = new WorkerMetrics.Timer().start();
             while(true){
-                
                 try{
                     if(inputInfoQueue.isEmpty()){
                         System.out.println("inputInfoQueue is empty");
                         producerlatch.countDown();
+                        workerMetrics.addReadBytes(readBytes);
+                        workerMetrics.addInputCostNs(readCostTimer.getElapsedNs());
+                        workerMetrics.addNumReadRequests(numReadRequests);
+                        workerMetrics.addOutputCostNs(readCostTimer.stop());
                         return true;
                     }
                     // WorkerCommon.initStorage(
@@ -68,8 +77,10 @@ class BatchToQueue implements Callable{
                     
                     if (inputInfo.getRgStart() >= pixelsReader.getRowGroupNum())
                     {   
-                        
                         producerlatch.countDown();
+                        workerMetrics.addReadBytes(readBytes);
+                        workerMetrics.addNumReadRequests(numReadRequests);
+                        workerMetrics.addOutputCostNs(readCostTimer.stop());
                         return true;
                     }
                     if (inputInfo.getRgStart() + inputInfo.getRgLength() >= pixelsReader.getRowGroupNum())
@@ -104,11 +115,16 @@ class BatchToQueue implements Callable{
                         }
                         blockingQueue.put(rowBatch);
                     }
+                    readBytes += recordReader.getCompletedBytes();
+                    numReadRequests += recordReader.getNumReadRequests();
+
+                    readCostTimer.add(recordReader.getReadTimeNanos());
 
                 }catch (Exception e){
                     throw new WorkerException("error in producer", e);
                 }
             }
+        
         }
 
 
