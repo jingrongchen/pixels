@@ -91,7 +91,7 @@
         <dep.prometheus.client.version>0.16.0</dep.prometheus.client.version>
         <dep.apache-httpclient.version>4.5.13</dep.apache-httpclient.version>
         <dep.apache-calcite.version>1.34.0</dep.apache-calcite.version>
-
+        <dep.fasterxml.version>2.15.2</dep.fasterxml.version>
         <!--profiling-->
         <dep.async-profiler.version>2.9</dep.async-profiler.version>
         <dep.commons-net.version>3.9.0</dep.commons-net.version>
@@ -487,6 +487,12 @@
                 <version>${dep.fastjson.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${dep.fasterxml.version}</version>
+            </dependency>
+
             <!-- apache commons cli -->
             <dependency>
                 <groupId>commons-cli</groupId>
@@ -590,6 +596,12 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- objetcreader -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <optional>true</optional>
+        </dependency>
         <!-- logging -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>

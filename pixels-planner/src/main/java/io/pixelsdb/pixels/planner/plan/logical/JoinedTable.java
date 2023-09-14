@@ -96,4 +96,5 @@ public class JoinedTable implements Table
     {
         return Objects.hashCode(schemaName, tableName, tableAlias, columnNames, join);
     }
+    
 }

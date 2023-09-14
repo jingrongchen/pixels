@@ -26,6 +26,8 @@ public class CombinedPartitionInput extends PartitionInput{
 
     private int lassversion;
 
+    private int maximumPreLoadFileCount;
+
     /**
      * The information of the small partitioned table.
      */
@@ -198,6 +200,14 @@ public class CombinedPartitionInput extends PartitionInput{
 
     public void setLassversion(int lassversion) {
         this.lassversion = lassversion;
+    }
+
+    public int getMaximumPreLoadFileCount() {
+        return maximumPreLoadFileCount;
+    }
+
+    public void setMaximumPreLoadFileCount(int maximumPreLoadFileCount) {
+        this.maximumPreLoadFileCount = maximumPreLoadFileCount;
     }
 
     

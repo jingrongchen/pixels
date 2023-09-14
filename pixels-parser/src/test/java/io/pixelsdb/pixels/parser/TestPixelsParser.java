@@ -131,11 +131,11 @@ public class TestPixelsParser
     public void testPixelsParserTestExample() throws SqlParseException{
 
         try{
-            // String query = TestQuery.Q3;
-            // String queryname = "Q3test";
+            String query = TestQuery.Q9;
+            String queryname = "Q9test";
 
-            String query = TpchQuery.Q21;
-            String queryname = "TPCHQ21";
+            // String query = TpchQuery.Q18;
+            // String queryname = "TPCHQ18";
 
             SqlNode parsedNode = this.tpchPixelsParser.parseQuery(query);
 
@@ -144,33 +144,26 @@ public class TestPixelsParser
 
             RelNode initialPlan = this.tpchPixelsParser.toRelNode(validatedNode);
             RelNode optimizedPlan = this.tpchPixelsParser.toBestRelNode(validatedNode);
-
-            // RelNode rel = this.tpchPixelsParser.toRelNode(validatedNode);
         
             // RelVisitor visitor = new RelVisitor() {
             //     @Override
             //     public void visit(RelNode node, int ordinal, RelNode parent) {
-            //         // node.getInputs().forEach(input -> {
-            //         //     System.out.println("Node: "+ input.getId() + "  "+ input.getClass().getSimpleName());
-            //         //     System.out.println(input.getDigest());
-            //         // });
 
-            //         System.out.println("Node: "+ node.getId() + "  "+ node.getRowType().getFieldList().get(0).getName());
             
-            //         System.out.println(node.getDigest());
+            //         System.out.println(node.getRelDigest());
 
             //         super.visit(node, ordinal, parent);
             //     }
             // };
-            // visitor.go(rel);
+            // visitor.go(optimizedPlan);
             // System.out.println("Node visit successfully!");
 
             final RelJsonWriter writer = new RelJsonWriter();
-            System.out.println(optimizedPlan.explain());
+            // System.out.println(optimizedPlan.explain());
 
             optimizedPlan.explain(writer);
             System.out.println(writer.asString());
-            // System.out.println("Logical plan: \n" + writer.asString());
+            System.out.println("Logical plan: \n" + writer.asString());
 
             try {
                 BufferedWriter out = new BufferedWriter(new FileWriter("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/logicalplan/"+queryname+".json"));

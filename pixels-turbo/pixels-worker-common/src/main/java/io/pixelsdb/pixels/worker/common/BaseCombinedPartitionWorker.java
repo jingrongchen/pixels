@@ -189,9 +189,10 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
             PixelsWriter tmpWriter = builder.build();
 
             for (int hash = 0; hash < numPartition; ++hash)
-            {
+            {   
+
                 ConcurrentLinkedQueue<VectorizedRowBatch> batches = partitioned.get(hash);
-                if (!batches.isEmpty())
+                if (!batches.isEmpty() && !hashValues.contains(hash))
                 {   
                     
                     for (VectorizedRowBatch batch : batches)
@@ -214,19 +215,13 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                 }
 
             }
-            // partitionOutput.setPath(outputPath);
-            // partitionOutput.setHashValues(hashValues);
+
             pixelsWriter.close();
             tmpWriter.close();
             workerMetrics.addOutputCostNs(writeCostTimer.stop());
             workerMetrics.addWriteBytes(pixelsWriter.getCompletedBytes());
             workerMetrics.addNumWriteRequests(pixelsWriter.getNumWriteRequests());
-
-            // partitionOutput.setDurationMs((int) (System.currentTimeMillis() - startTime));
-            // WorkerCommon.setPerfMetrics(partitionOutput, workerMetrics);
-
-            // second stage: join!!! need to wait until it's ready 
-            // createria:loop check both small and big table should be ready
+           
 
             String smallTablePath = intermediatePath + smallTableName + "_partition/";
             String bigTablePath = intermediatePath + bigTableName + "_partition/";
@@ -234,9 +229,22 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
             Storage storage1 = storageFactory.getStorage(smallTablePath);
             Storage storage2 = storageFactory.getStorage(bigTablePath);
 
+
+            //clean space
+            System.out.println("start cleaning space");
+            synchronized (partitioned) {
+                partitioned.clear();
+            }
+            System.gc();
+
+
             // List<String> notLocal = new ArrayList<String>();
             File folder = new File("/tmp/");
             System.out.println("lass version: "+lassversion);
+            int maximumPreLoadFileCount = event.getMaximumPreLoadFileCount();
+            System.out.println("maximumPreLoadFileCount: "+maximumPreLoadFileCount);
+            int fileCount = 0;
+
             while(storage1.listPaths(smallTablePath).size()!= smallTablePartitionCount && storage2.listPaths(bigTablePath).size()!= bigTablePartitionCount)
             {   
                 if(lassversion==2){
@@ -249,7 +257,7 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                     }
                     System.out.println("toLoad:"+toLoad);
 
-                    if (toLoad.size() != 0 && (folder.getUsableSpace()/(1024*1024)) > 200)
+                    if (toLoad.size() != 0 && (folder.getUsableSpace()/(1024*1024)) > 200 && fileCount<maximumPreLoadFileCount)
                     {
                         String filetoPull = toLoad.get(0);
                         
@@ -273,9 +281,10 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                         pullbuilder.setPartKeyColumnIds(Arrays.stream(keyColumnIds).boxed().collect(Collectors.toList()));
                         PixelsWriter pullWriter = pullbuilder.build();
                         VectorizedRowBatch pullRowBatch;
-                        
-                        PixelsReader pixelsReader = WorkerCommon.getReader(bigTablePath + filetoPull, WorkerCommon.getStorage(Storage.Scheme.s3));
+
                         for (int hashValue:JoinhashValues){
+                            System.out.println(filetoPull);
+                            PixelsReader pixelsReader = WorkerCommon.getReader(filetoPull, WorkerCommon.getStorage(Storage.Scheme.s3));
                             PixelsReaderOption option = WorkerCommon.getReaderOption(transId, event.getLargeTable().getColumnsToRead(), pixelsReader,
                             hashValue, numPartition);
                             PixelsRecordReader recordReader = pixelsReader.read(option);
@@ -289,6 +298,8 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                                 }
                                 pullWriter.addRowBatch(pullRowBatch, hashValue);
                             }while(!pullRowBatch.isEmpty());
+                            pixelsReader.close();
+                            recordReader.close();
 
                             workerMetrics.addReadBytes(recordReader.getCompletedBytes()); 
                         }
@@ -296,6 +307,7 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
 
                         pullWriter.close();
                         System.out.println("pullWriter completed");
+                        fileCount++;
                         localFiles.add(fileName);
                     }else{
                         System.out.println("no file to pull or space is full, going to sleep");
@@ -491,7 +503,9 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                 {
                     throw new WorkerException("error occurred threads, please check the stacktrace before this log record");
                 }
-            }
+            } 
+
+            System.out.println("pass join, now enter write phase");
 
             String JoinoutputPath = outputFolder + outputInfo.getFileNames().get(0);
             try
@@ -529,6 +543,7 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                     }
                 }
                 joinpixelsWriter.close();
+                System.out.println("joinpixelsWriter completed");
                 workerMetrics.addWriteBytes(joinpixelsWriter.getCompletedBytes());
                 workerMetrics.addNumWriteRequests(joinpixelsWriter.getNumWriteRequests());
                 joinOutput.addOutput(JoinoutputPath, joinpixelsWriter.getNumRowGroup());
@@ -773,6 +788,7 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                     localFiles + "' and output the partitioning result", e);
         }
 
+        System.out.println("finish join the local /tmp files");
         // exclude it from the rightParts        
         while (!rightParts.isEmpty())
         {
@@ -847,6 +863,8 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                 }
             }
         }
+
+        System.out.println("finish join the s3 files");
         workerMetrics.addReadBytes(readBytes);
         workerMetrics.addNumReadRequests(numReadRequests);
         workerMetrics.addInputCostNs(readCostTimer.getElapsedNs());
@@ -932,6 +950,7 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
         }
 
         // exclude it from the rightParts
+        
         
         while (!rightParts.isEmpty())
         {

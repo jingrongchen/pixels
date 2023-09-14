@@ -154,13 +154,14 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
-import io.pixelsdb.pixels.planner.LASSPlanner;
+import io.pixelsdb.pixels.planner.DLASPlanner;
+
 
 public class TestRejsonReader {
     
     @Test
     public void testRejsonReader() throws Exception {
-        LASSPlanner lambdaPlanner = new LASSPlanner(Paths.get("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/logicalplan/TPCHQ18.json")
+        DLASPlanner lambdaPlanner = new DLASPlanner(Paths.get("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/logicalplan/TPCHQ18.json")
         ,123456,true,false,Optional.empty());
 
         lambdaPlanner.generateDAG();

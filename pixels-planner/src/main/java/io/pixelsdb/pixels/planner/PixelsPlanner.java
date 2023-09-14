@@ -1428,7 +1428,7 @@ public class PixelsPlanner
                 splitSize = bestSplitPattern.getSplitSize();
                 logger.debug("split size for table '" + table.getTableName() + "': " + splitSize + " from splits index");
                 // double selectivity = PlanOptimizer.Instance().getTableSelectivity(this.transId, table);
-                double selectivity=0.4;
+                double selectivity=1;
                 if (selectivity >= 0)
                 {
                     // Increasing split size according to the selectivity.

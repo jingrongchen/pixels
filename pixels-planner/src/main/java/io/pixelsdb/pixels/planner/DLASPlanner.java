@@ -1,6 +1,7 @@
 package io.pixelsdb.pixels.planner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonSerializable.Base;
 import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
@@ -35,6 +36,7 @@ import org.jgrapht.Graph;
 import org.jgrapht.traverse.BreadthFirstIterator;
 import org.jgrapht.traverse.DepthFirstIterator;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -59,14 +61,6 @@ import io.pixelsdb.pixels.common.lock.EtcdAutoIncrement;
 import io.pixelsdb.pixels.common.metadata.MetadataService;
 import io.pixelsdb.pixels.common.physical.Storage;
 import io.pixelsdb.pixels.common.physical.StorageFactory;
-import io.pixelsdb.pixels.common.turbo.Input;
-import io.pixelsdb.pixels.common.turbo.InvokerFactory;
-import io.pixelsdb.pixels.common.turbo.WorkerType;
-import io.pixelsdb.pixels.core.TypeDescription;
-
-import com.fasterxml.jackson.databind.ObjectMapper; 
-import com.fasterxml.jackson.databind.ObjectWriter; 
-import com.fasterxml.jackson.core.type.TypeReference;
 
 //invoke lambda
 import io.pixelsdb.pixels.executor.predicate.TableScanFilter;
@@ -86,6 +80,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.stream.Collectors;
+
+import javax.lang.model.util.ElementScanner6;
+
 import io.pixelsdb.pixels.common.turbo.Output;
 import java.util.Collections;
 
@@ -118,11 +115,13 @@ import io.pixelsdb.pixels.common.exception.InvalidArgumentException;
 import io.pixelsdb.pixels.common.exception.MetadataException;
 import io.pixelsdb.pixels.common.layout.*;
 import io.pixelsdb.pixels.common.metadata.SchemaTableName;
+import io.pixelsdb.pixels.common.metadata.domain.Column;
 import io.pixelsdb.pixels.common.metadata.domain.Layout;
 import io.pixelsdb.pixels.common.metadata.domain.Ordered;
 import io.pixelsdb.pixels.common.metadata.domain.Projections;
 import io.pixelsdb.pixels.common.metadata.domain.Splits;
 import io.pixelsdb.pixels.common.utils.ConfigFactory;
+import io.pixelsdb.pixels.core.TypeDescription;
 import io.pixelsdb.pixels.executor.join.JoinAlgorithm;
 import io.pixelsdb.pixels.planner.plan.PlanOptimizer;
 import io.pixelsdb.pixels.planner.plan.logical.*;
@@ -132,14 +131,17 @@ import io.pixelsdb.pixels.planner.plan.physical.domain.*;
 //For join
 import io.pixelsdb.pixels.planner.plan.physical.input.*;
 import java.util.Optional;
+
+import io.pixelsdb.pixels.planner.plan.logical.calcite.FilterNode;
 import io.pixelsdb.pixels.planner.plan.logical.calcite.field;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import io.pixelsdb.pixels.core.TypeDescription.Category;
 
-
-public class LASSPlanner{
+public class DLASPlanner{
 
     private JsonNode jsonNode;
     // private List<JsonNode> lambdaRels = new ArrayList<>();
@@ -149,7 +151,7 @@ public class LASSPlanner{
     private DirectedAcyclicGraph<Integer,DefaultEdge> OptDag = new DirectedAcyclicGraph<Integer,DefaultEdge>(DefaultEdge.class);
     private HashMap<Integer,ObjectNode> relIdToNode = new HashMap<Integer,ObjectNode>();
     private HashMap<Integer,String> relIdToOperation = new HashMap<Integer,String>();
-
+    private HashMap<Integer,List<Integer>> relIdToInput = new HashMap<Integer,List<Integer>>();
     // intermediate folder Path
     // private String intermediateDirPath;
     // private String finalDirPath;
@@ -177,7 +179,7 @@ public class LASSPlanner{
 
 
     // for invoke
-    private static final Logger logger = LogManager.getLogger(LASSPlanner.class);
+    private static final Logger logger = LogManager.getLogger(DLASPlanner.class);
     private static final StorageInfo InputStorageInfo;
     private static final StorageInfo IntermediateStorageInfo;
     private static final String IntermediateFolder;
@@ -227,7 +229,7 @@ public class LASSPlanner{
      * @param metadataService the metadata service to access Pixels metadata
      * @throws IOException
      */
-    public LASSPlanner(JsonNode jsonNode, long transId, boolean orderedPathEnabled,
+    public DLASPlanner(JsonNode jsonNode, long transId, boolean orderedPathEnabled,
                          boolean compactPathEnabled,
                          Optional<MetadataService> metadataService) throws IOException
     {   
@@ -251,7 +253,7 @@ public class LASSPlanner{
         this.storage = StorageFactory.Instance().getStorage(InputStorageInfo.getScheme());
     }
 
-    public LASSPlanner(Path jsonPath, long transId,
+    public DLASPlanner(Path jsonPath, long transId,
     boolean orderedPathEnabled,
     boolean compactPathEnabled,
     Optional<MetadataService> metadataService) throws IOException
@@ -295,6 +297,13 @@ public class LASSPlanner{
                 relIdToNode.put(relId,(ObjectNode) rel);
                 relIdToOperation.put(relId,relOpName);
 
+                if (rel.path("inputs").size()!=0){
+                    relIdToInput.put(relId, JSON.parseArray(rel.path("inputs").toString(),Integer.class));
+                }else{
+                    relIdToInput.put(relId, Arrays.asList(last_reiId));
+                }
+
+
                 // for each operation
                 if (relOp.contains("EnumerableTableScan")) {
                     OptDag.addVertex(relId);
@@ -313,7 +322,9 @@ public class LASSPlanner{
                     try {
                         joinunionNode.add(relId);
                         //TODO:POTENTIAL PROBLEM OF MAPPER TO LIST
-                        List<String> joinInputs = mapper.readerForListOf(String.class).readValue(rel.path("inputs"));
+
+                        // List<String> joinInputs = mapper.readerForListOf(String.class).readValue(rel.path("inputs"));
+                        List<String> joinInputs = JSON.parseArray(rel.path("inputs").toString(),String.class);
                         OptDag.addVertex(relId);
                         joinInputs.forEach(joinInput -> {
                             Integer joinInputId = Integer.parseInt(joinInput);
@@ -678,21 +689,13 @@ public class LASSPlanner{
         return flattenedSet;
     }
 
-    public JoinedTable generateJoinedTable(List<Integer> subgraph){
+    public Join generateJoinInfo(Integer startNode, HashMap<Integer,Table> tableMap){
         
-        // BaseTable left = new BaseTable(
-        //         "tpch", "region", "region",
-        //         new String[] {"r_regionkey", "r_name"},
-        //         TableScanFilter.empty("tpch", "region"));
-
-        // BaseTable right = new BaseTable(
-        //             "tpch", "region", "region",
-        //             new String[] {"r_regionkey", "r_name"},
-        //             TableScanFilter.empty("tpch", "region"));
+        boolean hasfilterLeft = false;
+        boolean hasfilterRight = false;
         
-        boolean left=false;
-        boolean right=false;
-
+        field[] org_l_columFileds = null;
+        field[] org_r_columFileds = null;
         field[] l_columFileds = null;
         field[] r_columFileds = null;
 
@@ -700,134 +703,452 @@ public class LASSPlanner{
         String l_tableName = null;
         String l_alias = null;
         String[] l_columnNames = null;
+        String[] org_l_columnNames = null;
         TableScanFilter l_filter = null;
 
         String r_schemaName = null;
         String r_tableName = null;
         String r_alias = null;
         String[] r_columnNames = null;
+        String[] org_r_columnNames = null;
         TableScanFilter r_filter = null;
 
-        Integer targetNode = Collections.min(subgraph);
-        Integer startNode = Collections.max(subgraph);
-        Set<Integer> visited = new HashSet<Integer>();
-        Stack<Integer> stack = new Stack<>();
-        stack.push(startNode);
+        Table leftTable = null;
+        Table righTable = null;
 
+        // Set<Integer> visited = new HashSet<Integer>();
         System.out.println("Start assemble: ");
         try{
+            ObjectNode currentNode = relIdToNode.get(startNode);
+            if(relIdToNode.get(startNode).path("relOp").asText().contains("EnumerableHashJoin")){
+                System.out.println("Start assemble EnumerableHashJoin");
+            }else{
+                System.out.println("start node is not hash join");
+                return null;
+            }
+            List<Integer> joinKeys_left = new ArrayList<Integer>();
+            List<Integer> joinKeys_right = new ArrayList<Integer>();
 
-        
-        while (!stack.isEmpty()) {
-            Integer current = stack.pop();
-            visited.add(current);
-            ObjectNode node = relIdToNode.get(current);
-
-            System.out.println("Visiting node: " + current);
-            if (relIdToOperation.get(current).equals("EnumerableTableScan")) {
-                if(!left){
-                    l_schemaName = node.path("table").get(0).asText();
-                    l_tableName = node.path("table").get(1).asText();
-                    l_alias = l_tableName;
-                }else if(!right){
-                    r_schemaName = node.path("table").get(0).asText();
-                    r_tableName = node.path("table").get(1).asText();
-                    r_alias = r_tableName;
-                } else {
-                    System.out.println("Error: more than two EnumerableTableScan");
+            if(currentNode.path("condition").path("op").path("kind").asText().equals("EQUALS")){
+                System.out.println("EQUALS");
+                Integer joinKey_left = Integer.parseInt(currentNode.path("condition").path("operands").get(0).path("input").toString());
+                Integer joinKey_right = Integer.parseInt(currentNode.path("condition").path("operands").get(1).path("input").toString());
+                joinKeys_left.add(joinKey_left);
+                joinKeys_right.add(joinKey_right);
+            }else if(currentNode.path("condition").path("op").path("kind").asText().equals("AND")){
+                System.out.println("AND");
+                for (JsonNode node : currentNode.path("condition").path("operands")){
+                    Integer joinKey_left = Integer.parseInt(node.path("operands").get(0).path("input").toString());
+                    Integer joinKey_right = Integer.parseInt(node.path("operands").get(1).path("input").toString());
+                    joinKeys_left.add(joinKey_left);
+                    joinKeys_right.add(joinKey_right);
                 }
-            } else if (relIdToOperation.get(current).equals("EnumerableCalc")){
-                //EnumerableCalc contains project and filter
-                if(!left){
-                    System.out.println("fileds"+node.path("outputRowType").path("fields"));
-                    l_columFileds = mapper.readerFor(field[].class).readValue(node.path("outputRowType").path("fields"));
-                    List<String> temp = new ArrayList<String>();
+            }else{
+                System.out.println("Error: join condition is not EQUALS or AND");
+                return null;
+            }
 
+            Integer joinNode_left = Integer.parseInt(currentNode.path("inputs").get(0).asText());
+            Integer joinNode_right = Integer.parseInt(currentNode.path("inputs").get(1).asText());
+
+            //TODO: we assume that the left table is the joined table
+            if(!tableMap.keySet().contains(joinNode_left)){ 
+                    ObjectNode leftNode = relIdToNode.get(joinNode_left);
+                    // System.out.println("fileds"+leftNode.path("outputRowType").path("fields"));
+                    l_columFileds = mapper.readerFor(field[].class).readValue(leftNode.path("outputRowType").path("fields"));
+                    List<String> temp = new ArrayList<String>();
                     for (field field : l_columFileds){
                         temp.add(field.getName());
                     }
                     l_columnNames = temp.toArray(new String[temp.size()]);
+    
+                    // get left table name and schema, assume current node is the calc node
+                    if(relIdToInput.get(joinNode_left).size()==1 && relIdToOperation.get(relIdToInput.get(joinNode_left).get(0)).equals("EnumerableTableScan")){
+                        l_schemaName = relIdToNode.get(relIdToInput.get(joinNode_left).get(0)).path("table").get(0).asText();
+                        l_tableName = relIdToNode.get(relIdToInput.get(joinNode_left).get(0)).path("table").get(1).asText();
+                    
+                        org_l_columFileds = mapper.readerFor(field[].class).readValue(leftNode.path("inputRowType").path("fields"));
+                        List<String> outputTemp = new ArrayList<String>();
+                        for (field field : org_l_columFileds){
+                            outputTemp.add(field.getName());
+                        }
+                        org_l_columnNames = outputTemp.toArray(new String[outputTemp.size()]);
+                    
+                    } else if(tableMap.keySet().contains(relIdToInput.get(joinNode_left).get(0))){
 
-                    // System.out.println(node.path("condition"));
-                    if(node.path("condition").asText()=="null"){
-                        l_filter = TableScanFilter.empty(l_schemaName, l_tableName);
+                        Table tempTable = tableMap.get(relIdToInput.get(joinNode_left).get(0));
+                        if(tempTable instanceof FusionTable){
+                            l_schemaName = ((FusionTable) tempTable).getAggregation().getOriginTable().getSchemaName();
+                            l_tableName = ((FusionTable) tempTable).getAggregation().getOriginTable().getTableName();
+                        }else{
+                            l_schemaName = tempTable.getSchemaName();
+                            l_tableName = tempTable.getTableName();
+                        }
+
+                        if(relIdToOperation.get(relIdToInput.get(joinNode_left).get(0)).equals("EnumerableCalc")){
+                            hasfilterLeft = true;
+                        }
+
+                        Table tempTable2 = tableMap.get(relIdToInput.get(joinNode_left).get(0));
+                        if(tempTable2 instanceof FusionTable){
+                            org_l_columnNames = ((FusionTable) tempTable2).getAggColumnNames();
+                        }else{
+                            org_l_columnNames = tempTable2.getColumnNames();
+                        }   
                     }
+                    leftTable = new BaseTable(l_schemaName, l_tableName, l_alias, org_l_columnNames, l_filter);
+            }else{
+                leftTable = tableMap.get(joinNode_left);
 
-                    left = true;
-                }else if(!right){
-                    r_columFileds = mapper.readerFor(field[].class).readValue(node.path("outputRowType").path("fields"));
-                    List<String> temp = new ArrayList<String>();
-
-                    for (field field : r_columFileds){
-                        temp.add(field.getName());
-                    }
-                    r_columnNames = temp.toArray(new String[temp.size()]);
-
-                    // System.out.println(node.path("condition"));
-                    if(node.path("condition").asText()=="null"){
-                        r_filter = TableScanFilter.empty(r_schemaName, r_tableName);
-                    }
-
-                    right = true;
-                } else {
-                    System.out.println("Error: more than two EnumerableCalc");
-
-                } 
+                if(leftTable instanceof FusionTable){
+                    l_schemaName = ((FusionTable) leftTable).getAggregation().getOriginTable().getSchemaName();
+                    l_tableName = ((FusionTable) leftTable).getAggregation().getOriginTable().getTableName();
+                }else{
+                    l_schemaName = leftTable.getSchemaName();
+                    l_tableName = leftTable.getTableName();
+                }
+                l_columnNames = leftTable.getColumnNames();
             }
 
-            BaseTable leftTable = new BaseTable(
-                l_schemaName, l_tableName, l_alias,
-                l_columnNames,
-                l_filter);
-        
-            BaseTable rightTable = new BaseTable(
-                r_schemaName, r_tableName, r_alias,
-                r_columnNames,
-                r_filter);
-
-            if (relIdToOperation.get(current).equals("EnumerableHashJoin")){
+            if(!tableMap.keySet().contains(joinNode_right)){
+                ObjectNode rightNode = relIdToNode.get(joinNode_right);
+                r_columFileds = mapper.readerFor(field[].class).readValue(rightNode.path("outputRowType").path("fields"));
+                List<String> temp2 = new ArrayList<String>();
+                for (field field : r_columFileds){
+                    temp2.add(field.getName());
+                }
+                r_columnNames = temp2.toArray(new String[temp2.size()]);
+                // get right table name and schema, assume current node is the calc node
+                if(relIdToInput.get(joinNode_right).size()==1 && relIdToOperation.get(relIdToInput.get(joinNode_right).get(0)).equals("EnumerableTableScan")){
+                    r_schemaName = relIdToNode.get(relIdToInput.get(joinNode_right).get(0)).path("table").get(0).asText();
+                    r_tableName = relIdToNode.get(relIdToInput.get(joinNode_right).get(0)).path("table").get(1).asText();
                 
+                    org_r_columFileds = mapper.readerFor(field[].class).readValue(rightNode.path("inputRowType").path("fields"));
+                    List<String> outputTemp2 = new ArrayList<String>();
+                    for (field field : org_r_columFileds){
+                        outputTemp2.add(field.getName());
+                    }
+                    org_r_columnNames = outputTemp2.toArray(new String[outputTemp2.size()]);
+                
+                
+                }else if(tableMap.keySet().contains(relIdToInput.get(joinNode_right).get(0))){
+                    Table tempTable = tableMap.get(relIdToInput.get(joinNode_right).get(0));
+                    if(tempTable instanceof FusionTable){
+                        r_schemaName = ((FusionTable) tempTable).getAggregation().getOriginTable().getSchemaName();
+                        r_tableName = ((FusionTable) tempTable).getAggregation().getOriginTable().getTableName();
+                    }else{
+                        r_schemaName = tempTable.getSchemaName();
+                        r_tableName = tempTable.getTableName();
+                    }
 
+                    System.out.println(relIdToOperation.get(relIdToInput.get(joinNode_right).get(0)));
+                    if(relIdToOperation.get(joinNode_right).contains("EnumerableCalc") && !relIdToOperation.get(relIdToInput.get(joinNode_right).get(0)).contains("EnumerableTableScan")){
+                        hasfilterRight = true;
+                    }
 
+                    Table tempTable2 = tableMap.get(relIdToInput.get(joinNode_right).get(0));
+                    if(tempTable2 instanceof FusionTable){
+                        org_r_columnNames = ((FusionTable) tempTable2).getAggColumnNames();
+                    }else{
+                        org_r_columnNames = tempTable2.getColumnNames();
+                    }
+
+                } else {
+                    System.out.println("Error: no support scenerio");
+                    return null;
+                }
+
+                righTable = new BaseTable(r_schemaName, r_tableName, r_alias, org_r_columnNames, r_filter);
+            } else{
+
+                righTable = tableMap.get(joinNode_right);
+
+                if(righTable instanceof FusionTable){
+                    r_schemaName = ((FusionTable) righTable).getAggregation().getOriginTable().getSchemaName();
+                    r_tableName = ((FusionTable) righTable).getAggregation().getOriginTable().getTableName();
+                }else{
+                    r_schemaName = righTable.getSchemaName();
+                    r_tableName = righTable.getTableName();
+                }
+
+                org_r_columnNames = righTable.getColumnNames();
             }
+
+            if(l_tableName==null && r_tableName==null){
+                System.out.println("Error: no table name");
+                return null;
+            }
+
             
 
-
-
-
-
-
-            if (current.equals(targetNode)) {
-                System.out.println("Reached target node: " + targetNode);
-                // visited.add(targetNode);
-                break; // 停止遍历
+            if(hasfilterLeft){
+                ObjectNode tempFilterNode = relIdToNode.get(relIdToInput.get(joinNode_left).get(0));
+                System.out.println("has filter lfet");
+                SortedMap<Integer, ColumnFilter> columnFilters = new TreeMap<>();
+                TableScanFilter rFilter = new TableScanFilter(r_schemaName, r_tableName,columnFilters);
             }
 
-            for (DefaultEdge edge : OptDag.outgoingEdgesOf(current)) {
-                Integer neighbor = Graphs.getOppositeVertex(OptDag, edge, current);
-                if (!neighbor.equals(startNode)) { // 避免回到起始节点
-                    stack.push(neighbor);
-                    // visited.add(neighbor);
+            if (hasfilterRight) {
+                ObjectNode tempFilterNode = relIdToNode.get(joinNode_right);
+                SortedMap<Integer, ColumnFilter> columnFilters = new TreeMap<Integer, ColumnFilter>();
+
+                FilterNode filternode = new FilterNode();
+                filternode.processNode(tempFilterNode.path("exprs"));
+                
+                for(int i=0; i<filternode.getOperations().length;i++){
+
+                    Integer inputID = Integer.parseInt(filternode.getOperations()[i].getOperands()[0].getInput());
+                    String columnName = org_r_columnNames[inputID];
+                    System.out.println("columnName: "+columnName);
+
+                    TypeDescription.Category columnType = TypeDescription.Category.valueOf(filternode.getOperations()[i].getOperands()[0].getType().getType());
+                    System.out.println("columnType: "+columnType);
+                    // Filter<T> filter =
+                    
+                    // ColumnFilter tmpFilter = new ColumnFilter();
+
+                    // ColumnFilter tmpFilter = new ColumnFilter();
+                    // ColumnFilter tmpFilter = new ColumnFilter();
                 }
-            }
-        }
-        
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        return null;
+                System.out.println("has filter right");
+                TableScanFilter rFilter = new TableScanFilter(r_schemaName, r_tableName,columnFilters);
+
+            }
+
+            
+
+            if(l_filter==null){
+                l_filter = TableScanFilter.empty(l_schemaName, l_tableName);
+            }
+
+            if(r_filter==null){
+                r_filter = TableScanFilter.empty(r_schemaName, r_tableName);
+            }
+
+            boolean[] left = new boolean[l_columnNames.length];
+            boolean[] right = new boolean[r_columnNames.length];
+            Arrays.fill(left, true);
+            Arrays.fill(right, true);
+            int leftKeys[] = joinKeys_left.stream().mapToInt(i->i).toArray();
+            int rightKeys[] = joinKeys_right.stream().mapToInt(i->i).toArray();
+
+
+            if(CompareTableSize(leftTable,righTable)){
+                Join join = new Join(leftTable, righTable, l_columnNames, r_columnNames, leftKeys, rightKeys,
+                left, right, JoinEndian.SMALL_LEFT, JoinType.EQUI_INNER, JoinAlgorithm.PARTITIONED);
+                return join;
+            }else{
+                Join join = new Join(leftTable, righTable, l_columnNames, r_columnNames, leftKeys, rightKeys,
+                left, right, JoinEndian.LARGE_LEFT, JoinType.EQUI_INNER, JoinAlgorithm.PARTITIONED);
+                return join;
+            }
+
+        }catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
-    public void invoke(){
+    public JoinedTable generateJoinedTable(Join joinInfo){
+        try{
+            String l_tableName = joinInfo.getLeftTable().getTableName();
+            String r_tableName = joinInfo.getRightTable().getTableName();
+            if(joinInfo.getJoinEndian()==JoinEndian.SMALL_LEFT){
+                JoinedTable joinedTable = new JoinedTable("joinedTable", l_tableName+"_"+r_tableName, l_tableName+"_"+r_tableName, joinInfo);
+                return joinedTable;
+            }else{
+                JoinedTable joinedTable = new JoinedTable("joinedTable", r_tableName + "_" + l_tableName, r_tableName + "_" + l_tableName, joinInfo);
+                return joinedTable;
+            }
 
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+    public int GetTbaleSize(Table table) throws MetadataException, InvalidProtocolBufferException,IOException{
+        if(table.getTableType()==Table.TableType.BASE){
+            requireNonNull(table, "table is null");
+            checkArgument(table.getTableType() == Table.TableType.BASE, "this is not a base table");
+            ImmutableList.Builder<InputSplit> splitsBuilder = ImmutableList.builder();
+            int splitSize = 0;
+            Storage.Scheme tableStorageScheme =
+                    metadataService.getTable(table.getSchemaName(), table.getTableName()).getStorageScheme();
+            checkArgument(tableStorageScheme.equals(this.storage.getScheme()), String.format(
+                    "the storage scheme of table '%s.%s' is not consistent with the input storage scheme for Pixels Turbo",
+                    table.getSchemaName(), table.getTableName()));
+            List<Layout> layouts = metadataService.getLayouts(table.getSchemaName(), table.getTableName());
+            //get the newest layout and compute the size
+            Layout layout = layouts.get(layouts.size() - 1);
+            List<String> pathes = null;
+
+            if (orderedPathEnabled)
+            {
+                pathes = storage.listPaths(layout.getOrderedPathUris());
+
+            }
+                // 2. add splits in compactPath
+            if (compactPathEnabled)
+            {
+                pathes = storage.listPaths(layout.getCompactPathUris());
+            }
+
+            return pathes.size();
+
+        }else{
+            //TODO:return the data length for for the intermediate table
+            return 0;
+        }
+    }
+
+    public boolean CompareTableSize(Table lefTable,Table rightTable) throws MetadataException, InvalidProtocolBufferException,IOException{
+
+        if(lefTable.getTableType()==Table.TableType.BASE && rightTable.getTableType()==Table.TableType.BASE){
+            BaseTable leftBaseTable = (BaseTable) lefTable;
+            BaseTable rightBaseTable = (BaseTable) rightTable;
+
+            int leftTableSize = GetTbaleSize(leftBaseTable);
+            int rightTableSize = GetTbaleSize(rightBaseTable);
+            if(leftTableSize <= rightTableSize){
+                return true;
+            }else{
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public Aggregation generateAggregInfo(Integer startNode,HashMap<Integer,Table> tableMap) throws IOException{
+
+        Integer orginalNode = Graphs.getOppositeVertex(OptDag, OptDag.outgoingEdgesOf(startNode).iterator().next(), startNode);
+        System.out.println("orginalNode: "+orginalNode);
+
+        String schemaName = mapper.readerFor(String.class).readValue(relIdToNode.get(orginalNode).path("table").get(0));
+        String tableName = mapper.readerFor(String.class).readValue(relIdToNode.get(orginalNode).path("table").get(1));
+
+        field[] tmp_field = null;
+        String result_prefix = null;
+        ObjectNode relNode = relIdToNode.get(startNode);
+        
+        boolean[] groupKeyColumnProjection = null;
+
+        int[] groupKeyColumnIds = mapper.convertValue(relNode.path("group"),int[].class);
+        int[] aggregateColumnIds = mapper.convertValue(relNode.path("aggs").get(0).path("operands"),int[].class);
+        String[] groupKeyColumnAlias = new String[groupKeyColumnIds.length];
+        String[] resultColumnAlias = new String[aggregateColumnIds.length];
+        String[] resultColumnTypes = new String[aggregateColumnIds.length];
+
+        FunctionType[] functionTypes = new FunctionType[1];
+        if(relNode.path("aggs").get(0).path("agg").path("kind").asText().contains("SUM")){
+            functionTypes[0] = FunctionType.SUM;
+            result_prefix = "sum_";
+        }else if(relNode.path("aggs").get(0).path("agg").path("kind").asText().contains("COUNT")){
+            functionTypes[0] = FunctionType.COUNT;
+            result_prefix = "count_";
+        }else{
+            System.out.println("Error: Aggregation function only support SUM or COUNT");
+            return null;
+        }
+
+        //get the information from next node! usually is EnumerableCalc node
+        Integer nextNode = orginalNode + 1;
+        //check if it is EnumerableCalc node
+
+        if(relIdToOperation.get(nextNode).equals("EnumerableCalc")){
+            ObjectNode nextNodeInfo = relIdToNode.get(nextNode);
+            tmp_field = mapper.readerFor(field[].class).readValue(nextNodeInfo.path("inputRowType").path("fields"));
+            List<String> temp = new ArrayList<String>();
+            List<String> typeList = new ArrayList<String>();
+            for (field field : tmp_field){
+                temp.add(field.getName());
+                typeList.add(field.getType());
+            }
+            //get result from groupKeyColumnIds
+            for(int i=0;i<groupKeyColumnIds.length;i++){
+                groupKeyColumnAlias[i] = temp.get(groupKeyColumnIds[i]);
+            }
+            //get result from aggregateColumnIds
+            for(int i=0;i<aggregateColumnIds.length;i++){
+                resultColumnAlias[i] = result_prefix + temp.get(aggregateColumnIds[i]);
+            }
+            //get result from aggregateColumnIds
+            for(int i=0;i<aggregateColumnIds.length;i++){
+                resultColumnTypes[i] = typeList.get(aggregateColumnIds[i]);
+            }
+            // groupKeyColumnProjection
+            groupKeyColumnProjection = new boolean[groupKeyColumnIds.length];
+            Arrays.fill(groupKeyColumnProjection, true);
+
+            // new the basetable
+            String[] btable_columnNames = new String[groupKeyColumnIds.length + aggregateColumnIds.length];
+            System.arraycopy(groupKeyColumnAlias, 0, btable_columnNames, 0, groupKeyColumnIds.length);
+            System.arraycopy(resultColumnAlias, 0, btable_columnNames, groupKeyColumnIds.length, aggregateColumnIds.length);
+            TableScanFilter btable_filter = TableScanFilter.empty(schemaName, tableName);
+
+            BaseTable btable = new BaseTable(schemaName, tableName,tableName,btable_columnNames,btable_filter);
+            // change the groupKeyColumnIds and aggregateColumnIds according to the basetable
+            for(int i=0;i<groupKeyColumnIds.length;i++){
+                groupKeyColumnIds[i] = i;
+            }
+            for(int i=0;i<aggregateColumnIds.length;i++){
+                aggregateColumnIds[i] = i + groupKeyColumnIds.length;
+            }
+
+            Aggregation aggregation = new Aggregation(groupKeyColumnAlias, resultColumnAlias,
+                resultColumnTypes, groupKeyColumnProjection,
+                groupKeyColumnIds, aggregateColumnIds,
+                functionTypes, btable);
+
+            return aggregation;
+
+        }else{
+            System.out.println("Error: next node is not EnumerableCalc");
+            return null;
+        }
+
+    }
+
+
+    public FusionTable generateFusionTable(List<List<Integer>> stageValues, HashMap<Integer,Table> tableMap) throws IOException{
+        //TODO: here we assume that the join is in the first subgraph
+        //get the first subgraph
+        Join joinInfo = null;
+        Aggregation aggreInfo = null;
+
+        for (List<Integer> subgraph : stageValues){
+            Integer startNode = Collections.max(subgraph);
+            
+            if (relIdToOperation.get(startNode).equals("EnumerableHashJoin")){
+                System.out.print("HashJoin node");
+                joinInfo = generateJoinInfo(startNode,tableMap);
+                System.out.println("Assemble join info finish : " + joinInfo);
+            } else if (relIdToOperation.get(startNode).equals("EnumerableAggregate") ){
+                System.out.print("Aggregation node");
+                aggreInfo = generateAggregInfo(startNode,tableMap);
+                System.out.println("Assemble aggre info finish : " + aggreInfo);
+            }
+        }
+
+        FusionTable fusionTable = new FusionTable(aggreInfo.getOriginTable().getSchemaName(),aggreInfo.getOriginTable().getTableName(),aggreInfo.getOriginTable().getTableName()
+                                            ,joinInfo,aggreInfo);
+        return fusionTable;
+    }
+
+    public void invoke() throws IOException{
+        
+        HashMap<Integer,Table> tableMap = new HashMap<Integer,Table>();
         for (Map.Entry<Integer, List<List<Integer>>> entry : stages.entrySet()){
             Integer stageNum = entry.getKey();
             System.out.println("Start stageNum: " + stageNum);
             List<List<Integer>> stageValues = entry.getValue();
-            System.out.println(stageValues.size());
-
+            
             if(stageValues.size()==1){
+
                 System.out.println("Only one subgraph in this stage");
                 List<Integer> subgraph = stageValues.get(0);
                 Integer maxNode = Collections.max(subgraph);
@@ -835,34 +1156,35 @@ public class LASSPlanner{
                 
                 if (relIdToOperation.get(maxNode).equals("EnumerableHashJoin")){
                     System.out.print("HashJoin node");
-
-                    JoinedTable joinedTable = generateJoinedTable(subgraph);
-                    // try{
-                    //     JoinOperator joinOperator = getJoinOperator(joinedTable, Optional.empty());
-                    // }catch (Exception e){
-                    //     e.printStackTrace();
-                    // }
-                    
-                    
+                    Join joinInfo = generateJoinInfo(maxNode,tableMap);
+                    JoinedTable joinedTable = generateJoinedTable(joinInfo);
+                    System.out.println("Assemble join table finish : " + joinedTable);
+                    tableMap.put(maxNode,joinedTable);
                 }
-
-
-                
-
 
             } else {
                 System.out.println("More than one subgraph in this stage");
-
                 for (List<Integer> subgraph : stageValues){
                     System.out.println("subgraph: " + subgraph);
+                }
+                //TODO: here we assume that the join is in the first subgraph
+                List<Integer> firstSubgraph = stageValues.get(0);
+                Integer maxNode = Collections.max(firstSubgraph);
+                List<Integer> lastSubgraph = stageValues.get(stageValues.size()-1);
+                Integer maxNode2 = Collections.max(lastSubgraph);
+
+                System.out.println("max node is " + maxNode + " max node operation is " + relIdToOperation.get(maxNode));
+                if (relIdToOperation.get(maxNode).equals("EnumerableHashJoin")){
+                    System.out.print("HashJoin node");
+                    FusionTable fusionTable = generateFusionTable(stageValues,tableMap);
+                    System.out.println("Assemble fusionTable finish : " + fusionTable);
+                    tableMap.put(maxNode,fusionTable);
+                    tableMap.put(maxNode2, fusionTable);
                 }
 
             }
 
 
-
-
-            System.out.println("stage: " + stageValues);
         }
 
     }
@@ -900,7 +1222,7 @@ public class LASSPlanner{
         return tableInfo;
     }
 
-        /**
+    /**
      * Get the join inputs of a partitioned join, given the left and right partitioned tables.
      * @param joinedTable this joined table
      * @param parent the parent of this joined table
@@ -1757,7 +2079,7 @@ public class LASSPlanner{
         }
     }
 
-    private List<InputSplit> getInputSplits(BaseTable table) throws MetadataException, IOException
+    public List<InputSplit> getInputSplits(BaseTable table) throws MetadataException, IOException
     {
         requireNonNull(table, "table is null");
         checkArgument(table.getTableType() == Table.TableType.BASE, "this is not a base table");
@@ -1805,7 +2127,9 @@ public class LASSPlanner{
                 SplitPattern bestSplitPattern = splitsIndex.search(columnSet);
                 splitSize = bestSplitPattern.getSplitSize();
                 logger.debug("split size for table '" + table.getTableName() + "': " + splitSize + " from splits index");
-                double selectivity = PlanOptimizer.Instance().getTableSelectivity(this.transId, table);
+                
+                // double selectivity = PlanOptimizer.Instance().getTableSelectivity(this.transId, table);
+                double selectivity = 0.5;
                 if (selectivity >= 0)
                 {
                     // Increasing split size according to the selectivity.
@@ -1992,8 +2316,6 @@ public class LASSPlanner{
         return partialAggregation;
     }
 
-    
-    
     public < E > void printArray(String description,E[] inputArray )
     {   
         System.out.printf("%s: ", description);
@@ -2020,6 +2342,5 @@ public class LASSPlanner{
     }
 
     
-
 }
 

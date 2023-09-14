@@ -28,7 +28,7 @@ public interface Table
 {
     enum TableType
     {
-        BASE, JOINED, AGGREGATED
+        BASE, JOINED, AGGREGATED, FUSED
     }
 
     public TableType getTableType();

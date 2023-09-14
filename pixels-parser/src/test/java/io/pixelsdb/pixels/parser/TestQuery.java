@@ -11,7 +11,7 @@ public abstract class TestQuery {
     public static final String Q7 = "(select o_custkey, sum(o_totalprice) as num from orders where o_orderpriority='3-MEDIUM' group by o_custkey) UNION ALL (select o_custkey, COUNT(o_custkey) as num from orders where o_orderpriority='3-MEDIUM' group by o_custkey)";
     //contains Join
     public static final String Q8 = "select o_custkey, l_discount from orders, lineitem where orders.o_orderkey=lineitem.l_orderkey and orders.o_orderpriority='3-MEDIUM'";
-
+    public static final String Q9 = "select o_custkey, l_discount from orders, lineitem where orders.o_orderkey=lineitem.l_orderkey and orders.o_comment='test' and orders.o_orderpriority='3-MEDIUM'";
 
     // public static final String Q6 = "(select ss_customer_sk, sr_item_sk from store_sales,store_returns where sr_item_sk=ss_item_sk) union all (select ss_customer_sk, ss_item_sk from store_sales,customer where ss_hdemo_sk=c_current_cdemo_sk)";
     // public static final String Q7 = " select * from (select * from store_sales,store_returns where sr_item_sk=ss_item_sk and ss_customer_sk=sr_customer_sk ) as join1, (select * from store_sales,customer where ss_hdemo_sk=c_current_cdemo_sk and ss_addr_sk=c_current_addr_sk ) as join2 where join1.ss_item_sk=join2.ss_item_sk and join1.ss_store_sk>30 and join2.c_current_cdemo_sk";
