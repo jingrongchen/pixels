@@ -25,29 +25,31 @@ import io.pixelsdb.pixels.core.vector.ColumnVector;
 import io.pixelsdb.pixels.core.vector.DecimalColumnVector;
 
 import java.io.IOException;
+import java.nio.ByteOrder;
 
 /**
  * The column writer of decimals.
  * <p><b>Note: it only supports short decimals with max precision and scale 18.</b></p>
  *
  * @author hank
+ * @update 2023-08-16 Chamonix: support nulls padding
  */
 public class DecimalColumnWriter extends BaseColumnWriter
 {
     private final EncodingUtils encodingUtils;
 
-    public DecimalColumnWriter(TypeDescription type, int pixelStride, boolean isEncoding)
+    public DecimalColumnWriter(TypeDescription type,  PixelsWriterOption writerOption)
     {
-        super(type, pixelStride, isEncoding);
+        super(type, writerOption);
         encodingUtils = new EncodingUtils();
     }
 
     @Override
-    public int write(ColumnVector vector, int length)
-            throws IOException
+    public int write(ColumnVector vector, int length) throws IOException
     {
         DecimalColumnVector columnVector = (DecimalColumnVector) vector;
         long[] values = columnVector.vector;
+        boolean littleEndian = this.byteOrder.equals(ByteOrder.LITTLE_ENDIAN);
         for (int i = 0; i < length; i++)
         {
             isNull[curPixelIsNullIndex++] = vector.isNull[i];
@@ -56,10 +58,22 @@ public class DecimalColumnWriter extends BaseColumnWriter
             {
                 hasNull = true;
                 pixelStatRecorder.increment();
+                if (nullsPadding)
+                {
+                    // padding 0 for nulls
+                    encodingUtils.writeLongLE(outputStream, 0L);
+                }
             }
             else
             {
-                encodingUtils.writeLongLE(outputStream, values[i]);
+                if (littleEndian)
+                {
+                    encodingUtils.writeLongLE(outputStream, values[i]);
+                }
+                else
+                {
+                    encodingUtils.writeLongBE(outputStream, values[i]);
+                }
                 pixelStatRecorder.updateInteger(values[i], 1);
             }
             // if current pixel size satisfies the pixel stride, end the current pixel and start a new one
@@ -69,5 +83,11 @@ public class DecimalColumnWriter extends BaseColumnWriter
             }
         }
         return outputStream.size();
+    }
+
+    @Override
+    public boolean decideNullsPadding(PixelsWriterOption writerOption)
+    {
+        return writerOption.isNullsPadding();
     }
 }

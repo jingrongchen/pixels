@@ -19,27 +19,52 @@
  */
 package io.pixelsdb.pixels.core.writer;
 
+import io.pixelsdb.pixels.common.utils.ConfigFactory;
 import io.pixelsdb.pixels.core.PixelsProto;
 import io.pixelsdb.pixels.core.TypeDescription;
 import io.pixelsdb.pixels.core.encoding.Encoder;
+import io.pixelsdb.pixels.core.encoding.EncodingLevel;
 import io.pixelsdb.pixels.core.stats.StatsRecorder;
 import io.pixelsdb.pixels.core.utils.BitUtils;
 import io.pixelsdb.pixels.core.vector.ColumnVector;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteOrder;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 /**
  * pixels
  *
- * @author guodong
+ * @author guodong, hank
+ * @create 2017-08-09
+ * @update 2023-08-16 Chamonix: support nulls padding
+ * @update 2023-08-27 Beijing: support isNull alignment
  */
 public abstract class BaseColumnWriter implements ColumnWriter
 {
+    /**
+     * The number of bytes that the start offset of the isNull bitmap is aligned to.
+     */
+    private static final int ISNULL_ALIGNMENT;
+    /**
+     * The byte buffer padded before the isNull bitmap for alignment.
+     */
+    private static final byte[] ISNULL_PADDING_BUFFER;
+
+    static
+    {
+        ISNULL_ALIGNMENT = Integer.parseInt(ConfigFactory.Instance().getProperty("isnull.bitmap.alignment"));
+        checkArgument(ISNULL_ALIGNMENT >= 0, "isnull.bitmap.alignment must >= 0");
+        ISNULL_PADDING_BUFFER = new byte[ISNULL_ALIGNMENT];
+    }
+
     final int pixelStride;                     // indicate num of elements in a pixel
-    final boolean isEncoding;                  // indicate if encoding enabled during writing
+    final EncodingLevel encodingLevel;         // indicate the encoding level during writing
+    final ByteOrder byteOrder;                 // indicate the endianness used during writing
+    final boolean nullsPadding;                // indicate whether nulls are padded by arbitrary value
     final boolean[] isNull;
     private final PixelsProto.ColumnChunkIndex.Builder columnChunkIndex;
     private final PixelsProto.ColumnStatistic.Builder columnChunkStat;
@@ -61,24 +86,29 @@ public abstract class BaseColumnWriter implements ColumnWriter
     final ByteArrayOutputStream outputStream;  // column chunk content
     private final ByteArrayOutputStream isNullStream;  // column chunk isNull
 
-    public BaseColumnWriter(TypeDescription type, int pixelStride, boolean isEncoding)
+    public BaseColumnWriter(TypeDescription type, PixelsWriterOption writerOption)
     {
         this.type = requireNonNull(type, "type is null");
-        this.pixelStride = pixelStride;
-        this.isEncoding = isEncoding;
+        this.pixelStride = requireNonNull(writerOption, "writerOption is null").getPixelStride();
+        this.encodingLevel = requireNonNull(writerOption.getEncodingLevel(), "encodingLevel is null");
+        this.byteOrder = requireNonNull(writerOption.getByteOrder(), "byteOrder is null");
+        this.nullsPadding = decideNullsPadding(writerOption);
         this.isNull = new boolean[pixelStride];
-
-        this.columnChunkIndex =
-                PixelsProto.ColumnChunkIndex.newBuilder();
-        this.columnChunkStat =
-                PixelsProto.ColumnStatistic.newBuilder();
+        this.columnChunkIndex = PixelsProto.ColumnChunkIndex.newBuilder()
+                .setLittleEndian(byteOrder.equals(ByteOrder.LITTLE_ENDIAN))
+                .setNullsPadding(nullsPadding)
+                .setIsNullAlignment(ISNULL_ALIGNMENT);
+        this.columnChunkStat = PixelsProto.ColumnStatistic.newBuilder();
         this.pixelStatRecorder = StatsRecorder.create(type);
         this.columnChunkStatRecorder = StatsRecorder.create(type);
 
-        // todo a good estimation of chunk size is needed as the initial size of output stream
+        // TODO: a good estimation of chunk size is needed as the initial size of output stream
         this.outputStream = new ByteArrayOutputStream(pixelStride);
         this.isNullStream = new ByteArrayOutputStream(pixelStride);
     }
+
+    @Override
+    public abstract boolean decideNullsPadding(PixelsWriterOption writerOption);
 
     /**
      * Write ColumnVector
@@ -92,8 +122,7 @@ public abstract class BaseColumnWriter implements ColumnWriter
      * @return size in bytes of the current column chunk
      */
     @Override
-    public abstract int write(ColumnVector vector, int size)
-            throws IOException;
+    public abstract int write(ColumnVector vector, int size) throws IOException;
 
     /**
      * Get byte array of column chunk content
@@ -129,31 +158,36 @@ public abstract class BaseColumnWriter implements ColumnWriter
 
     public PixelsProto.ColumnEncoding.Builder getColumnChunkEncoding()
     {
-        return PixelsProto.ColumnEncoding.newBuilder()
-                .setKind(PixelsProto.ColumnEncoding.Kind.NONE);
+        return PixelsProto.ColumnEncoding.newBuilder().setKind(PixelsProto.ColumnEncoding.Kind.NONE);
     }
 
     @Override
-    public void flush()
-            throws IOException
+    public void flush() throws IOException
     {
         if (curPixelEleIndex > 0)
         {
             newPixel();
         }
+        int isNullOffset = outputStream.size();
+        if (ISNULL_ALIGNMENT != 0 && isNullOffset % ISNULL_ALIGNMENT != 0)
+        {
+            // Issue #548: align the start offset of the isNull bitmap for the compatibility of DuckDB
+            int alignBytes =  ISNULL_ALIGNMENT - isNullOffset % ISNULL_ALIGNMENT;
+            outputStream.write(ISNULL_PADDING_BUFFER, 0, alignBytes);
+            isNullOffset += alignBytes;
+        }
         // record isNull offset in the column chunk
-        columnChunkIndex.setIsNullOffset(outputStream.size());
+        columnChunkIndex.setIsNullOffset(isNullOffset);
         // flush out isNullStream
         isNullStream.writeTo(outputStream);
     }
 
-    void newPixel()
-            throws IOException
+    void newPixel() throws IOException
     {
         // isNull
         if (hasNull)
         {
-            isNullStream.write(BitUtils.bitWiseCompact(isNull, curPixelIsNullIndex));
+            isNullStream.write(BitUtils.bitWiseCompact(isNull, curPixelIsNullIndex, byteOrder));
             pixelStatRecorder.setHasNull();
         }
         // update position of current pixel
@@ -192,8 +226,7 @@ public abstract class BaseColumnWriter implements ColumnWriter
     }
 
     @Override
-    public void close()
-            throws IOException
+    public void close() throws IOException
     {
         outputStream.close();
         isNullStream.close();

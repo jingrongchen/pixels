@@ -41,9 +41,9 @@ public class VarcharColumnWriter extends StringColumnWriter
     private final int maxLength;
     private int numTruncated;
 
-    public VarcharColumnWriter(TypeDescription type, int pixelStride, boolean isEncoding)
+    public VarcharColumnWriter(TypeDescription type,  PixelsWriterOption writerOption)
     {
-        super(type, pixelStride, isEncoding);
+        super(type, writerOption);
         this.maxLength = type.getMaxLength();
         this.numTruncated = 0;
     }

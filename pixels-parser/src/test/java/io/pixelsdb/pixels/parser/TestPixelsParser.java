@@ -22,43 +22,22 @@ package io.pixelsdb.pixels.parser;
 import io.pixelsdb.pixels.common.metadata.MetadataService;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
-import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
-import org.apache.calcite.rel.RelVisitor;
+
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.apache.calcite.rel.RelWriter;
-import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.sql.SqlKind;
 
 import static org.junit.Assert.assertTrue;
-
-import java.io.*;
-
-import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.volcano.VolcanoPlanner;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.tools.FrameworkConfig;
-import org.apache.calcite.tools.Frameworks;
-import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.rules.*;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.rex.RexVisitor;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.externalize.RelWriterImpl;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
-
-import java.util.List;
 
 import java.util.Properties;
 
@@ -68,12 +47,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 public class TestPixelsParser
 {
-    // String hostAddr = "ec2-13-59-249-225.us-east-2.compute.amazonaws.com";
-    String hostAddr = "localhost";
+    String hostAddr = "ec2-18-216-64-72.us-east-2.compute.amazonaws.com";
 
     MetadataService instance = null;
 
     PixelsParser tpchPixelsParser = null;
+
+    PixelsParser clickbenchPixelsParser = null;
 
     @Before
     public void init()
@@ -84,10 +64,17 @@ public class TestPixelsParser
                 .setParserFactory(SqlParserImpl.FACTORY)
                 .build();
 
+        SqlParser.Config clickbenchParserConfig = SqlParser.configBuilder()
+                .setLex(Lex.MYSQL)
+                .setConformance(SqlConformanceEnum.MYSQL_5)
+                .setParserFactory(SqlParserImpl.FACTORY)
+                .build();
+
         Properties properties = new Properties();
         properties.setProperty(CalciteConnectionProperty.CASE_SENSITIVE.camelName(), "false");
 
         this.tpchPixelsParser = new PixelsParser(this.instance, "tpch", tpchParserConfig, properties);
+        this.clickbenchPixelsParser = new PixelsParser(this.instance, "clickbench", clickbenchParserConfig, properties);
     }
 
     @After
@@ -99,7 +86,7 @@ public class TestPixelsParser
 @Test
     public void testPixelsParserTpchExample() throws SqlParseException
     {
-        String query = TpchQuery.Q18;
+        String query = TpchQuery.Q12;
         SqlNode parsedNode = this.tpchPixelsParser.parseQuery(query);
         System.out.println("Parsed SQL Query: \n" + parsedNode);
 
@@ -196,23 +183,61 @@ public class TestPixelsParser
         SqlNode validatedNode = this.tpchPixelsParser.validate(parsedNode);
         System.out.println("No exception, validation success.");
 
-        RelNode rel = this.tpchPixelsParser.toRelNode(validatedNode);
-        final RelJsonWriter writer = new RelJsonWriter();
-        rel.explain(writer);
+        RelNode initialPlan = this.tpchPixelsParser.toRelNode(validatedNode);
+        RelNode optimizedPlan = this.tpchPixelsParser.toBestRelNode(validatedNode);
 
-        
-        
-        System.out.println("Logical plan: \n" + writer.asString());
+        RelMetadataQuery mq = optimizedPlan.getCluster().getMetadataQuery();
+        RelOptCost costInitial = mq.getCumulativeCost(initialPlan);
+        RelOptCost costOptimized = mq.getCumulativeCost(optimizedPlan);
+        System.out.println("Initial cost: " + costInitial + " | Optimized cost: " + costOptimized);
 
-        // try {
-        //     BufferedWriter out = new BufferedWriter(new FileWriter("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/testlogicalPlan2.json"));
-        //     out.write(writer.asString());
-        //     out.close();
-        //     System.out.println("to finle success！");
-        // } catch (IOException e) {
-        // }
-        
+        assertTrue(costOptimized.isLe(costInitial));
+    }
 
+    @Test
+    public void testPixelsParserTpchCoverage() throws SqlParseException, NoSuchFieldException, IllegalAccessException
+    {
+        for (int i = 1; i <= 22; i++) {
+            String query = TpchQuery.getQuery(i);
+            SqlNode parsedNode = this.tpchPixelsParser.parseQuery(query);
+            System.out.println("Tpch Query " + i + ": \n" + parsedNode);
+
+            SqlNode validatedNode = this.tpchPixelsParser.validate(parsedNode);
+
+            RelNode initialPlan = this.tpchPixelsParser.toRelNode(validatedNode);
+            RelNode optimizedPlan = this.tpchPixelsParser.toBestRelNode(validatedNode);
+
+            // not assert that optimized cost less than initial cost
+            RelMetadataQuery mq = optimizedPlan.getCluster().getMetadataQuery();
+            RelOptCost costInitial = mq.getCumulativeCost(initialPlan);
+            RelOptCost costOptimized = mq.getCumulativeCost(optimizedPlan);
+            System.out.println("Initial cost: " + costInitial + " | Optimized cost: " + costOptimized);
+        }
+    }
+
+    @Test
+    public void testPixelsParserClickbenchCoverage() throws SqlParseException, NoSuchFieldException, IllegalAccessException
+    {
+        for (int i = 30; i <= 43; i++) {
+            if (i == 28 || i == 29 || i == 43) {
+                System.out.println("Syntax not supported by Calcite");
+                continue;
+            }
+            String query = ClickbenchQuery.getQuery(i);
+            SqlNode parsedNode = this.clickbenchPixelsParser.parseQuery(query);
+            System.out.println("Clickbench Query " + i + ": \n" + parsedNode);
+
+            SqlNode validatedNode = this.clickbenchPixelsParser.validate(parsedNode);
+
+            RelNode initialPlan = this.clickbenchPixelsParser.toRelNode(validatedNode);
+            RelNode optimizedPlan = this.clickbenchPixelsParser.toBestRelNode(validatedNode);
+
+            // not assert that optimized cost less than initial cost
+            RelMetadataQuery mq = optimizedPlan.getCluster().getMetadataQuery();
+            RelOptCost costInitial = mq.getCumulativeCost(initialPlan);
+            RelOptCost costOptimized = mq.getCumulativeCost(optimizedPlan);
+            System.out.println("Initial cost: " + costInitial + " | Optimized cost: " + costOptimized);
+        }
     }
 
     @Test(expected = SqlParseException.class)

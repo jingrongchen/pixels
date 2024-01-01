@@ -26,71 +26,74 @@ import io.pixelsdb.pixels.core.vector.ColumnVector;
 
 import java.io.IOException;
 
-import static io.pixelsdb.pixels.core.TypeDescription.SHORT_DECIMAL_MAX_PRECISION;
+import static io.pixelsdb.pixels.core.TypeDescription.MAX_SHORT_DECIMAL_PRECISION;
 
 /**
- * pixels
+ * Interface for Pixels column writer.
  *
- * @author guodong
+ * @author guodong, hank
+ * @update 2023-08-16 Chamonix: support nulls padding
  */
 public interface ColumnWriter
 {
     /**
      * Create a column writer according to the data type.
-     * @param type the data type.
-     * @param pixelStride
-     * @param isEncoding set true if enable data encoding.
+     * @param type the data type
+     * @param writerOption the writer option applied on the column
      * @return
      */
-    public static ColumnWriter newColumnWriter(TypeDescription type, int pixelStride, boolean isEncoding)
+    static ColumnWriter newColumnWriter(TypeDescription type, PixelsWriterOption writerOption)
     {
         switch (type.getCategory())
         {
             case BOOLEAN:
-                return new BooleanColumnWriter(type, pixelStride, isEncoding);
+                return new BooleanColumnWriter(type, writerOption);
             case BYTE:
-                return new ByteColumnWriter(type, pixelStride, isEncoding);
+                return new ByteColumnWriter(type, writerOption);
             case SHORT:
             case INT:
             case LONG:
-                return new IntegerColumnWriter(type, pixelStride, isEncoding);
+                return new IntegerColumnWriter(type, writerOption);
             case FLOAT:
-                return new FloatColumnWriter(type, pixelStride, isEncoding);
+                return new FloatColumnWriter(type, writerOption);
             case DOUBLE:
-                return new DoubleColumnWriter(type, pixelStride, isEncoding);
+                return new DoubleColumnWriter(type, writerOption);
             case DECIMAL: // Issue #196: precision and scale are passed through type.
-                if (type.getPrecision() <= SHORT_DECIMAL_MAX_PRECISION)
-                    return new DecimalColumnWriter(type, pixelStride, isEncoding);
+                if (type.getPrecision() <= MAX_SHORT_DECIMAL_PRECISION)
+                    return new DecimalColumnWriter(type, writerOption);
                 else
-                    return new LongDecimalColumnWriter(type, pixelStride, isEncoding);
+                    return new LongDecimalColumnWriter(type, writerOption);
             case STRING:
-                return new StringColumnWriter(type, pixelStride, isEncoding);
+                return new StringColumnWriter(type, writerOption);
             // Issue #196: max length of char, varchar, binary, and varbinary, are passed through type.
             case CHAR:
-                return new CharColumnWriter(type, pixelStride, isEncoding);
+                return new CharColumnWriter(type, writerOption);
             case VARCHAR:
-                return new VarcharColumnWriter(type, pixelStride, isEncoding);
+                return new VarcharColumnWriter(type, writerOption);
             case BINARY:
-                return new BinaryColumnWriter(type, pixelStride, isEncoding);
+                return new BinaryColumnWriter(type, writerOption);
             case VARBINARY:
-                return new VarbinaryColumnWriter(type, pixelStride, isEncoding);
+                return new VarbinaryColumnWriter(type, writerOption);
             case DATE:
-                return new DateColumnWriter(type, pixelStride, isEncoding);
+                return new DateColumnWriter(type, writerOption);
             case TIME:
-                return new TimeColumnWriter(type, pixelStride, isEncoding);
+                return new TimeColumnWriter(type, writerOption);
             case TIMESTAMP:
-                return new TimestampColumnWriter(type, pixelStride, isEncoding);
+                return new TimestampColumnWriter(type, writerOption);
+            case VECTOR:
+                return new VectorColumnWriter(type, writerOption);
             default:
                 throw new IllegalArgumentException("Bad schema type: " + type.getCategory());
         }
     }
 
-    int write(ColumnVector vector, int length)
-            throws IOException;
+    int write(ColumnVector vector, int length) throws IOException;
 
     byte[] getColumnChunkContent();
 
     int getColumnChunkSize();
+
+    boolean decideNullsPadding(PixelsWriterOption writerOption);
 
     PixelsProto.ColumnChunkIndex.Builder getColumnChunkIndex();
 
@@ -102,9 +105,7 @@ public interface ColumnWriter
 
     void reset();
 
-    void flush()
-            throws IOException;
+    void flush() throws IOException;
 
-    void close()
-            throws IOException;
+    void close() throws IOException;
 }

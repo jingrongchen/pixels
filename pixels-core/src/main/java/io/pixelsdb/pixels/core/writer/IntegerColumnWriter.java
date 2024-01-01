@@ -21,6 +21,7 @@ package io.pixelsdb.pixels.core.writer;
 
 import io.pixelsdb.pixels.core.PixelsProto;
 import io.pixelsdb.pixels.core.TypeDescription;
+import io.pixelsdb.pixels.core.encoding.EncodingLevel;
 import io.pixelsdb.pixels.core.encoding.RunLenIntEncoder;
 import io.pixelsdb.pixels.core.vector.ColumnVector;
 import io.pixelsdb.pixels.core.vector.LongColumnVector;
@@ -29,27 +30,30 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
- * Integer column writer.
- * If encoding, use RunLength;
- * Else isLong(1 byte) + content
+ * The column writer for integers.
  *
- * @author guodong
+ * @author guodong, hank
+ * @update 2023-08-16 Chamonix: support nulls padding
  */
 public class IntegerColumnWriter extends BaseColumnWriter
 {
     private final long[] curPixelVector = new long[pixelStride];        // current pixel value vector haven't written out yet
-    private final boolean isLong;                                       // current column type is long or int
+    private final boolean isLong;                                       // current column type is long or int, used for the first pixel
+    private final boolean runlengthEncoding;
 
-    public IntegerColumnWriter(TypeDescription type, int pixelStride, boolean isEncoding)
+    public IntegerColumnWriter(TypeDescription type,  PixelsWriterOption writerOption)
     {
-        super(type, pixelStride, isEncoding);
-        encoder = new RunLenIntEncoder();
-        this.isLong = type.getCategory() == TypeDescription.Category.LONG;
+        super(type, writerOption);
+        isLong = type.getCategory() == TypeDescription.Category.LONG;
+        runlengthEncoding = encodingLevel.ge(EncodingLevel.EL2);
+        if (runlengthEncoding)
+        {
+            encoder = new RunLenIntEncoder();
+        }
     }
 
     @Override
-    public int write(ColumnVector vector, int size)
-            throws IOException
+    public int write(ColumnVector vector, int size) throws IOException
     {
         LongColumnVector columnVector = (LongColumnVector) vector;
         long[] values = columnVector.vector;
@@ -83,6 +87,11 @@ public class IntegerColumnWriter extends BaseColumnWriter
             {
                 hasNull = true;
                 pixelStatRecorder.increment();
+                if (nullsPadding)
+                {
+                    // padding 0 for nulls
+                    curPixelVector[curPixelVectorIndex++] = 0L;
+                }
             }
             else
             {
@@ -94,18 +103,15 @@ public class IntegerColumnWriter extends BaseColumnWriter
     }
 
     @Override
-    void newPixel()
-            throws IOException
+    void newPixel() throws IOException
     {
-        // update stats
-        for (int i = 0; i < curPixelVectorIndex; i++)
-        {
-            pixelStatRecorder.updateInteger(curPixelVector[i], 1);
-        }
-
         // write out current pixel vector
-        if (isEncoding)
+        if (runlengthEncoding)
         {
+            for (int i = 0; i < curPixelVectorIndex; i++)
+            {
+                pixelStatRecorder.updateInteger(curPixelVector[i], 1);
+            }
             outputStream.write(encoder.encode(curPixelVector, 0, curPixelVectorIndex));
         }
         else
@@ -113,20 +119,22 @@ public class IntegerColumnWriter extends BaseColumnWriter
             ByteBuffer curVecPartitionBuffer;
             if (isLong)
             {
-                curVecPartitionBuffer = ByteBuffer.allocate((curPixelVectorIndex + 1) * Long.BYTES);
-                curVecPartitionBuffer.putLong(1);
+                curVecPartitionBuffer = ByteBuffer.allocate(curPixelVectorIndex * Long.BYTES);
+                curVecPartitionBuffer.order(byteOrder);
                 for (int i = 0; i < curPixelVectorIndex; i++)
                 {
                     curVecPartitionBuffer.putLong(curPixelVector[i]);
+                    pixelStatRecorder.updateInteger(curPixelVector[i], 1);
                 }
             }
             else
             {
-                curVecPartitionBuffer = ByteBuffer.allocate(curPixelVectorIndex * Integer.BYTES + Long.BYTES);
-                curVecPartitionBuffer.putLong(0);
+                curVecPartitionBuffer = ByteBuffer.allocate(curPixelVectorIndex * Integer.BYTES);
+                curVecPartitionBuffer.order(byteOrder);
                 for (int i = 0; i < curPixelVectorIndex; i++)
                 {
                     curVecPartitionBuffer.putInt((int) curPixelVector[i]);
+                    pixelStatRecorder.updateInteger(curPixelVector[i], 1);
                 }
             }
             outputStream.write(curVecPartitionBuffer.array());
@@ -138,7 +146,7 @@ public class IntegerColumnWriter extends BaseColumnWriter
     @Override
     public PixelsProto.ColumnEncoding.Builder getColumnChunkEncoding()
     {
-        if (isEncoding)
+        if (runlengthEncoding)
         {
             return PixelsProto.ColumnEncoding.newBuilder()
                     .setKind(PixelsProto.ColumnEncoding.Kind.RUNLENGTH);
@@ -148,10 +156,22 @@ public class IntegerColumnWriter extends BaseColumnWriter
     }
 
     @Override
-    public void close()
-            throws IOException
+    public void close() throws IOException
     {
-        encoder.close();
+        if (runlengthEncoding)
+        {
+            encoder.close();
+        }
         super.close();
+    }
+
+    @Override
+    public boolean decideNullsPadding(PixelsWriterOption writerOption)
+    {
+        if (writerOption.getEncodingLevel().ge(EncodingLevel.EL2))
+        {
+            return false;
+        }
+        return writerOption.isNullsPadding();
     }
 }

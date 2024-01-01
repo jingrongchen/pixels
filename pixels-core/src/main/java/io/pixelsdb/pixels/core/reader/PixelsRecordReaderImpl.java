@@ -64,7 +64,7 @@ public class PixelsRecordReaderImpl implements PixelsRecordReader
     private final List<String> cacheOrder;
     private final PixelsCacheReader cacheReader;
     private final PixelsFooterCache pixelsFooterCache;
-    private final String fileName;
+    private final String filePath;
     private final List<PixelsProto.Type> includedColumnTypes;
 
     private TypeDescription fileSchema = null;
@@ -147,7 +147,7 @@ public class PixelsRecordReaderImpl implements PixelsRecordReader
         this.cacheOrder = cacheOrder;
         this.cacheReader = cacheReader;
         this.pixelsFooterCache = pixelsFooterCache;
-        this.fileName = this.physicalReader.getName();
+        this.filePath = this.physicalReader.getPath();
         this.includedColumnTypes = new ArrayList<>();
         // Issue #175: this check is currently not necessary.
         // requireNonNull(TransContextCache.Instance().getQueryTransInfo(this.transId),
@@ -451,7 +451,7 @@ public class PixelsRecordReaderImpl implements PixelsRecordReader
         for (int i = 0; i < targetRGNum; i++)
         {
             int rgId = targetRGs[i];
-            String rgCacheId = fileName + "-" + rgId;
+            String rgCacheId = filePath + "-" + rgId;
             PixelsProto.RowGroupFooter rowGroupFooter = pixelsFooterCache.getRGFooter(rgCacheId);
             // cache miss, read from disk and put it into cache
             if (rowGroupFooter == null)
@@ -593,7 +593,7 @@ public class PixelsRecordReaderImpl implements PixelsRecordReader
                      */
                     // int rgId = rgIdx + RGStart;
                     int rgId = targetRGs[rgIdx];
-                    // TODO: not only columnlets in cacheOrder are cached.
+                    // TODO: not only the column chunks in cacheOrder are cached.
                     String cacheIdentifier = rgId + ":" + colId;
                     // if cached, read from cache files
                     if (cacheOrder.contains(cacheIdentifier))
@@ -628,18 +628,18 @@ public class PixelsRecordReaderImpl implements PixelsRecordReader
                 short rgId = columnChunkId.rowGroupId;
                 short colId = columnChunkId.columnId;
 //                long getBegin = System.nanoTime();
-                ByteBuffer columnlet = cacheReader.get(blockId, rgId, colId, columnChunkId.direct);
-                memoryUsage += columnChunkId.direct ? 0 : columnlet.capacity();
+                ByteBuffer columnChunk = cacheReader.get(blockId, rgId, colId, columnChunkId.direct);
+                memoryUsage += columnChunkId.direct ? 0 : columnChunk.capacity();
 //                long getEnd = System.nanoTime();
-//                logger.debug("[cache get]: " + columnlet.length + "," + (getEnd - getBegin));
-                chunkBuffers[(rgId - RGStart) * includedColumns.length + colId] = columnlet;
-                if (columnlet == null || columnlet.capacity() == 0)
+//                logger.debug("[cache get]: " + columnChunk.length + "," + (getEnd - getBegin));
+                chunkBuffers[(rgId - RGStart) * includedColumns.length + colId] = columnChunk;
+                if (columnChunk == null || columnChunk.capacity() == 0)
                 {
                     /**
                      * Issue #67 (patch):
                      * Deal with null or empty cache chunk.
-                     * If cache read failed (e.g. cache read timeout), column chunk (columnlet) will be null.
-                     * In this condition, we have to read the column chunk (columnlet) from disk.
+                     * If cache read failed (e.g. cache read timeout), column chunk will be null.
+                     * In this condition, we have to read the column chunk from disk.
                      */
                     int rgIdx = rgId - RGStart;
                     PixelsProto.RowGroupIndex rowGroupIndex =
@@ -652,7 +652,7 @@ public class PixelsRecordReaderImpl implements PixelsRecordReader
                 }
                 else
                 {
-                    this.cacheReadBytes += columnlet.capacity();
+                    this.cacheReadBytes += columnChunk.capacity();
                 }
             }
         }
@@ -722,7 +722,7 @@ public class PixelsRecordReaderImpl implements PixelsRecordReader
                  * readCost.setMs(readTimeMs);
                  * readPerfMetrics.addSeqRead(readCost);
                  */
-                actionFutures.add(requestBatch.add(transId, chunk.offset, (int)chunk.length)
+                actionFutures.add(requestBatch.add(transId, chunk.offset, chunk.length)
                         .thenAccept(resp ->
                 {
                     if (resp != null)
@@ -1204,9 +1204,9 @@ public class PixelsRecordReaderImpl implements PixelsRecordReader
         public final int rowGroupId;
         public final int columnId;
         public final long offset;
-        public final long length;
+        public final int length;
 
-        public ChunkId(int rowGroupId, int columnId, long offset, long length)
+        public ChunkId(int rowGroupId, int columnId, long offset, int length)
         {
             this.rowGroupId = rowGroupId;
             this.columnId = columnId;

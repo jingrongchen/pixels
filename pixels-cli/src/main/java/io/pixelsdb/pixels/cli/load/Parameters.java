@@ -25,6 +25,7 @@ import io.pixelsdb.pixels.common.metadata.domain.Column;
 import io.pixelsdb.pixels.common.metadata.domain.Layout;
 import io.pixelsdb.pixels.common.metadata.domain.Ordered;
 import io.pixelsdb.pixels.common.utils.ConfigFactory;
+import io.pixelsdb.pixels.core.encoding.EncodingLevel;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -41,7 +42,8 @@ public class Parameters
     private String[] loadingPaths;
     private String schema;
     private int[] orderMapping;
-    private final boolean enableEncoding;
+    private final EncodingLevel encodingLevel;
+    private final boolean nullsPadding;
 
     public String[] getLoadingPaths()
     {
@@ -68,20 +70,26 @@ public class Parameters
         return regex;
     }
 
-    public boolean isEnableEncoding()
+    public EncodingLevel getEncodingLevel()
     {
-        return enableEncoding;
+        return encodingLevel;
+    }
+
+    public boolean isNullsPadding()
+    {
+        return nullsPadding;
     }
 
     public Parameters(String dbName, String tableName, int maxRowNum, String regex,
-                      boolean enableEncoding, @Nullable String[] loadingPaths)
+                      EncodingLevel encodingLevel, boolean nullsPadding, @Nullable String[] loadingPaths)
     {
         this.dbName = dbName;
         this.tableName = tableName;
         this.maxRowNum = maxRowNum;
         this.regex = regex;
         this.loadingPaths = loadingPaths;
-        this.enableEncoding = enableEncoding;
+        this.encodingLevel = encodingLevel;
+        this.nullsPadding = nullsPadding;
     }
 
     /**

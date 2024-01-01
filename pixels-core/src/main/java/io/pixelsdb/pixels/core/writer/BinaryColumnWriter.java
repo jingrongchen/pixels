@@ -28,9 +28,10 @@ import java.io.IOException;
 /**
  * pixels binary column writer.
  * each element consists of content length and content binary.
+ * TODO: this class is not yet finished.
  *
- * @author guodong
- * @author hank
+ * @author guodong, hank
+ * @update 2023-08-16 Chamonix: support nulls padding
  */
 public class BinaryColumnWriter extends BaseColumnWriter
 {
@@ -40,16 +41,15 @@ public class BinaryColumnWriter extends BaseColumnWriter
     private final int maxLength;
     private int numTruncated;
 
-    public BinaryColumnWriter(TypeDescription type, int pixelStride, boolean isEncoding)
+    public BinaryColumnWriter(TypeDescription type,  PixelsWriterOption writerOption)
     {
-        super(type, pixelStride, isEncoding);
+        super(type, writerOption);
         this.maxLength = type.getMaxLength();
         this.numTruncated = 0;
     }
 
     @Override
-    public int write(ColumnVector vector, int size)
-            throws IOException
+    public int write(ColumnVector vector, int size) throws IOException
     {
         BinaryColumnVector columnVector = (BinaryColumnVector) vector;
         byte[][] values = columnVector.vector;
@@ -72,8 +72,8 @@ public class BinaryColumnWriter extends BaseColumnWriter
         return outputStream.size();
     }
 
-    private void writeCurPartBinary(BinaryColumnVector columnVector, byte[][] values, int curPartLength, int curPartOffset)
-            throws IOException
+    private void writeCurPartBinary(BinaryColumnVector columnVector, byte[][] values,
+                                    int curPartLength, int curPartOffset) throws IOException
     {
         for (int i = 0; i < curPartLength; i++)
         {
@@ -102,5 +102,11 @@ public class BinaryColumnWriter extends BaseColumnWriter
         }
         System.arraycopy(columnVector.isNull, curPartOffset, isNull, curPixelIsNullIndex, curPartLength);
         curPixelIsNullIndex += curPartLength;
+    }
+
+    @Override
+    public boolean decideNullsPadding(PixelsWriterOption writerOption)
+    {
+        return writerOption.isNullsPadding();
     }
 }

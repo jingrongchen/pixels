@@ -22,13 +22,13 @@ package io.pixelsdb.pixels.core.writer;
 import io.pixelsdb.pixels.core.TypeDescription;
 
 /**
- * Created at: 04/03/2022
- * Author: hank
+ * @create 2022-03-04
+ * @author hank
  */
 public class VarbinaryColumnWriter extends BinaryColumnWriter
 {
-    public VarbinaryColumnWriter(TypeDescription type, int pixelStride, boolean isEncoding)
+    public VarbinaryColumnWriter(TypeDescription type,  PixelsWriterOption writerOption)
     {
-        super(type, pixelStride, isEncoding);
+        super(type, writerOption);
     }
 }

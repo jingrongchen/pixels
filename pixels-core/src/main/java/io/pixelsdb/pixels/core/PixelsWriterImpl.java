@@ -27,17 +27,20 @@ import io.pixelsdb.pixels.common.utils.ConfigFactory;
 import io.pixelsdb.pixels.core.PixelsProto.CompressionKind;
 import io.pixelsdb.pixels.core.PixelsProto.RowGroupInformation;
 import io.pixelsdb.pixels.core.PixelsProto.RowGroupStatistic;
+import io.pixelsdb.pixels.core.encoding.EncodingLevel;
 import io.pixelsdb.pixels.core.exception.PixelsWriterException;
 import io.pixelsdb.pixels.core.stats.StatsRecorder;
 import io.pixelsdb.pixels.core.vector.ColumnVector;
 import io.pixelsdb.pixels.core.vector.VectorizedRowBatch;
 import io.pixelsdb.pixels.core.writer.ColumnWriter;
+import io.pixelsdb.pixels.core.writer.PixelsWriterOption;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -55,28 +58,57 @@ import static io.pixelsdb.pixels.core.writer.ColumnWriter.newColumnWriter;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Pixels file writer default implementation
+ * Pixels file writer default implementation.
  * <p>
  * This writer is NOT thread safe!
  * </p>
  *
- * @author guodong
- * @author hank
+ * @author guodong, hank
  */
 @NotThreadSafe
 public class PixelsWriterImpl implements PixelsWriter
 {
     private static final Logger LOGGER = LogManager.getLogger(PixelsWriterImpl.class);
 
+    private static final ByteOrder WRITER_ENDIAN;
+    /**
+     * The number of bytes that the start offset of each column chunk is aligned to.
+     */
+    private static final int CHUNK_ALIGNMENT;
+    /**
+     * The byte buffer padded to each column chunk for alignment.
+     */
+    private static final byte[] CHUNK_PADDING_BUFFER;
+
+    static
+    {
+        boolean littleEndian = Boolean.parseBoolean(
+                ConfigFactory.Instance().getProperty("column.chunk.little.endian"));
+        if (littleEndian)
+        {
+            WRITER_ENDIAN = ByteOrder.LITTLE_ENDIAN;
+        }
+        else
+        {
+            WRITER_ENDIAN = ByteOrder.BIG_ENDIAN;
+        }
+        CHUNK_ALIGNMENT = Integer.parseInt(ConfigFactory.Instance().getProperty("column.chunk.alignment"));
+        checkArgument(CHUNK_ALIGNMENT >= 0, "column.chunk.alignment must >= 0");
+        CHUNK_PADDING_BUFFER = new byte[CHUNK_ALIGNMENT];
+    }
+
     private final TypeDescription schema;
-    private final int pixelStride;
     private final int rowGroupSize;
     private final CompressionKind compressionKind;
     private final int compressionBlockSize;
     private final TimeZone timeZone;
-    private final boolean encoding;
+    /**
+     * The writer option for the column writers.
+     */
+    private final PixelsWriterOption columnWriterOption;
     private final boolean partitioned;
     private final Optional<List<Integer>> partKeyColumnIds;
+
 
     private final ColumnWriter[] columnWriters;
     private final StatsRecorder[] fileColStatRecorders;
@@ -101,14 +133,6 @@ public class PixelsWriterImpl implements PixelsWriter
     private final List<TypeDescription> children;
 
     private final ExecutorService columnWriterService = Executors.newCachedThreadPool();
-    /**
-     * The number of bytes that each column chunk is aligned to.
-     */
-    private final int chunkAlignment;
-    /**
-     * The byte buffer padded to each column chunk for alignment.
-     */
-    private final byte[] chunkPaddingBuffer;
 
     private PixelsWriterImpl(
             TypeDescription schema,
@@ -118,32 +142,33 @@ public class PixelsWriterImpl implements PixelsWriter
             int compressionBlockSize,
             TimeZone timeZone,
             PhysicalWriter physicalWriter,
-            boolean encoding,
+            EncodingLevel encodingLevel,
+            boolean nullsPadding,
             boolean partitioned,
             Optional<List<Integer>> partKeyColumnIds)
     {
         this.schema = requireNonNull(schema, "schema is null");
         checkArgument(pixelStride > 0, "pixel stripe is not positive");
-        this.pixelStride = pixelStride;
         checkArgument(rowGroupSize > 0, "row group size is not positive");
         this.rowGroupSize = rowGroupSize;
         this.compressionKind = requireNonNull(compressionKind, "compressionKind is null");
         checkArgument(compressionBlockSize > 0, "compression block size is not positive");
         this.compressionBlockSize = compressionBlockSize;
         this.timeZone = requireNonNull(timeZone);
-        this.encoding = encoding;
         this.partitioned = partitioned;
         this.partKeyColumnIds = requireNonNull(partKeyColumnIds, "partKeyColumnIds is null");
-        this.chunkAlignment = Integer.parseInt(ConfigFactory.Instance().getProperty("column.chunk.alignment"));
-        checkArgument(this.chunkAlignment >= 0, "column.chunk.alignment must >= 0");
-        this.chunkPaddingBuffer = new byte[this.chunkAlignment];
-        children = schema.getChildren();
+        this.children = schema.getChildren();
         checkArgument(!requireNonNull(children, "schema is null").isEmpty(), "schema is empty");
         this.columnWriters = new ColumnWriter[children.size()];
-        fileColStatRecorders = new StatsRecorder[children.size()];
+        this.fileColStatRecorders = new StatsRecorder[children.size()];
+        this.columnWriterOption = new PixelsWriterOption()
+                .pixelStride(pixelStride)
+                .encodingLevel(requireNonNull(encodingLevel, "encodingLevel is null"))
+                .byteOrder(WRITER_ENDIAN)
+                .nullsPadding(nullsPadding);
         for (int i = 0; i < children.size(); ++i)
         {
-            columnWriters[i] = newColumnWriter(children.get(i), pixelStride, encoding);
+            columnWriters[i] = newColumnWriter(children.get(i), columnWriterOption);
             fileColStatRecorders[i] = StatsRecorder.create(children.get(i));
         }
 
@@ -165,10 +190,11 @@ public class PixelsWriterImpl implements PixelsWriter
         private String builderFilePath = null;
         private long builderBlockSize = DEFAULT_HDFS_BLOCK_SIZE;
         private short builderReplication = 3;
+        private EncodingLevel builderEncodingLevel = EncodingLevel.EL0;
         private boolean builderBlockPadding = true;
         private boolean builderOverwrite = false;
-        private boolean builderEncoding = true;
         private boolean builderPartitioned = false;
+        private boolean builderNullsPadding = false;
         private Optional<List<Integer>> builderPartKeyColumnIds = Optional.empty();
 
         private Builder()
@@ -178,56 +204,48 @@ public class PixelsWriterImpl implements PixelsWriter
         public Builder setSchema(TypeDescription schema)
         {
             this.builderSchema = requireNonNull(schema);
-
             return this;
         }
 
         public Builder setPixelStride(int stride)
         {
             this.builderPixelStride = stride;
-
             return this;
         }
 
         public Builder setRowGroupSize(int rowGroupSize)
         {
             this.builderRowGroupSize = rowGroupSize;
-
             return this;
         }
 
         public Builder setCompressionKind(CompressionKind compressionKind)
         {
             this.builderCompressionKind = requireNonNull(compressionKind);
-
             return this;
         }
 
         public Builder setCompressionBlockSize(int compressionBlockSize)
         {
             this.builderCompressionBlockSize = compressionBlockSize;
-
             return this;
         }
 
         public Builder setTimeZone(TimeZone timeZone)
         {
             this.builderTimeZone = requireNonNull(timeZone);
-
             return this;
         }
 
         public Builder setStorage(Storage storage)
         {
             this.builderStorage = requireNonNull(storage);
-
             return this;
         }
 
         public Builder setPath(String filePath)
         {
             this.builderFilePath = requireNonNull(filePath);
-
             return this;
         }
 
@@ -235,7 +253,6 @@ public class PixelsWriterImpl implements PixelsWriter
         {
             checkArgument(blockSize > 0, "block size should be positive");
             this.builderBlockSize = blockSize;
-
             return this;
         }
 
@@ -243,47 +260,46 @@ public class PixelsWriterImpl implements PixelsWriter
         {
             checkArgument(replication > 0, "num of replicas should be positive");
             this.builderReplication = replication;
-
             return this;
         }
 
         public Builder setBlockPadding(boolean blockPadding)
         {
             this.builderBlockPadding = blockPadding;
-
             return this;
         }
 
         public Builder setOverwrite(boolean overwrite)
         {
             this.builderOverwrite = overwrite;
-
             return this;
         }
 
-        public Builder setEncoding(boolean encoding)
+        public Builder setNullsPadding(boolean nullsPadding)
         {
-            this.builderEncoding = encoding;
+            this.builderNullsPadding = nullsPadding;
+            return this;
+        }
 
+        public Builder setEncodingLevel(EncodingLevel encodingLevel)
+        {
+            this.builderEncodingLevel = encodingLevel;
             return this;
         }
 
         public Builder setPartitioned(boolean partitioned)
         {
             this.builderPartitioned = partitioned;
-
             return this;
         }
 
         public Builder setPartKeyColumnIds(List<Integer> partitionColumnIds)
         {
             this.builderPartKeyColumnIds = Optional.ofNullable(partitionColumnIds);
-
             return this;
         }
 
-        public PixelsWriter build()
-                throws PixelsWriterException
+        public PixelsWriter build() throws PixelsWriterException
         {
             requireNonNull(this.builderStorage, "storage is not set");
             requireNonNull(this.builderFilePath, "file path is not set");
@@ -299,7 +315,6 @@ public class PixelsWriterImpl implements PixelsWriter
             PhysicalWriter fsWriter = null;
             try
             {
-
                 fsWriter = PhysicalWriterUtil.newPhysicalWriter(
                         this.builderStorage, this.builderFilePath, this.builderBlockSize, this.builderReplication,
                         this.builderBlockPadding, this.builderOverwrite);
@@ -325,7 +340,8 @@ public class PixelsWriterImpl implements PixelsWriter
                     builderCompressionBlockSize,
                     builderTimeZone,
                     fsWriter,
-                    builderEncoding,
+                    builderEncodingLevel,
+                    builderNullsPadding,
                     builderPartitioned,
                     builderPartKeyColumnIds);
         }
@@ -365,7 +381,7 @@ public class PixelsWriterImpl implements PixelsWriter
 
     public int getPixelStride()
     {
-        return pixelStride;
+        return columnWriterOption.getPixelStride();
     }
 
     public int getRowGroupSize()
@@ -388,9 +404,9 @@ public class PixelsWriterImpl implements PixelsWriter
         return timeZone;
     }
 
-    public boolean isEncoding()
+    public EncodingLevel getEncodingLevel()
     {
-        return encoding;
+        return columnWriterOption.getEncodingLevel();
     }
 
     public boolean isPartitioned()
@@ -399,8 +415,7 @@ public class PixelsWriterImpl implements PixelsWriter
     }
 
     @Override
-    public boolean addRowBatch(VectorizedRowBatch rowBatch)
-            throws IOException
+    public boolean addRowBatch(VectorizedRowBatch rowBatch) throws IOException
     {
         checkArgument(!partitioned, "this file is hash partitioned, " +
                 "use addRowBatch(rowBatch, hashValue) instead");
@@ -498,8 +513,7 @@ public class PixelsWriterImpl implements PixelsWriter
         }
     }
 
-    private void writeRowGroup()
-            throws IOException
+    private void writeRowGroup() throws IOException
     {
         int rowGroupDataLength = 0;
 
@@ -518,7 +532,7 @@ public class PixelsWriterImpl implements PixelsWriter
             // flush writes the isNull bit map into the internal output stream.
             writer.flush();
             rowGroupDataLength += writer.getColumnChunkSize();
-            if (chunkAlignment != 0 && rowGroupDataLength % chunkAlignment != 0)
+            if (CHUNK_ALIGNMENT != 0 && rowGroupDataLength % CHUNK_ALIGNMENT != 0)
             {
                 /*
                  * Issue #519:
@@ -526,7 +540,7 @@ public class PixelsWriterImpl implements PixelsWriter
                  * has to determine whether to start a new block, if the current block
                  * is not large enough.
                  */
-                rowGroupDataLength += chunkAlignment - rowGroupDataLength % chunkAlignment;
+                rowGroupDataLength += CHUNK_ALIGNMENT - rowGroupDataLength % CHUNK_ALIGNMENT;
             }
         }
 
@@ -538,10 +552,10 @@ public class PixelsWriterImpl implements PixelsWriter
             {
                 // Issue #519: make sure to start writing the column chunks in the row group from an aligned offset.
                 int tryAlign = 0;
-                while (chunkAlignment != 0 && curRowGroupOffset % chunkAlignment != 0 && tryAlign++ < 2)
+                while (CHUNK_ALIGNMENT != 0 && curRowGroupOffset % CHUNK_ALIGNMENT != 0 && tryAlign++ < 2)
                 {
-                    int alignBytes = (int) (chunkAlignment - curRowGroupOffset % chunkAlignment);
-                    physicalWriter.append(chunkPaddingBuffer, 0, alignBytes);
+                    int alignBytes = (int) (CHUNK_ALIGNMENT - curRowGroupOffset % CHUNK_ALIGNMENT);
+                    physicalWriter.append(CHUNK_PADDING_BUFFER, 0, alignBytes);
                     writtenBytes += alignBytes;
                     curRowGroupOffset = physicalWriter.prepare(rowGroupDataLength);
                 }
@@ -557,10 +571,10 @@ public class PixelsWriterImpl implements PixelsWriter
                     physicalWriter.append(rowGroupBuffer, 0, rowGroupBuffer.length);
                     writtenBytes += rowGroupBuffer.length;
                     // add align bytes to make sure the column size is the multiple of fsBlockSize
-                    if(chunkAlignment != 0 && rowGroupBuffer.length % chunkAlignment != 0)
+                    if(CHUNK_ALIGNMENT != 0 && rowGroupBuffer.length % CHUNK_ALIGNMENT != 0)
                     {
-                        int alignBytes = chunkAlignment - rowGroupBuffer.length % chunkAlignment;
-                        physicalWriter.append(chunkPaddingBuffer, 0, alignBytes);
+                        int alignBytes = CHUNK_ALIGNMENT - rowGroupBuffer.length % CHUNK_ALIGNMENT;
+                        physicalWriter.append(CHUNK_PADDING_BUFFER, 0, alignBytes);
                         writtenBytes += alignBytes;
                     }
                 }
@@ -587,7 +601,7 @@ public class PixelsWriterImpl implements PixelsWriter
             chunkIndexBuilder.setChunkOffset(curRowGroupOffset + rowGroupDataLength);
             chunkIndexBuilder.setChunkLength(writer.getColumnChunkSize());
             rowGroupDataLength += writer.getColumnChunkSize();
-            if(chunkAlignment != 0 && rowGroupDataLength % chunkAlignment != 0)
+            if(CHUNK_ALIGNMENT != 0 && rowGroupDataLength % CHUNK_ALIGNMENT != 0)
             {
                 /*
                  * Issue #519:
@@ -596,7 +610,7 @@ public class PixelsWriterImpl implements PixelsWriter
                  * without checking the alignment of the current position of the physical writer,
                  * then we should not consider curRowGroupOffset when calculating the alignment here.
                  */
-                rowGroupDataLength += chunkAlignment - rowGroupDataLength % chunkAlignment;
+                rowGroupDataLength += CHUNK_ALIGNMENT - rowGroupDataLength % CHUNK_ALIGNMENT;
             }
             // collect columnChunkIndex from every column chunk into curRowGroupIndex
             curRowGroupIndex.addColumnChunkIndexEntries(chunkIndexBuilder.build());
@@ -613,7 +627,7 @@ public class PixelsWriterImpl implements PixelsWriter
              * We temporarily fix this problem by creating a new column writer for each row group.
              */
             // writer.reset();
-            columnWriters[i] = newColumnWriter(children.get(i), pixelStride, encoding);
+            columnWriters[i] = newColumnWriter(children.get(i), columnWriterOption);
         }
 
         // put curRowGroupIndex into rowGroupFooter
@@ -660,8 +674,7 @@ public class PixelsWriterImpl implements PixelsWriter
         this.fileContentLength += rowGroupDataLength;
     }
 
-    private void writeFileTail()
-            throws IOException
+    private void writeFileTail() throws IOException
     {
         PixelsProto.Footer footer;
         PixelsProto.PostScript postScript;
@@ -682,7 +695,6 @@ public class PixelsWriterImpl implements PixelsWriter
         {
             footerBuilder.addRowGroupStats(rowGroupStatistic);
         }
-        footerBuilder.setPartitioned(partitioned);
         footer = footerBuilder.build();
 
         // build PostScript
@@ -692,8 +704,10 @@ public class PixelsWriterImpl implements PixelsWriter
                 .setNumberOfRows(fileRowNum)
                 .setCompression(compressionKind)
                 .setCompressionBlockSize(compressionBlockSize)
-                .setPixelStride(pixelStride)
+                .setPixelStride(columnWriterOption.getPixelStride())
                 .setWriterTimezone(timeZone.getDisplayName())
+                .setPartitioned(partitioned)
+                .setColumnChunkAlignment(CHUNK_ALIGNMENT)
                 .setMagic(Constants.MAGIC)
                 .build();
 

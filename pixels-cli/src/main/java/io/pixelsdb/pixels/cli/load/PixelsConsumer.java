@@ -26,11 +26,11 @@ import io.pixelsdb.pixels.common.utils.DateUtil;
 import io.pixelsdb.pixels.core.PixelsWriter;
 import io.pixelsdb.pixels.core.PixelsWriterImpl;
 import io.pixelsdb.pixels.core.TypeDescription;
+import io.pixelsdb.pixels.core.encoding.EncodingLevel;
 import io.pixelsdb.pixels.core.vector.ColumnVector;
 import io.pixelsdb.pixels.core.vector.VectorizedRowBatch;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.concurrent.BlockingQueue;
@@ -71,7 +71,8 @@ public class PixelsConsumer extends Consumer
             int[] orderMapping = parameters.getOrderMapping();
             int maxRowNum = parameters.getMaxRowNum();
             String regex = parameters.getRegex();
-            boolean enableEncoding = parameters.isEnableEncoding();
+            EncodingLevel encodingLevel = parameters.getEncodingLevel();
+            boolean nullsPadding = parameters.isNullsPadding();
             if (regex.equals("\\s"))
             {
                 regex = " ";
@@ -104,12 +105,7 @@ public class PixelsConsumer extends Consumer
                     Storage originStorage = StorageFactory.Instance().getStorage(originalFilePath);
                     reader = new BufferedReader(new InputStreamReader(originStorage.open(originalFilePath)));
 
-                    // choose the target output directory using round-robin
-                    int targetPathId = GlobalTargetPathId.getAndIncrement() % targetPaths.length;
-                    String targetDirPath = targetPaths[targetPathId];
-                    Storage targetStorage = StorageFactory.Instance().getStorage(targetDirPath);
-
-                    System.out.println("loading data into directory: " + targetDirPath);
+                    System.out.println("loading data from: " + originalFilePath);
 
                     while ((line = reader.readLine()) != null)
                     {
@@ -120,7 +116,12 @@ public class PixelsConsumer extends Consumer
                                 System.err.println("thread: " + currentThread().getName() + " got empty line.");
                                 continue;
                             }
-                            // we create a new pixels file if we can read a next line from the source file.
+                            // we create a new pixels file if we can read a next line from the source file
+
+                            // choose the target output directory using round-robin
+                            int targetPathId = GlobalTargetPathId.getAndIncrement() % targetPaths.length;
+                            String targetDirPath = targetPaths[targetPathId];
+                            Storage targetStorage = StorageFactory.Instance().getStorage(targetDirPath);
 
                             if (!targetDirPath.endsWith("/"))
                             {
@@ -137,7 +138,8 @@ public class PixelsConsumer extends Consumer
                                     .setBlockSize(blockSize)
                                     .setReplication(replication)
                                     .setBlockPadding(true)
-                                    .setEncoding(enableEncoding)
+                                    .setEncodingLevel(encodingLevel)
+                                    .setNullsPadding(nullsPadding)
                                     .setCompressionBlockSize(1)
                                     .build();
                         }

@@ -30,20 +30,20 @@ import java.io.IOException;
  * Boolean column writer.
  * Boolean values are compacted using bit-wise bytes, and then these integers are written out.
  *
- * @author guodong
+ * @author guodong, hank
+ * @update 2023-08-16 Chamonix: support nulls padding
  */
 public class BooleanColumnWriter extends BaseColumnWriter
 {
     private final byte[] curPixelVector = new byte[pixelStride];
 
-    public BooleanColumnWriter(TypeDescription type, int pixelStride, boolean isEncoding)
+    public BooleanColumnWriter(TypeDescription type,  PixelsWriterOption writerOption)
     {
-        super(type, pixelStride, isEncoding);
+        super(type, writerOption);
     }
 
     @Override
-    public int write(ColumnVector vector, int size)
-            throws IOException
+    public int write(ColumnVector vector, int size) throws IOException
     {
         ByteColumnVector columnVector = (ByteColumnVector) vector;
         byte[] values = columnVector.vector;
@@ -75,6 +75,11 @@ public class BooleanColumnWriter extends BaseColumnWriter
             {
                 hasNull = true;
                 pixelStatRecorder.increment();
+                if (nullsPadding)
+                {
+                    // padding 0 for nulls
+                    curPixelVector[curPixelVectorIndex++] = 0x00;
+                }
             }
             else
             {
@@ -86,16 +91,21 @@ public class BooleanColumnWriter extends BaseColumnWriter
     }
 
     @Override
-    public void newPixel()
-            throws IOException
+    public void newPixel() throws IOException
     {
         for (int i = 0; i < curPixelVectorIndex; i++)
         {
             pixelStatRecorder.updateBoolean(curPixelVector[i] != 0, 1);
         }
 
-        outputStream.write(BitUtils.bitWiseCompact(curPixelVector, curPixelVectorIndex));
+        outputStream.write(BitUtils.bitWiseCompact(curPixelVector, curPixelVectorIndex, byteOrder));
 
         super.newPixel();
+    }
+
+    @Override
+    public boolean decideNullsPadding(PixelsWriterOption writerOption)
+    {
+        return writerOption.isNullsPadding();
     }
 }

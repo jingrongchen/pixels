@@ -21,7 +21,6 @@ package io.pixelsdb.pixels.parser;
 
 import com.google.common.collect.ImmutableList;
 import io.pixelsdb.pixels.common.metadata.MetadataService;
-
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
@@ -50,10 +49,10 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
-import org.apache.calcite.sql2rel.SqlToRelConverter;
-import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.RelBuilder;
 
 import java.util.List;
@@ -75,10 +74,10 @@ public class PixelsParser
     private final VolcanoPlanner planner;
     private final RelOptCluster cluster;
 
-    PixelsParser(MetadataService ms,
-                 String schemaName,
-                 SqlParser.Config parserConfig,
-                 Properties calciteConfig)
+    public PixelsParser(MetadataService ms,
+                        String schemaName,
+                        SqlParser.Config parserConfig,
+                        Properties calciteConfig)
     {
         this.metadataService = ms;
         this.parserConfig = parserConfig;
@@ -121,21 +120,35 @@ public class PixelsParser
         return planner;
     }
 
+    /**
+     * Parsing the SQL query.
+     * @param sql
+     * @return sqlNode instance parsed from string format
+     * @throws SqlParseException
+     */
     public SqlNode parseQuery(String sql) throws SqlParseException
     {
         SqlParser parser = SqlParser.create(sql, parserConfig);
         return parser.parseQuery(); // Assumed only analytical workload
     }
 
+    /**
+     * Validation of the parsed SQL query.
+     * @param sqlNode
+     * @return validated sqlNode instance
+     */
     public SqlNode validate(SqlNode sqlNode)
     {
         return validator.validate(sqlNode);
     }
 
+    /**
+     * Convert the SQL query to unoptimized logical plan.
+     * @param sqlNode
+     * @return RelNode instance representing unoptimized logical plan
+     */
     public RelNode toRelNode(SqlNode sqlNode)
     {
-        RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
-
         SqlToRelConverter.Config converterConfig = SqlToRelConverter.config()
                 .withInSubQueryThreshold(Integer.MAX_VALUE)
                 .withExpand(false)

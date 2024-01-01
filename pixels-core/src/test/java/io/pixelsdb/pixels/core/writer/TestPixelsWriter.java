@@ -89,7 +89,7 @@ public class TestPixelsWriter
                             .setBlockSize(TestParams.blockSize)
                             .setReplication(TestParams.blockReplication)
                             .setBlockPadding(TestParams.blockPadding)
-                            .setEncoding(TestParams.encoding)
+                            .setEncodingLevel(TestParams.encodingLevel)
                             .setCompressionBlockSize(TestParams.compressionBlockSize)
                             .build();
 
@@ -193,7 +193,7 @@ public class TestPixelsWriter
                             .setBlockSize(TestParams.blockSize)
                             .setReplication(TestParams.blockReplication)
                             .setBlockPadding(TestParams.blockPadding)
-                            .setEncoding(TestParams.encoding)
+                            .setEncodingLevel(TestParams.encodingLevel)
                             .setCompressionBlockSize(TestParams.compressionBlockSize)
                             .build();
 
@@ -366,19 +366,18 @@ public class TestPixelsWriter
                 PixelsPhysicalReader pixelsPhysicalReader = new PixelsPhysicalReader(storage, file);
                 for (int i = 0; i < cacheBorder; i++)
                 {
-                    String[] cacheColumnletIdParts = cacheOrders.get(i).split(":");
-                    short cacheRGId = Short.parseShort(cacheColumnletIdParts[0]);
-                    short cacheColId = Short.parseShort(cacheColumnletIdParts[1]);
+                    String[] cacheColumnChunkIdParts = cacheOrders.get(i).split(":");
+                    short cacheRGId = Short.parseShort(cacheColumnChunkIdParts[0]);
+                    short cacheColId = Short.parseShort(cacheColumnChunkIdParts[1]);
                     PixelsProto.RowGroupFooter rowGroupFooter = pixelsPhysicalReader.readRowGroupFooter(cacheRGId);
                     PixelsProto.ColumnChunkIndex chunkIndex =
                             rowGroupFooter.getRowGroupIndexEntry().getColumnChunkIndexEntries(cacheColId);
-                    int chunkLen = (int) chunkIndex.getChunkLength();
+                    int chunkLen = chunkIndex.getChunkLength();
                     long chunkOffset = chunkIndex.getChunkOffset();
                     cacheLength += chunkLen;
-                    byte[] columnlet = pixelsPhysicalReader.read(chunkOffset, chunkLen);
-//                  byte[] columnlet = new byte[0];
+                    byte[] columnChunk = pixelsPhysicalReader.read(chunkOffset, chunkLen);
                     PixelsCacheKey cacheKey = new PixelsCacheKey(pixelsPhysicalReader.getCurrentBlockId(), cacheRGId, cacheColId);
-                    cacheWriter.write(cacheKey, columnlet);
+                    cacheWriter.write(cacheKey, columnChunk);
                 }
             }
             long endNano = System.nanoTime();

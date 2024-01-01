@@ -29,17 +29,19 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static io.pixelsdb.pixels.core.TypeDescription.LONG_DECIMAL_MAX_PRECISION;
-import static io.pixelsdb.pixels.core.TypeDescription.LONG_DECIMAL_MAX_SCALE;
+import static io.pixelsdb.pixels.core.TypeDescription.MAX_LONG_DECIMAL_PRECISION;
+import static io.pixelsdb.pixels.core.TypeDescription.MAX_LONG_DECIMAL_SCALE;
 import static java.math.BigDecimal.ROUND_HALF_UP;
 import static java.util.Objects.requireNonNull;
 
 /**
  * This class is similar to {@link DecimalColumnVector}, but supports long decimals
- * with max precision and scale 38.
+ * with max precision and scale 38. Each long decimal is stored as two continuous
+ * 64-bit integers in the vector, with the high 64 bits in the lower index. This is
+ * not affected by the endianness of the column reader or writer.
  *
- * Created at: 01/07/2022
- * Author: hank
+ * @author hank
+ * @create 2022-07-01
  */
 public class LongDecimalColumnVector extends ColumnVector
 {
@@ -65,10 +67,10 @@ public class LongDecimalColumnVector extends ColumnVector
         {
             throw new IllegalArgumentException("precision " + precision + " is negative");
         }
-        else if (precision > LONG_DECIMAL_MAX_PRECISION)
+        else if (precision > MAX_LONG_DECIMAL_PRECISION)
         {
             throw new IllegalArgumentException("precision " + precision +
-                    " is out of the max precision " + LONG_DECIMAL_MAX_PRECISION);
+                    " is out of the max precision " + MAX_LONG_DECIMAL_PRECISION);
         }
         this.precision = precision;
 
@@ -76,10 +78,10 @@ public class LongDecimalColumnVector extends ColumnVector
         {
             throw new IllegalArgumentException("scale " + scale + " is negative");
         }
-        else if (scale > LONG_DECIMAL_MAX_SCALE)
+        else if (scale > MAX_LONG_DECIMAL_SCALE)
         {
             throw new IllegalArgumentException("scale " + scale +
-                    " is out of the max scale " + LONG_DECIMAL_MAX_SCALE);
+                    " is out of the max scale " + MAX_LONG_DECIMAL_SCALE);
         }
         else if (scale > precision)
         {

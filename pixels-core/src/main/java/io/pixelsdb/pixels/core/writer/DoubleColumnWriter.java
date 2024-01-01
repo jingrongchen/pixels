@@ -25,28 +25,30 @@ import io.pixelsdb.pixels.core.vector.ColumnVector;
 import io.pixelsdb.pixels.core.vector.DoubleColumnVector;
 
 import java.io.IOException;
+import java.nio.ByteOrder;
 
 /**
- * pixels
+ * The column writer of double.
  *
- * @author guodong
+ * @author guodong, hank
+ * @update 2023-08-16 Chamonix: support nulls padding
  */
 public class DoubleColumnWriter extends BaseColumnWriter
 {
     private final EncodingUtils encodingUtils;
 
-    public DoubleColumnWriter(TypeDescription type, int pixelStride, boolean isEncoding)
+    public DoubleColumnWriter(TypeDescription type,  PixelsWriterOption writerOption)
     {
-        super(type, pixelStride, isEncoding);
+        super(type, writerOption);
         encodingUtils = new EncodingUtils();
     }
 
     @Override
-    public int write(ColumnVector vector, int length)
-            throws IOException
+    public int write(ColumnVector vector, int length) throws IOException
     {
         DoubleColumnVector columnVector = (DoubleColumnVector) vector;
         long[] values = columnVector.vector;
+        boolean littleEndian = this.byteOrder.equals(ByteOrder.LITTLE_ENDIAN);
         for (int i = 0; i < length; i++)
         {
             isNull[curPixelIsNullIndex++] = vector.isNull[i];
@@ -55,10 +57,22 @@ public class DoubleColumnWriter extends BaseColumnWriter
             {
                 hasNull = true;
                 pixelStatRecorder.increment();
+                if (nullsPadding)
+                {
+                    // padding 0 for nulls
+                    encodingUtils.writeLongLE(outputStream, 0L);
+                }
             }
             else
             {
-                encodingUtils.writeLongLE(outputStream, values[i]);
+                if (littleEndian)
+                {
+                    encodingUtils.writeLongLE(outputStream, values[i]);
+                }
+                else
+                {
+                    encodingUtils.writeLongBE(outputStream, values[i]);
+                }
                 pixelStatRecorder.updateDouble(Double.longBitsToDouble(values[i]));
             }
             // if current pixel size satisfies the pixel stride, end the current pixel and start a new one
@@ -68,5 +82,11 @@ public class DoubleColumnWriter extends BaseColumnWriter
             }
         }
         return outputStream.size();
+    }
+
+    @Override
+    public boolean decideNullsPadding(PixelsWriterOption writerOption)
+    {
+        return writerOption.isNullsPadding();
     }
 }

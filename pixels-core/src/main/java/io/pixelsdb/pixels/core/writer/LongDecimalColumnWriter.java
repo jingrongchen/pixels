@@ -25,30 +25,32 @@ import io.pixelsdb.pixels.core.vector.ColumnVector;
 import io.pixelsdb.pixels.core.vector.LongDecimalColumnVector;
 
 import java.io.IOException;
+import java.nio.ByteOrder;
 
 /**
  * The column writer of long decimals.
  * <p><b>Note: it supports decimals with max precision and scale 38.</b></p>
  *
- * @date 01.07.2022
  * @author hank
+ * @create 2022-07-01
+ * @update 2023-08-16 Chamonix: support nulls padding
  */
 public class LongDecimalColumnWriter extends BaseColumnWriter
 {
     private final EncodingUtils encodingUtils;
 
-    public LongDecimalColumnWriter(TypeDescription type, int pixelStride, boolean isEncoding)
+    public LongDecimalColumnWriter(TypeDescription type,  PixelsWriterOption writerOption)
     {
-        super(type, pixelStride, isEncoding);
+        super(type, writerOption);
         encodingUtils = new EncodingUtils();
     }
 
     @Override
-    public int write(ColumnVector vector, int length)
-            throws IOException
+    public int write(ColumnVector vector, int length) throws IOException
     {
         LongDecimalColumnVector columnVector = (LongDecimalColumnVector) vector;
         long[] values = columnVector.vector;
+        boolean littleEndian = this.byteOrder.equals(ByteOrder.LITTLE_ENDIAN);
         for (int i = 0; i < length; i++)
         {
             isNull[curPixelIsNullIndex++] = vector.isNull[i];
@@ -57,12 +59,26 @@ public class LongDecimalColumnWriter extends BaseColumnWriter
             {
                 hasNull = true;
                 pixelStatRecorder.increment();
+                if (nullsPadding)
+                {
+                    // padding 0 for nulls
+                    encodingUtils.writeLongLE(outputStream, 0L);
+                    encodingUtils.writeLongLE(outputStream, 0L);
+                }
             }
             else
             {
-                encodingUtils.writeLongLE(outputStream, values[i*2]);
-                encodingUtils.writeLongLE(outputStream, values[i*2+1]);
-                pixelStatRecorder.updateInteger128(values[i*2], values[i*2+1], 1);
+                if (littleEndian)
+                {
+                    encodingUtils.writeLongLE(outputStream, values[i << 1]);
+                    encodingUtils.writeLongLE(outputStream, values[(i << 1) + 1]);
+                }
+                else
+                {
+                    encodingUtils.writeLongBE(outputStream, values[i << 1]);
+                    encodingUtils.writeLongBE(outputStream, values[(i << 1) + 1]);
+                }
+                pixelStatRecorder.updateInteger128(values[i << 1], values[(i << 1) + 1], 1);
             }
             // if current pixel size satisfies the pixel stride, end the current pixel and start a new one
             if (curPixelEleIndex >= pixelStride)
@@ -71,5 +87,11 @@ public class LongDecimalColumnWriter extends BaseColumnWriter
             }
         }
         return outputStream.size();
+    }
+
+    @Override
+    public boolean decideNullsPadding(PixelsWriterOption writerOption)
+    {
+        return writerOption.isNullsPadding();
     }
 }

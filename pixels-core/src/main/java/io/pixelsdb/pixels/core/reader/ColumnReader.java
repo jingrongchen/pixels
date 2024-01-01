@@ -27,7 +27,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import static io.pixelsdb.pixels.core.TypeDescription.SHORT_DECIMAL_MAX_PRECISION;
+import static io.pixelsdb.pixels.core.TypeDescription.MAX_SHORT_DECIMAL_PRECISION;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -58,7 +58,7 @@ public abstract class ColumnReader implements Closeable
             case DOUBLE:
                 return new DoubleColumnReader(type);
             case DECIMAL: // Issue #196: precision and scale are passed through type.
-                if (type.getPrecision() <= SHORT_DECIMAL_MAX_PRECISION)
+                if (type.getPrecision() <= MAX_SHORT_DECIMAL_PRECISION)
                     return new DecimalColumnReader(type);
                 else
                     return new LongDecimalColumnReader(type);
@@ -80,14 +80,21 @@ public abstract class ColumnReader implements Closeable
                 return new BinaryColumnReader(type);
             case VARBINARY:
                 return new VarbinaryColumnReader(type);
+            case VECTOR:
+                return new VectorColumnReader(type);
             default:
                 throw new IllegalArgumentException("bad column type: " + type.getCategory());
         }
     }
 
+    public ColumnReader(TypeDescription type)
+    {
+        this.type = requireNonNull(type, "type is null");
+    }
+
     /**
      * Read values from input buffer.
-     * Values after specified offset are gonna be put into the specified vector.
+     * Values after specified offset are going to be put into the specified vector.
      *
      * @param input    input buffer
      * @param encoding encoding type
@@ -101,13 +108,7 @@ public abstract class ColumnReader implements Closeable
      */
     public abstract void read(ByteBuffer input, PixelsProto.ColumnEncoding encoding,
                               int offset, int size, int pixelStride, final int vectorIndex,
-                              ColumnVector vector, PixelsProto.ColumnChunkIndex chunkIndex)
-            throws IOException;
-
-    public ColumnReader(TypeDescription type)
-    {
-        this.type = requireNonNull(type, "type is null");
-    }
+                              ColumnVector vector, PixelsProto.ColumnChunkIndex chunkIndex) throws IOException;
 
     /**
      * Closes this column reader and releases any resources associated
@@ -123,5 +124,5 @@ public abstract class ColumnReader implements Closeable
      * @throws IOException if an I/O error occurs
      */
     @Override
-    abstract public void close() throws IOException;
+    public abstract void close() throws IOException;
 }

@@ -24,6 +24,7 @@ import io.pixelsdb.pixels.common.physical.StorageFactory;
 import io.pixelsdb.pixels.core.PixelsWriter;
 import io.pixelsdb.pixels.core.PixelsWriterImpl;
 import io.pixelsdb.pixels.core.TypeDescription;
+import io.pixelsdb.pixels.core.encoding.EncodingLevel;
 import io.pixelsdb.pixels.core.exception.PixelsWriterException;
 import io.pixelsdb.pixels.core.vector.*;
 
@@ -38,8 +39,10 @@ public class TestPixelsWriter
 {
     public static void main(String[] args) throws IOException
     {
-        String pixelsFile = "hdfs://localhost:9000//pixels/pixels/test_105/v_0_order/.pxl";
-        Storage storage = StorageFactory.Instance().getStorage("hdfs");
+        // Note you may need to restart intellij to let it pick up the updated environment variable value
+        // example path: s3://bucket-name/test-file.pxl
+        String pixelsFile = System.getenv("PIXELS_S3_TEST_BUCKET_PATH") + "test.pxl";
+        Storage storage = StorageFactory.Instance().getStorage("s3");
 
         String schemaStr = "struct<a:int,b:float,c:double,d:timestamp,e:boolean,z:string>";
 
@@ -48,10 +51,10 @@ public class TestPixelsWriter
             TypeDescription schema = TypeDescription.fromString(schemaStr);
             VectorizedRowBatch rowBatch = schema.createRowBatch();
             LongColumnVector a = (LongColumnVector) rowBatch.cols[0];              // int
-            DoubleColumnVector b = (DoubleColumnVector) rowBatch.cols[1];          // float
+            FloatColumnVector b = (FloatColumnVector) rowBatch.cols[1];          // float
             DoubleColumnVector c = (DoubleColumnVector) rowBatch.cols[2];          // double
             TimestampColumnVector d = (TimestampColumnVector) rowBatch.cols[3];    // timestamp
-            LongColumnVector e = (LongColumnVector) rowBatch.cols[4];              // boolean
+            ByteColumnVector e = (ByteColumnVector) rowBatch.cols[4];              // boolean
             BinaryColumnVector z = (BinaryColumnVector) rowBatch.cols[5];            // string
 
             PixelsWriter pixelsWriter =
@@ -64,7 +67,7 @@ public class TestPixelsWriter
                             .setBlockSize(256 * 1024 * 1024)
                             .setReplication((short) 3)
                             .setBlockPadding(true)
-                            .setEncoding(true)
+                            .setEncodingLevel(EncodingLevel.EL2)
                             .setCompressionBlockSize(1)
                             .build();
 
@@ -81,7 +84,7 @@ public class TestPixelsWriter
                 c.isNull[row] = false;
                 d.set(row, timestamp);
                 d.isNull[row] = false;
-                e.vector[row] = i > 25000 ? 1 : 0;
+                e.vector[row] = (byte) (i > 25000 ? 1 : 0);
                 e.isNull[row] = false;
                 z.setVal(row, String.valueOf(i).getBytes());
                 z.isNull[row] = false;
@@ -95,6 +98,7 @@ public class TestPixelsWriter
             if (rowBatch.size != 0)
             {
                 pixelsWriter.addRowBatch(rowBatch);
+                System.out.println("A rowBatch of size " + rowBatch.size + " has been written to " + pixelsFile);
                 rowBatch.reset();
             }
 

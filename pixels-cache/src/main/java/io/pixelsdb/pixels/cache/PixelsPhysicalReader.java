@@ -25,6 +25,7 @@ import io.pixelsdb.pixels.common.physical.Storage;
 import io.pixelsdb.pixels.core.PixelsProto;
 
 import java.io.IOException;
+import java.nio.ByteOrder;
 
 /**
  * @author guodong
@@ -48,7 +49,7 @@ public class PixelsPhysicalReader
             {
                 long fileLen = physicalReader.getFileLength();
                 physicalReader.seek(fileLen - Long.BYTES);
-                long fileTailOffset = physicalReader.readLong();
+                long fileTailOffset = physicalReader.readLong(ByteOrder.BIG_ENDIAN);
                 int fileTailLength = (int) (fileLen - fileTailOffset - Long.BYTES);
                 physicalReader.seek(fileTailOffset);
                 byte[] fileTailBuffer = new byte[fileTailLength];
@@ -98,18 +99,18 @@ public class PixelsPhysicalReader
 
     }
 
-    public int read(short rowGroupId, short columnId, byte[] columnlet) throws IOException
+    public int read(short rowGroupId, short columnId, byte[] columnChunk) throws IOException
     {
         PixelsProto.RowGroupFooter rowGroupFooter = readRowGroupFooter(rowGroupId);
         PixelsProto.ColumnChunkIndex chunkIndex =
                 rowGroupFooter.getRowGroupIndexEntry().getColumnChunkIndexEntries(columnId);
-        int physicalLen = (int) chunkIndex.getChunkLength();
-        if (physicalLen > columnlet.length) {
+        int physicalLen = chunkIndex.getChunkLength();
+        if (physicalLen > columnChunk.length) {
             return physicalLen;
         }
         long physicalOffset = chunkIndex.getChunkOffset();
         physicalReader.seek(physicalOffset);
-        physicalReader.readFully(columnlet);
+        physicalReader.readFully(columnChunk);
         return physicalLen;
 
     }

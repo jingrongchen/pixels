@@ -25,13 +25,14 @@ import io.pixelsdb.pixels.core.TypeDescription;
  * pixels column writer for <code>Char</code>
  * It is the same as VarcharColumnWriter, which means it never pads zero
  * at the end when writing a value. This is for performance reasons.
- * @author guodong
- * @author hank
+ *
+ * @author guodong, hank
+ * @update 2023-08-16 Chamonix: support nulls padding
  */
 public class CharColumnWriter extends VarcharColumnWriter
 {
-    public CharColumnWriter(TypeDescription type, int pixelStride, boolean isEncoding)
+    public CharColumnWriter(TypeDescription type,  PixelsWriterOption writerOption)
     {
-        super(type, pixelStride, isEncoding);
+        super(type, writerOption);
     }
 }

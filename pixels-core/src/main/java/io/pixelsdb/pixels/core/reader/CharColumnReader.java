@@ -24,11 +24,9 @@ import io.pixelsdb.pixels.core.TypeDescription;
 /**
  * This class is the same as String and Varchar column reader.
  * It does not pad zeros at the end of a value for performance reasons.
- * @author guodong
- * @author hank
+ * @author guodong, hank
  */
-public class CharColumnReader
-        extends StringColumnReader
+public class CharColumnReader extends StringColumnReader
 {
     // This class is implemented in Issue #100.
 
