@@ -251,4 +251,17 @@ public class VectorColumnVector extends ColumnVector
         vector[index] = vec;
         isNull[index] = false;
     }
+
+    @Override
+    public VectorColumnVector clone(){
+        VectorColumnVector clone = new VectorColumnVector(getLength(), dimension);
+        clone.vector = vector.clone();
+        clone.isNull = isNull.clone();
+        clone.writeIndex = writeIndex;
+        clone.noNulls = noNulls;
+        clone.isRepeating = isRepeating;
+        return clone;
+
+
+    }
 }

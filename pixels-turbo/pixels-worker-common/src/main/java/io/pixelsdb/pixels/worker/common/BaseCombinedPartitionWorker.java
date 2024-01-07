@@ -183,7 +183,6 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                 .setStorage(storage)
                 .setPath(tmpFilePath)
                 .setOverwrite(true) // set overwrite to true to avoid existence checking.
-                .setEncoding(encoding)
                 .setPartitioned(true);
             builder.setPartKeyColumnIds(Arrays.stream(keyColumnIds).boxed().collect(Collectors.toList()));
             PixelsWriter tmpWriter = builder.build();
@@ -276,7 +275,6 @@ public class BaseCombinedPartitionWorker extends Worker<CombinedPartitionInput, 
                             .setStorage(storage)
                             .setPath(filetoWrite)
                             .setOverwrite(true) // set overwrite to true to avoid existence checking.
-                            .setEncoding(encoding)
                             .setPartitioned(true);
                         pullbuilder.setPartKeyColumnIds(Arrays.stream(keyColumnIds).boxed().collect(Collectors.toList()));
                         PixelsWriter pullWriter = pullbuilder.build();

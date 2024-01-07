@@ -315,4 +315,15 @@ public class FloatColumnVector extends ColumnVector
             }
         }
     }
+
+    @Override
+    public FloatColumnVector clone(){
+        FloatColumnVector clone = new FloatColumnVector(getLength());
+        clone.vector = vector.clone();
+        clone.isNull = isNull.clone();
+        clone.writeIndex = writeIndex;
+        clone.noNulls = noNulls;
+        clone.isRepeating = isRepeating;
+        return clone;
+    }
 }

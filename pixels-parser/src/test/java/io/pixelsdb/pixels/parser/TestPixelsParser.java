@@ -152,13 +152,7 @@ public class TestPixelsParser
             System.out.println(writer.asString());
             System.out.println("Logical plan: \n" + writer.asString());
 
-            try {
-                BufferedWriter out = new BufferedWriter(new FileWriter("/home/ubuntu/opt/pixels/pixels-parser/src/test/java/io/pixelsdb/pixels/parser/logicalplan/"+queryname+".json"));
-                out.write(writer.asString());
-                out.close();
-                System.out.println("to finle success！");
-            } catch (IOException e) {
-            }
+
             
         }catch(Exception e){
             e.printStackTrace();

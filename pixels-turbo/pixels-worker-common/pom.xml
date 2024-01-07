@@ -50,12 +50,6 @@
             <artifactId>pixels-storage-redis</artifactId>
             <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>io.pixelsdb</groupId>
-            <artifactId>pixels-storage-localfs</artifactId>
-            <optional>true</optional>
-        </dependency>
-
 
         <!-- TODO: remove netty-buffer dependency from pixels-core -->
         <dependency>
@@ -77,14 +71,23 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
-            <version>1.2.83</version>
         </dependency>
-        
+
+        <!-- EXTRA -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!-- RXjava -->
+        <dependency>
+            <groupId>io.reactivex.rxjava3</groupId>
+            <artifactId>rxjava</artifactId>
+            <version>3.1.6</version>
+        </dependency>
+        <!-- END EXTRA -->
+
     </dependencies>
 
     <build>
